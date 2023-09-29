@@ -1,0 +1,82 @@
+<!--
+ Copyright (c) 2023 Joshua Rich <joshua.rich@gmail.com>
+
+ This software is released under the MIT License.
+ https://opensource.org/licenses/MIT
+-->
+
+# Developing Apps
+
+You can develop an app to send data to Home Assistant via MQTT in two ways:
+
+- As a stand-alone program, importing and using the modules under `pkg/`.
+- As a group of apps managed by the *agent* by satisfying an interface defined
+  by the agent needed to manage each app.
+
+Which path to take is up to you. As a suggestion, if you want to send different
+data from different places to Home Assistant, you'll likely want to develop apps
+that run under the agent as a single executable, as opposed to having multiple
+separate Go executables for each app and its data.
+
+In either case, apps should satisfy [Home Assistant MQTT
+Discovery](https://www.home-assistant.io/integrations/mqtt/#mqtt-discovery).
+Their operation is roughly:
+
+1. Send discovery message/payload (once only).
+2. Send state messages/payloads (as required).
+
+For an app using Go Hass Anything, that means the app:
+
+- Satisfies the `hass.MQTTDevice` interface.
+- Uses `hass.PublishConfigs` to send its discovery message.
+- Uses `hass.PublishState` to send its state messages.
+
+Additionally, if the app is self-contained and not running through the agent
+framework, it will need to supply a `hass.MQTTClient` to the `hass.*` functions.
+
+## Developing for the agent
+
+To develop an app to be run by the agent:
+
+- Create a concrete type that satisfies the `hass.MQTTDevice` interface.
+- Create the following exported functions:
+  - `Run(context.Context, hass.MQTTClient)`.
+  - `Clear(context.Context, hass.MQTTClient)`.
+
+You don't need to worry about setting up a connection to MQTT (satisfying
+`hass.MQTTClient`), the agent will do that for you.
+
+All functions should respect context cancellation and act appropriately on this
+signal.
+
+### Run Function
+
+This function should:
+
+- Run `hass.PublishConfigs(hass.MQTTDevice, hass.MQTTClient)` **once** to send
+  the config messages and payloads to Home Assistant. Pass your concrete type
+  (that satisfies `hass.MQTTDevice`) and the `hass.MQTTClient` passed in by the
+  agent.
+- On some kind of interval or event/feedback loop, run
+  `hass.PublishState(hass.MQTTDevice, hass.MQTTClient)` to send state payloads
+  to Home Assistant.
+
+### Clear Function
+
+This function should:
+
+- Run `hass.UnPublish(hass.MQTTDevice, hass.MQTTClient)` to remove all entities
+  and the device associated with this app from Home Assistant. Repeat runs
+  should be a no-op.
+
+### Adding to the agent
+
+To add your app to the agent, append the `Run` function to `RunList` and `Clear`
+to `ClearList` in the agent `init()` function:
+
+```go
+ RunList = append(RunList, yourAppPkg.Run)
+ ClearList = append(ClearList, yourAppPkg.Clear)
+```
+
+When you run `go-hass-anything run`, your app should now be run as well.

@@ -1,0 +1,34 @@
+version: "3.8"
+services:
+  devcontainer:
+    image: mcr.microsoft.com/devcontainers/base:ubuntu
+    volumes:
+      - ../..:/workspaces:cached
+      - /etc/localtime:/etc/localtime"
+    command: /bin/sh -c "while sleep 1000; do :; done"
+    network_mode: host
+    userns_mode: keep-id
+    user: vscode
+  mosquitto:
+    image: docker.io/eclipse-mosquitto:2.0.17
+    volumes:
+      - ../deployments/mosquitto/config:/mosquitto/config:cached
+      - ../deployments/mosquitto/data:/mosquitto/data
+      - ../deployments/mosquitto/log:/mosquitto/log
+      - /etc/localtime:/etc/localtime"
+    ports:
+      - 1883:1883
+      - 8883:8883
+    restart: on-failure
+    network_mode: host
+    userns_mode: keep-id
+  home-assistant:
+    image: ghcr.io/home-assistant/home-assistant:2023.9.2
+    volumes:
+      - ../deployments/home-assistant/config:/config
+      - /etc/localtime:/etc/localtime"
+    ports:
+      - 8123:8123
+    restart: on-failure
+    userns_mode: keep-id
+    network_mode: host
