@@ -15,12 +15,6 @@
 
 **Send anything to Home Assistant, through MQTT, powered by Go.**
 
-## 🤝 Compatibility
-
-Currently, only Linux is supported. Though the code is designed to be extensible
-to other operating systems. See [the development docs](docs/development.md) for
-details on how to extend for other operating systems.
-
 ## ⬇️ Installation
 
 Head over to the [releases](https://github.com/joshuar/go-hass-anything/releases)
@@ -32,7 +26,7 @@ distribution:
 - For **Arch**, use the `.tar.zst`.
 
 For other distributions not listed above, you can try the binary, or build it
-yourself from source (see [development](docs/development.md)).
+yourself from source (see [development docs](docs/development/README.md)).
 
 ## 🖱️ Usage
 
@@ -61,6 +55,13 @@ entities. After that, the app should start sending
 data to Home Assistant and should be visible under the [MQTT
 Integration](https://www.home-assistant.io/integrations/mqtt/).
 
+> [!NOTE]
+> By default, the agent only runs a single [example
+> app](internal/apps/exampleApp/exampleApp.go) that will fetch load averages from
+> the local system, current temperature from an online weather service and add a
+> button to open the Home Assistant homepage. Add your own apps by following the
+> [development docs](docs/development/README.md).
+
 ### Other Actions
 
 #### Reset/Remove app data from Home Assistant
@@ -75,6 +76,12 @@ go-hass-anything clear
 After this, there should be no devices (from Go Hass Anything) and associated
 entities in Home Assistant. If you want to re-add them, execute the run
 command again.
+
+## 🤝 Compatibility
+
+Currently, only Linux is supported. Though the code is designed to be extensible
+to other operating systems. See [the development docs](docs/development/README.md) for
+details on how to extend for other operating systems.
 
 ## 🧑‍🤝‍🧑 Contributing
 
