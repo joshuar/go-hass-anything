@@ -95,6 +95,8 @@ func (a *exampleApp) Builder() *requests.Builder {
 	return requests.URL(serviceURL)
 }
 
+// getLoadAvgs fetches the load averages for the system running
+// go-hass-anything, using the very handy gopsutil package
 func (a *exampleApp) getLoadAvgs(ctx context.Context) error {
 	if l, err := load.AvgWithContext(ctx); err != nil {
 		return err
@@ -186,7 +188,7 @@ func (a *exampleApp) Configuration() []*mqtt.MQTTMsg {
 		Callback:    buttonCallback,
 	})
 
-	// we marshal our sensor configs into JSON and format them as an mqtt.MQTTMsg
+	// we marshal our configs into JSON and format them as an mqtt.MQTTMsg
 	for _, e := range entities {
 		if j, err := json.Marshal(e.Entity); err != nil {
 			log.Warn().Err(err).Msgf("Failed to marshal payload for %s.", e.Entity.UniqueID)
