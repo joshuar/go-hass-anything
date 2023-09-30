@@ -26,7 +26,7 @@ distribution:
 - For **Arch**, use the `.tar.zst`.
 
 For other distributions not listed above, you can try the binary, or build it
-yourself from source (see [development docs](./docs/development/README.md)).
+yourself from source (see [development docs](docs/development/README.md)).
 
 ## 🖱️ Usage
 
@@ -60,7 +60,7 @@ Integration](https://www.home-assistant.io/integrations/mqtt/).
 > app](internal/apps/exampleApp/exampleApp.go) that will fetch load averages from
 > the local system, current temperature from an online weather service and add a
 > button to open the Home Assistant homepage. Add your own apps by following the
-> [development docs](./docs/development/README.md).
+> [development docs](docs/development/README.md).
 
 ### Other Actions
 
@@ -80,7 +80,7 @@ command again.
 ## 🤝 Compatibility
 
 Currently, only Linux is supported. Though the code is designed to be extensible
-to other operating systems. See [the development docs](./docs/development/README.md) for
+to other operating systems. See [the development docs](docs/development/README.md) for
 details on how to extend for other operating systems.
 
 ## 🧑‍🤝‍🧑 Contributing
@@ -91,7 +91,7 @@ I would welcome your contribution! If you find any improvement or issue you want
 to fix, feel free to send a pull request!
 
 Some documentation for development can be found in
-the [docs](./docs/README.md). There is information for developing
+the [docs](docs/README.md). There is information for developing
 Go Hass Anything for different operating systems as well as adding additional
 apps. This might help anyone to look to contribute, extend or fork this tool.
 
