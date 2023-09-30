@@ -10,7 +10,7 @@ import (
 	"sync"
 
 	ui "github.com/joshuar/go-hass-anything/internal/agent/ui/bubbletea"
-	"github.com/joshuar/go-hass-anything/internal/apps/exampleApp"
+	"github.com/joshuar/go-hass-anything/internal/apps/exampleapp"
 	"github.com/joshuar/go-hass-anything/pkg/config"
 	viper "github.com/joshuar/go-hass-anything/pkg/config/viper"
 	"github.com/joshuar/go-hass-anything/pkg/hass"
@@ -24,8 +24,8 @@ var (
 )
 
 func init() {
-	RunList = append(RunList, exampleApp.Run)
-	ClearList = append(ClearList, exampleApp.Clear)
+	RunList = append(RunList, exampleapp.Run)
+	ClearList = append(ClearList, exampleapp.Clear)
 }
 
 type agent struct {
@@ -79,42 +79,22 @@ func (a *agent) Configure() {
 	a.ui.Run()
 }
 
-func (a *agent) RunApps(ctx context.Context, mqtt *mqtt.MQTTClient) {
-	appCh := make(chan func(context.Context, hass.MQTTClient), len(RunList))
-	var wg sync.WaitGroup
-
-	for i := 0; i < len(RunList); i++ {
-		appCh <- RunList[i]
-	}
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for app := range appCh {
-			app(ctx, mqtt)
-		}
-	}()
-
-	close(appCh)
-	wg.Wait()
+func (a *agent) RunApps(ctx context.Context, client *mqtt.MQTTClient) {
+	a.doApps(ctx, client, RunList)
 }
 
-func (a *agent) ClearApps(ctx context.Context, mqtt *mqtt.MQTTClient) {
-	appCh := make(chan func(context.Context, hass.MQTTClient), len(ClearList))
+func (a *agent) ClearApps(ctx context.Context, client *mqtt.MQTTClient) {
+	a.doApps(ctx, client, ClearList)
+}
+
+func (a *agent) doApps(ctx context.Context, client *mqtt.MQTTClient, appList []func(context.Context, hass.MQTTClient)) {
 	var wg sync.WaitGroup
-
-	for i := 0; i < len(ClearList); i++ {
-		appCh <- ClearList[i]
+	for _, app := range appList {
+		wg.Add(1)
+		go func(a func(context.Context, hass.MQTTClient)) {
+			defer wg.Done()
+			a(ctx, client)
+		}(app)
 	}
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for app := range appCh {
-			app(ctx, mqtt)
-		}
-	}()
-
-	close(appCh)
 	wg.Wait()
 }

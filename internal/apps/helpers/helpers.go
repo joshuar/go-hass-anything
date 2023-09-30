@@ -10,26 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/iancoleman/strcase"
 	"github.com/lthibault/jitterbug/v2"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 )
-
-// FormatName will take a string s and format it with appropriate spacing
-// between words and capitalised the first letter of each word. For example
-// someString becomes Some String. The new string is then an appropriate format
-// to be used as a name in Home Assistant.
-func FormatName(s string) string {
-	c := cases.Title(language.AmericanEnglish)
-	return c.String(strcase.ToDelimited(s, ' '))
-}
-
-// FormatID will take a string s and format it as snake_case. The new string is
-// then an appropriate format to be used as a unique ID in Home Assistant.
-func FormatID(s string) string {
-	return strcase.ToSnake(s)
-}
 
 // PollSensors is a helper function that will call the passed `updater()`
 // function around each `interval` duration within the `stdev` duration window.

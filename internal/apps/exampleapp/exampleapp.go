@@ -3,7 +3,7 @@
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
-package exampleApp
+package exampleapp
 
 import (
 	"context"
@@ -32,8 +32,8 @@ const (
 
 type exampleApp struct {
 	config      config.App
-	weatherData []byte
 	loadData    *load.AvgStat
+	weatherData []byte
 }
 
 // newExampleApp sets up our example app. We make use of our custom viper
@@ -109,96 +109,70 @@ func (a *exampleApp) getLoadAvgs(ctx context.Context) error {
 // Our app needs to satisfy the hass.MQTTDevice interface to be able to send its
 // data through the agent. The following three methods achieve that.
 
-// Configuration is called when our app is first registered in home assisant and
+// Configuration is called when our app is first registered in Home Assistant and
 // will return configuration messages for the data our app will send/receive.
 func (a *exampleApp) Configuration() []*mqtt.MQTTMsg {
 	var msgs []*mqtt.MQTTMsg
-	var entities []*helpers.EntityConfig
+	var entities []*hass.EntityConfig
 
-	// we will have a sensor containing the current temperature. We rely on
+	// deviceInfo is used to associate each sensor to our example app device in Home Assistant
+	deviceInfo := &hass.Device{
+		Name:        appName,
+		Identifiers: []string{"exampleApp01"},
+	}
+
+	// originInfo is used by Home Assistant to indicate where the device/sensors
+	// came from. In this case, we fill out the details to indicate Go Hass
+	// Anything.
+	originInfo := &hass.Origin{
+		Name:    appName,
+		Version: "1.0.0",
+		URL:     "https://github.com/joshuar/go-hass-anything",
+	}
+
+	// for each of our sensors, we use the builder functions in the hass package
+	// to create our entity configs. These are some syntactic sugar that make it
+	// a little easier to configure the myriad options for different types of
+	// entities by automatically applying some defaults that are appropriate.
+
+	// we build a sensor containing the current temperature. We rely on
 	// ValueTemplate to extract out the value we are interested in. We could
 	// create more sensors and extract other values out of this response if
 	// desired.
-	entities = append(entities, &helpers.EntityConfig{
-		Entity: &helpers.Entity{
-			UniqueID:          helpers.FormatID("exampleApp_weather_temp"),
-			Name:              "Example App Temp",
-			ValueTemplate:     "{{ value_json.current_condition[0].temp_C }}",
-			StateClass:        "measurement",
-			DeviceClass:       "temperature",
-			UnitOfMeasurement: "°C",
-			StateTopic:        mqtt.DiscoveryPrefix + "/sensor/" + appName + "/" + helpers.FormatID("exampleApp_weather_temp") + "/state",
-			Device: &helpers.Device{
-				Name:        appName,
-				Identifiers: []string{"exampleApp01"},
-			},
-			Origin: &helpers.Origin{
-				Name:    appName,
-				Version: "1.0.0",
-				URL:     "https://github.com/joshuar/go-hass-anything",
-			},
-		},
-		ConfigTopic: mqtt.DiscoveryPrefix + "/sensor/" + appName + "/" + helpers.FormatID("exampleApp_weather_temp") + "/config",
-	})
+	entities = append(entities,
+		hass.NewEntityByName("ExampleApp Weather Temp", appName).
+			AsSensor().
+			WithDevice(deviceInfo).
+			WithOrigin(originInfo).
+			WithStateClassMeasurement().
+			WithDeviceClass("temperature").
+			WithUnits("°C").
+			WithValueTemplate("{{ value_json.current_condition[0].temp_C }}"))
 
 	// we have three sensors for the loadavgs
-	for _, load := range []string{"Load1", "Load5", "Load15"} {
-		// we use some helper functions to format the name and id
-		id := helpers.FormatID("exampleApp_load" + load)
-		name := helpers.FormatName("Example App Load Avg " + load)
-		entities = append(entities, &helpers.EntityConfig{
-			Entity: &helpers.Entity{
-				UniqueID:      id,
-				Name:          name,
-				ValueTemplate: "{{ value }}",
-				StateClass:    "measurement",
-				StateTopic:    mqtt.DiscoveryPrefix + "/sensor/" + appName + "/" + id + "/state",
-				Device: &helpers.Device{
-					Name:        appName,
-					Identifiers: []string{"exampleApp01"},
-				},
-				Origin: &helpers.Origin{
-					Name:    appName,
-					Version: "1.0.0",
-					URL:     "https://github.com/joshuar/go-hass-anything",
-				},
-			},
-			ConfigTopic: mqtt.DiscoveryPrefix + "/sensor/" + appName + "/" + id + "/config",
-		})
+	for _, load := range []string{"1", "5", "15"} {
+		entities = append(entities,
+			hass.NewEntityByID("example_app_load"+load, appName).
+				AsSensor().
+				WithDevice(deviceInfo).
+				WithOrigin(originInfo).
+				WithStateClassMeasurement().
+				WithValueTemplate("{{ value }}"))
 	}
 
 	// we also have a button that when pressed in Home Assistant, will perform
 	// an action
-	entities = append(entities, &helpers.EntityConfig{
-		Entity: &helpers.Entity{
-			UniqueID:     "exampleApp_button",
-			Name:         "Example App Button",
-			CommandTopic: mqtt.DiscoveryPrefix + "/button/" + appName + "/exampleApp_button/toggle",
-			Device: &helpers.Device{
-				Name:        appName,
-				Identifiers: []string{"exampleApp01"},
-			},
-			Origin: &helpers.Origin{
-				Name:    appName,
-				Version: "1.0.0",
-				URL:     "https://github.com/joshuar/go-hass-anything",
-			},
-		},
-		ConfigTopic: mqtt.DiscoveryPrefix + "/button/" + appName + "/exampleApp_button/config",
-		Callback:    buttonCallback,
-	})
+	entities = append(entities,
+		hass.NewEntityByID("example_app_button", appName).
+			AsButton().
+			WithCommandCallback(buttonCallback))
 
-	// we marshal our configs into JSON and format them as an mqtt.MQTTMsg
+	// we marshal our configs into an mqtt.MQTTMsg
 	for _, e := range entities {
-		if j, err := json.Marshal(e.Entity); err != nil {
-			log.Warn().Err(err).Msgf("Failed to marshal payload for %s.", e.Entity.UniqueID)
+		if msg, err := hass.MarshalConfig(e); err != nil {
+			log.Error().Err(err).Str("entity", e.Entity.Name).Msg("Could not marshal config for entity.")
 		} else {
-			log.Info().Str("entity", e.Entity.UniqueID).Str("appName", appName).Msg("Adding configuration.")
-			msgs = append(msgs, &mqtt.MQTTMsg{
-				Topic:    e.ConfigTopic,
-				Message:  j,
-				Retained: true,
-			})
+			msgs = append(msgs, msg)
 		}
 	}
 
@@ -211,20 +185,20 @@ func (a *exampleApp) States() []*mqtt.MQTTMsg {
 
 	// we retrieve the weather data and send that as the weather sensor state
 	msgs = append(msgs, &mqtt.MQTTMsg{
-		Topic:   mqtt.DiscoveryPrefix + "/sensor/" + appName + "/" + helpers.FormatID("exampleApp_weather_temp") + "/state",
+		Topic:   mqtt.DiscoveryPrefix + "/sensor/" + appName + "/example_app_weather_temp/state",
 		Message: a.weatherData,
 	})
 
 	// we retrieve our load avgs
-	for _, load := range []string{"Load1", "Load5", "Load15"} {
-		id := helpers.FormatID("exampleApp_load" + load)
+	for _, load := range []string{"1", "5", "15"} {
+		id := "example_app_load" + load
 		var l float64
 		switch load {
-		case "Load1":
+		case "1":
 			l = a.loadData.Load1
-		case "Load5":
+		case "5":
 			l = a.loadData.Load5
-		case "Load15":
+		case "15":
 			l = a.loadData.Load15
 		}
 		msgs = append(msgs, &mqtt.MQTTMsg{
@@ -243,7 +217,7 @@ func (a *exampleApp) Subscriptions() []*mqtt.MQTTSubscription {
 
 	// we add our callback for our button
 	msgs = append(msgs, &mqtt.MQTTSubscription{
-		Topic:    mqtt.DiscoveryPrefix + "/button/" + appName + "/exampleApp_button/toggle",
+		Topic:    mqtt.DiscoveryPrefix + "/button/" + appName + "/example_app_button/toggle",
 		Callback: buttonCallback,
 	})
 	return msgs
@@ -303,7 +277,7 @@ func Clear(_ context.Context, client hass.MQTTClient) {
 	log.Info().Msgf("Clearing %s app data from Home Assistant.", appName)
 	app := newExampleApp()
 
-	if err := hass.UnPublish(app, client); err != nil {
+	if err := hass.Unpublish(app, client); err != nil {
 		log.Error().Err(err).Msg("Failed to clear app data from Home Assistant.")
 	}
 	if err := app.config.UnRegister(appName); err != nil {

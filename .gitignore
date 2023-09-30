@@ -32,4 +32,4 @@
 
 internal/apps/**/
 !internal/apps/helpers
-!internal/apps/exampleApp
+!internal/apps/exampleapp

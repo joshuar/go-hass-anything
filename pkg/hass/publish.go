@@ -30,7 +30,7 @@ func Subscribe(device MQTTDevice, client MQTTClient) error {
 	return client.Subscribe(device.Subscriptions()...)
 }
 
-func UnPublish(device MQTTDevice, client MQTTClient) error {
+func Unpublish(device MQTTDevice, client MQTTClient) error {
 	var msgs []*mqtt.MQTTMsg
 	for _, msg := range device.Configuration() {
 		msgs = append(msgs, &mqtt.MQTTMsg{
