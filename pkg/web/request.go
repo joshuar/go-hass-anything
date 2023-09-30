@@ -18,6 +18,7 @@ import (
 
 type Request interface {
 	Builder() *requests.Builder
+	Timeout() time.Duration
 }
 
 type genericResponse struct {
@@ -42,7 +43,7 @@ func ExecuteRequest(ctx context.Context, request Request, responseCh chan Respon
 	var resultBody bytes.Buffer
 	resultHeaders := make(map[string][]string)
 	defer close(responseCh)
-	requestCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	requestCtx, cancel := context.WithTimeout(ctx, request.Timeout())
 	defer cancel()
 	var wg sync.WaitGroup
 

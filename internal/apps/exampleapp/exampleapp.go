@@ -40,7 +40,7 @@ type exampleApp struct {
 // wrapper that allows storing our config in
 // ~/.config/go-hass-anything/exampleApp/config.toml. This is used for storing
 // the registration status of our app (whether we need to send config messages
-// or not) at a minimum and we also store the URL to the weather service.
+// or not at a minimum) and we also store the URL to the weather service.
 func newExampleApp() *exampleApp {
 	var err error
 	app := &exampleApp{}
@@ -93,6 +93,13 @@ func (a *exampleApp) Builder() *requests.Builder {
 	}
 
 	return requests.URL(serviceURL)
+}
+
+// web.Request also has a Timeout() method, which we can use to specify a
+// timeout after which our web request will be cancelled. In our case, we will
+// wait 15 seconds.
+func (a *exampleApp) Timeout() time.Duration {
+	return 15 * time.Second
 }
 
 // getLoadAvgs fetches the load averages for the system running
