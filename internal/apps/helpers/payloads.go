@@ -5,7 +5,17 @@
 
 package helpers
 
+import (
+	MQTT "github.com/eclipse/paho.mqtt.golang"
+)
+
 type EntityConfig struct {
+	Entity      *Entity
+	Callback    func(MQTT.Client, MQTT.Message)
+	ConfigTopic string
+}
+
+type Entity struct {
 	Origin            *Origin `json:"origin,omitempty"`
 	Device            *Device `json:"device,omitempty"`
 	DeviceClass       string  `json:"device_class,omitempty"`

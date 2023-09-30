@@ -34,6 +34,21 @@ For an app using Go Hass Anything, that means the app:
 Additionally, if the app is self-contained and not running through the agent
 framework, it will need to supply a `hass.MQTTClient` to the `hass.*` functions.
 
+## Example App
+
+Check out the [example app](../../internal/apps/exampleApp/exampleApp.go) which
+demonstrates:
+
+- How to get data from the system running Go Hass anything using an external Go
+  package.
+- How to get data from the web using a helper function to issue web requests.
+- How to create a button in Home Assistant that when pressed, will execute an
+  app action.
+
+The code has lots of comments for guidance. It can also be heavily optimised
+from its current state and so is a good starting point for practising Go as
+well.
+
 ## Developing for the agent
 
 To develop an app to be run by the agent:

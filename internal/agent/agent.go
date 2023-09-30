@@ -10,7 +10,7 @@ import (
 	"sync"
 
 	ui "github.com/joshuar/go-hass-anything/internal/agent/ui/bubbletea"
-	"github.com/joshuar/go-hass-anything/internal/apps/qbittorrent"
+	"github.com/joshuar/go-hass-anything/internal/apps/exampleApp"
 	"github.com/joshuar/go-hass-anything/pkg/config"
 	viper "github.com/joshuar/go-hass-anything/pkg/config/viper"
 	"github.com/joshuar/go-hass-anything/pkg/hass"
@@ -24,8 +24,8 @@ var (
 )
 
 func init() {
-	RunList = append(RunList, qbittorrent.Run)
-	ClearList = append(ClearList, qbittorrent.Clear)
+	RunList = append(RunList, exampleApp.Run)
+	ClearList = append(ClearList, exampleApp.Clear)
 }
 
 type agent struct {

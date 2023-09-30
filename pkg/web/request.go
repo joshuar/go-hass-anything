@@ -42,7 +42,7 @@ func ExecuteRequest(ctx context.Context, request Request, responseCh chan Respon
 	var resultBody bytes.Buffer
 	resultHeaders := make(map[string][]string)
 	defer close(responseCh)
-	requestCtx, cancel := context.WithTimeout(ctx, time.Second)
+	requestCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 	var wg sync.WaitGroup
 
