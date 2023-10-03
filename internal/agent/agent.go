@@ -10,7 +10,6 @@ import (
 	"sync"
 
 	ui "github.com/joshuar/go-hass-anything/internal/agent/ui/bubbletea"
-	"github.com/joshuar/go-hass-anything/internal/apps/exampleapp"
 	"github.com/joshuar/go-hass-anything/pkg/config"
 	viper "github.com/joshuar/go-hass-anything/pkg/config/viper"
 	"github.com/joshuar/go-hass-anything/pkg/hass"
@@ -18,15 +17,12 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+//go:generate go run ../../tools/appgenerator/run.go arg1
+
 var (
 	RunList   []func(context.Context, hass.MQTTClient)
 	ClearList []func(context.Context, hass.MQTTClient)
 )
-
-func init() {
-	RunList = append(RunList, exampleapp.Run)
-	ClearList = append(ClearList, exampleapp.Clear)
-}
 
 type agent struct {
 	Config  config.Agent
