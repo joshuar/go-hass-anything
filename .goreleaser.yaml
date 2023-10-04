@@ -40,23 +40,6 @@ nfpms:
       - rpm
       - archlinux
     bindir: /usr/bin
-    # overrides:
-      # rpm:
-      #   dependencies:
-      #     - libglvnd-glx
-      #     - libX11
-      #     - libXrandr
-      #     - libXxf86vm
-      #     - libXi
-      #     - libXcursor
-      #     - libXinerama
-      # deb:
-      #   dependencies:
-      #     - libgl1
-      #     - libxi6
-      #     - libxcursor1
-      #     - libxrandr2
-      #     - libxinerama1
     release: "1"
     section: default
     priority: extra
@@ -66,12 +49,8 @@ nfpms:
         dst: /usr/share/licenses/go-hass-anything/LICENSE
       - src: README.md
         dst: /usr/share/doc/go-hass-anything/README.md
-      # - src: internal/agent/ui/assets/logo-pretty.png
-      #   dst: /usr/share/pixmaps/go-hass-agent.png
-      # - src: assets/go-hass-agent.desktop
-      #   dst: /usr/share/applications/go-hass-agent.desktop
-      # - src: assets/systemd/go-hass-agent.service
-      #   dst: /usr/lib/systemd/user/go-hass-agent.service
+      - src: init/systemd/go-hass-anything.service
+        dst: /usr/lib/systemd/user/go-hass-anything.service
     rpm:
       compression: lzma
     deb:

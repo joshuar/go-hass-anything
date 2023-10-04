@@ -20,6 +20,7 @@
 !.devcontainer/*
 !.github/workflows/*
 !.github/FUNDING.yml
+!init/systemd/*
 
 !README.md
 !LICENSE
