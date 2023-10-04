@@ -51,6 +51,23 @@ well.
 
 ## Developing for the agent
 
+### Code Location
+
+> [!IMPORTANT]
+> App directories are not committed to version control. This allows your apps to
+> remain private. But it also means that if you desire version control of your
+> apps, you should set up either git submodules or use subtree merging.
+
+You can put your code in `internal/apps/myapp/myapp.go`. You can create multiple
+directories for each app you develop.
+
+> [!NOTE] The filename is important. The generator to automatically add your app
+> to the agent needs a `.go` file named the same as the app directory to detect
+> your app. Make sure you at least have this file if you split your app code
+> into multiple files.
+
+### Code Requirements
+
 To develop an app to be run by the agent:
 
 - Create a concrete type that satisfies the `hass.MQTTDevice` interface.
@@ -64,7 +81,9 @@ You don't need to worry about setting up a connection to MQTT (satisfying
 All functions should respect context cancellation and act appropriately on this
 signal.
 
-### Run Function
+You need to at least have
+
+#### Run Function
 
 This function should:
 
@@ -76,7 +95,7 @@ This function should:
   `hass.PublishState(hass.MQTTDevice, hass.MQTTClient)` to send state payloads
   to Home Assistant.
 
-### Clear Function
+#### Clear Function
 
 This function should:
 
@@ -86,12 +105,17 @@ This function should:
 
 ### Adding to the agent
 
-To add your app to the agent, append the `Run` function to `RunList` and `Clear`
-to `ClearList` in the agent `init()` function:
+Apps the agent runs need their `Run` function appended to the agent `RunList`
+variable and their `Clear` function appended to the agent `ClearList` variable.
 
-```go
- RunList = append(RunList, yourAppPkg.Run)
- ClearList = append(ClearList, yourAppPkg.Clear)
-```
+If you have followed the requirements above for both location and code
+functions, you can run `go generate ./...` in the repo root to add your app(s)
+to the agent. A new `internal/agent/init.go` file should be generated, which
+will contain the necessary code to add your apps to the agent.
 
-When you run `go-hass-anything run`, your app should now be run as well.
+> [!IMPORTANT]
+> The file `internal/agent/init.go` is not committed to version control. Like
+> your app code, this allows your apps to remain private.
+
+After running `go build` (or building a release with `goreleaser`) the agent
+should run all of your apps.
