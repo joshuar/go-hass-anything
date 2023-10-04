@@ -61,7 +61,8 @@ well.
 You can put your code in `internal/apps/myapp/myapp.go`. You can create multiple
 directories for each app you develop.
 
-> [!NOTE] The filename is important. The generator to automatically add your app
+> [!NOTE]
+> The filename is important. The generator to automatically add your app
 > to the agent needs a `.go` file named the same as the app directory to detect
 > your app. Make sure you at least have this file if you split your app code
 > into multiple files.
