@@ -16,4 +16,4 @@
 
 - [General development notes](development/README.md)
 - [Developing the agent](development/Agent.md).
-- [Developing apps](development/Apps.md).
+- [Creating apps](development/Apps.md).

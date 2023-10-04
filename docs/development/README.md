@@ -1,6 +1,6 @@
 <!--
  Copyright (c) 2023 Joshua Rich <joshua.rich@gmail.com>
- 
+
  This software is released under the MIT License.
  https://opensource.org/licenses/MIT
 -->
@@ -10,7 +10,7 @@
 ## Development Environment
 
 It is recommended to use [Visual Studio Code](https://code.visualstudio.com/).
-This project makes use of a [Devcontainer](https://containers.dev/) to provide
+This project makes use of a [devcontainer](https://containers.dev/) to provide
 some convenience during development.
 
 If using Visual Studio Code, you should be prompted when opening your cloned
@@ -24,7 +24,7 @@ started automatically.
 An example configuration for Mosquitto has been provided in
 `deployments/mosquitto/config/mosquitto.conf.example`.
 
-The mosquitto command-line utilities (`mosquitto_{pub,sub}`) are installed in
+The Mosquitto command-line utilities (`mosquitto_{pub,sub}`) are installed in
 the devcontainer.
 
 ## Building
@@ -37,12 +37,13 @@ go generate ./...
 go build
 ```
 
+The resulting `go-hass-anything` binary in the root of the repo should be ready
+to run.
+
 ## Packaging
 
 Go Hass Anything uses [Goreleaser](https://goreleaser.com/intro/) to create
-packages for Fedora, Arch and Ubuntu and
-[fyne-cross](https://github.com/fyne-io/fyne-cross) to create packages for
-Debian.
+packages for Fedora, Arch, and Ubuntu.
 
 To build a “local-only” package with Goreleaser:
 
@@ -50,7 +51,8 @@ To build a “local-only” package with Goreleaser:
 goreleaser release --snapshot --clean
 ```
 
-Packages will be available under the `dist/` folder.
+Packages will be available under the `dist/` folder. These can be installed
+directly on your machine(s) using the typical package managers for your distribution.
 
 See the [Goreleaser docs](https://goreleaser.com/quick-start/) for more commands
 and information.
