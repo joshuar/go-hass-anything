@@ -14,7 +14,7 @@ import (
 
 	"github.com/carlmjohnson/requests"
 	MQTT "github.com/eclipse/paho.mqtt.golang"
-	"github.com/joshuar/go-hass-anything/internal/apps/helpers"
+	"github.com/joshuar/go-hass-anything/pkg/apps/helpers"
 	"github.com/joshuar/go-hass-anything/pkg/config"
 	viper "github.com/joshuar/go-hass-anything/pkg/config/viper"
 	"github.com/joshuar/go-hass-anything/pkg/hass"
