@@ -5,6 +5,14 @@
 
 package config
 
+import (
+	_ "embed"
+)
+
+//go:generate sh -c "printf %s $(git tag | tail -1) > VERSION"
+//go:embed VERSION
+var AppVersion string
+
 //go:generate moq -out mock_configApp_test.go . App
 type App interface {
 	IsRegistered(string) bool
