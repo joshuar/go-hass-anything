@@ -35,11 +35,18 @@ func main() {
 	}
 
 	for _, v := range a {
-		app := filepath.Base(v)
-		log.Printf("checking %s...", filepath.Join(v, app+".go"))
-		if _, err = os.Stat(filepath.Join(v, app+".go")); !os.IsNotExist(err) {
-			log.Printf("Found app %s.", app)
-			apps = append(apps, app)
+		fs, err := os.Stat(v)
+		if err != nil {
+			log.Printf("error: %v", err)
+			break
+		}
+		if fs.IsDir() {
+			app := filepath.Base(v)
+			log.Printf("checking %s...", filepath.Join(v, app+".go"))
+			if _, err = os.Stat(filepath.Join(v, app+".go")); !os.IsNotExist(err) {
+				log.Printf("Found app %s.", app)
+				apps = append(apps, app)
+			}
 		}
 	}
 
