@@ -4,7 +4,11 @@ package agent
 
 import (
 {{ range $app := . -}}
+{{ if (eq $app "exampleapp") }}
+"github.com/joshuar/go-hass-anything/pkg/apps/{{$app}}"
+{{ else }}
 "github.com/joshuar/go-hass-anything/internal/apps/{{$app}}"
+{{ end }}
 {{ end -}}	
 )
 

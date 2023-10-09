@@ -33,8 +33,6 @@
 !*/
 
 internal/apps/**/
-!internal/apps/helpers
-!internal/apps/exampleapp
 
 # this file is auto-generated and may contain private end-user information
 internal/agent/init.go
