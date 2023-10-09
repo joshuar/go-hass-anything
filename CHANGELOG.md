@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/joshuar/go-hass-anything/compare/v1.0.0...v1.0.1) (2023-10-09)
+
+
+### Bug Fixes
+
+* **apps:** move helpers to external pkg dir ([0358ab0](https://github.com/joshuar/go-hass-anything/commit/0358ab070b4516746bd3f5883017aadbb432dd61))
+
 ## 1.0.0 (2023-10-04)
 
 
