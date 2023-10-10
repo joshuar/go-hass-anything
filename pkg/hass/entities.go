@@ -8,34 +8,41 @@ package hass
 import (
 	"encoding/json"
 	"errors"
+	"strings"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"github.com/iancoleman/strcase"
+	"github.com/joshuar/go-hass-anything/pkg/config"
 	"github.com/joshuar/go-hass-anything/pkg/mqtt"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
 
 type EntityConfig struct {
-	Entity          *Entity
-	App             string
-	CommandCallback func(MQTT.Client, MQTT.Message)
-	StateCallback   func() (json.RawMessage, error)
-	ConfigTopic     string
+	Entity             *Entity
+	App                string
+	CommandCallback    func(MQTT.Client, MQTT.Message)
+	StateCallback      func() (json.RawMessage, error)
+	AttributesCallback func() (json.RawMessage, error)
+	ConfigTopic        string
+	prefix             string
 }
 
 type Entity struct {
-	Origin            *Origin `json:"origin,omitempty"`
-	Device            *Device `json:"device,omitempty"`
-	DeviceClass       string  `json:"device_class,omitempty"`
-	StateTopic        string  `json:"state_topic"`
-	StateClass        string  `json:"state_class,omitempty"`
-	CommandTopic      string  `json:"command_topic,omitempty"`
-	UnitOfMeasurement string  `json:"unit_of_measurement,omitempty"`
-	ValueTemplate     string  `json:"value_template"`
-	UniqueID          string  `json:"unique_id"`
-	Name              string  `json:"name"`
-	EntityCategory    string  `json:"entity_category,omitempty"`
+	Origin             *Origin `json:"origin,omitempty"`
+	Device             *Device `json:"device,omitempty"`
+	DeviceClass        string  `json:"device_class,omitempty"`
+	StateTopic         string  `json:"state_topic"`
+	StateClass         string  `json:"state_class,omitempty"`
+	CommandTopic       string  `json:"command_topic,omitempty"`
+	UnitOfMeasurement  string  `json:"unit_of_measurement,omitempty"`
+	ValueTemplate      string  `json:"value_template"`
+	UniqueID           string  `json:"unique_id"`
+	Name               string  `json:"name"`
+	EntityCategory     string  `json:"entity_category,omitempty"`
+	Icon               string  `json:"icon,omitempty"`
+	AttributesTopic    string  `json:"json_attributes_topic,omitempty"`
+	AttributesTemplate string  `json:"json_attributes_template,omitempty"`
 }
 
 type Device struct {
@@ -113,7 +120,7 @@ func NewEntityByName(name, app string) *EntityConfig {
 			Name:     FormatName(name),
 			UniqueID: FormatID(name),
 		},
-		App: app,
+		App: strings.ToLower(app),
 	}
 }
 
@@ -126,28 +133,54 @@ func NewEntityByID(id, app string) *EntityConfig {
 			Name:     FormatName(id),
 			UniqueID: id,
 		},
-		App: app,
+		App: strings.ToLower(app),
 	}
 }
 
 // AsSensor will configure appropriate MQTT topics to represent a Home Assistant sensor.
 func (e *EntityConfig) AsSensor() *EntityConfig {
-	e.ConfigTopic = mqtt.DiscoveryPrefix + "/sensor/" + e.App + "/" + e.Entity.UniqueID + "/config"
-	e.Entity.StateTopic = mqtt.DiscoveryPrefix + "/sensor/" + e.App + "/" + e.Entity.UniqueID + "/state"
+	e.prefix = strings.Join([]string{mqtt.DiscoveryPrefix, "sensor", e.App, e.Entity.UniqueID}, "/")
+	e.ConfigTopic = e.prefix + "/config"
+	e.Entity.StateTopic = e.prefix + "/state"
 	return e
 }
 
 // AsBinarySensor will configure appropriate MQTT topics to represent a Home Assistant binary_sensor.
 func (e *EntityConfig) AsBinarySensor() *EntityConfig {
-	e.ConfigTopic = mqtt.DiscoveryPrefix + "/binary_sensor/" + e.App + "/" + e.Entity.UniqueID + "/config"
-	e.Entity.StateTopic = mqtt.DiscoveryPrefix + "/binary_sensor/" + e.App + "/" + e.Entity.UniqueID + "/state"
+	e.prefix = strings.Join([]string{mqtt.DiscoveryPrefix, "binary_sensor", e.App, e.Entity.UniqueID}, "/")
+	e.ConfigTopic = e.prefix + "/config"
+	e.Entity.StateTopic = e.prefix + "/state"
 	return e
 }
 
 // AsButton will configure appropriate MQTT topics to represent a Home Assistant button.
 func (e *EntityConfig) AsButton() *EntityConfig {
-	e.ConfigTopic = mqtt.DiscoveryPrefix + "/button/" + e.App + "/" + e.Entity.UniqueID + "/config"
-	e.Entity.CommandTopic = mqtt.DiscoveryPrefix + "/button/" + e.App + "/" + e.Entity.UniqueID + "/toggle"
+	e.prefix = strings.Join([]string{mqtt.DiscoveryPrefix, "button", e.App, e.Entity.UniqueID}, "/")
+	e.ConfigTopic = e.prefix + "/config"
+	e.Entity.CommandTopic = e.prefix + "/toggle"
+	return e
+}
+
+// WithAttributes ensures that the entity has a topic that can be used to
+// publish its attributes.
+func (e *EntityConfig) WithAttributesTopic() *EntityConfig {
+	e.Entity.AttributesTopic = e.prefix + "/attributes"
+	return e
+}
+
+// WithAttributesTemplate configures the passed in template to be used to extract the
+// value of the attributes in Home Assistant.
+func (e *EntityConfig) WithAttributesTemplate(t string) *EntityConfig {
+	e.Entity.AttributesTemplate = t
+	return e
+}
+
+// WithAttributesCallback will add the passed in function as the callback action
+// to be run whenever the attributes of the entity are needed. If this callback
+// is to be used, then the WithAttributesTopic() builder function should also be
+// called to set-up the attributes topic.
+func (e *EntityConfig) WithAttributesCallback(c func() (json.RawMessage, error)) *EntityConfig {
+	e.AttributesCallback = c
 	return e
 }
 
@@ -171,15 +204,26 @@ func (e *EntityConfig) WithStateCallback(c func() (json.RawMessage, error)) *Ent
 	return e
 }
 
-// WithDevice adds the passed in device info to the entity config.
-func (e *EntityConfig) WithDevice(d *Device) *EntityConfig {
+// WithDeviceInfo adds the passed in device info to the entity config.
+func (e *EntityConfig) WithDeviceInfo(d *Device) *EntityConfig {
 	e.Entity.Device = d
 	return e
 }
 
-// WithOrigin adds the passed in origin info to the entity config.
-func (e *EntityConfig) WithOrigin(o *Origin) *EntityConfig {
+// WithOriginInfo adds the passed in origin info to the entity config.
+func (e *EntityConfig) WithOriginInfo(o *Origin) *EntityConfig {
 	e.Entity.Origin = o
+	return e
+}
+
+// WithOriginInfo adds a pre-filled origin that references go-hass-agent
+// to the entity config.
+func (e *EntityConfig) WithDefaultOriginInfo() *EntityConfig {
+	e.Entity.Origin = &Origin{
+		Name:    "Go Hass Agent",
+		URL:     "https://github.com/joshuar/go-hass-agent",
+		Version: config.AppVersion,
+	}
 	return e
 }
 
@@ -214,9 +258,15 @@ func (e *EntityConfig) WithDeviceClass(d string) *EntityConfig {
 	return e
 }
 
-// WithUnits adds a unit of measurement ot the entity.
+// WithUnits adds a unit of measurement to the entity.
 func (e *EntityConfig) WithUnits(u string) *EntityConfig {
 	e.Entity.UnitOfMeasurement = u
+	return e
+}
+
+// WithIcon adds an icon to the entity
+func (e *EntityConfig) WithIcon(i string) *EntityConfig {
+	e.Entity.Icon = i
 	return e
 }
 
