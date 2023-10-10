@@ -149,8 +149,8 @@ func (a *exampleApp) Configuration() []*mqtt.MQTTMsg {
 	entities = append(entities,
 		hass.NewEntityByName("ExampleApp Weather Temp", appName).
 			AsSensor().
-			WithDevice(deviceInfo).
-			WithOrigin(originInfo).
+			WithDeviceInfo(deviceInfo).
+			WithOriginInfo(originInfo).
 			WithStateClassMeasurement().
 			WithDeviceClass("temperature").
 			WithUnits("°C").
@@ -161,8 +161,8 @@ func (a *exampleApp) Configuration() []*mqtt.MQTTMsg {
 		entities = append(entities,
 			hass.NewEntityByID("example_app_load"+load, appName).
 				AsSensor().
-				WithDevice(deviceInfo).
-				WithOrigin(originInfo).
+				WithDeviceInfo(deviceInfo).
+				WithOriginInfo(originInfo).
 				WithStateClassMeasurement().
 				WithValueTemplate("{{ value }}"))
 	}
