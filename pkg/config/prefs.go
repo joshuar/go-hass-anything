@@ -19,8 +19,6 @@ const (
 	PrefMQTTServer   = "MQTTServer"
 	PrefMQTTUser     = "MQTTUser"
 	PrefMQTTPassword = "MQTTPassword"
-
-	PrefAppRegistered = "app.registered"
 )
 
 func init() {

@@ -11,9 +11,16 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/joshuar/go-hass-anything/pkg/config"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
+)
+
+const (
+	PrefAppRegistered = "app.registered"
+)
+
+var (
+	configBasePath = filepath.Join(os.Getenv("HOME"), ".config", "go-hass-anything")
 )
 
 type ViperConfig struct {
@@ -49,25 +56,25 @@ func (c *ViperConfig) Delete(key string) error {
 }
 
 func (c *ViperConfig) IsRegistered(name string) bool {
-	return c.store.GetBool(config.PrefAppRegistered)
+	return c.store.GetBool(PrefAppRegistered)
 }
 
 func (c *ViperConfig) Register(name string) error {
-	return c.Set(config.PrefAppRegistered, true)
+	return c.Set(PrefAppRegistered, true)
 }
 
 func (c *ViperConfig) UnRegister(name string) error {
-	return c.Set(config.PrefAppRegistered, false)
+	return c.Set(PrefAppRegistered, false)
 }
 
-func Load(name string) (*ViperConfig, error) {
+func LoadViperConfig(name string) (*ViperConfig, error) {
 	c := &ViperConfig{
 		store: viper.New(),
 	}
 	if name != "" {
-		c.path = filepath.Join(config.ConfigBasePath, name)
+		c.path = filepath.Join(configBasePath, name)
 	} else {
-		c.path = config.ConfigBasePath
+		c.path = configBasePath
 	}
 	c.store.SetConfigName("config")
 	c.store.SetConfigType("toml")

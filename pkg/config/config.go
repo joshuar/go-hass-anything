@@ -7,14 +7,16 @@ package config
 
 import (
 	_ "embed"
+
+	viper "github.com/joshuar/go-hass-anything/pkg/config/viper"
 )
 
 //go:generate sh -c "printf %s $(git tag | tail -1) > VERSION"
 //go:embed VERSION
 var AppVersion string
 
-//go:generate moq -out mock_configApp_test.go . App
-type App interface {
+//go:generate moq -out mock_configAppConfig_test.go . App
+type AppConfig interface {
 	IsRegistered(string) bool
 	Register(string) error
 	UnRegister(string) error
@@ -23,9 +25,13 @@ type App interface {
 	Delete(string) error
 }
 
-//go:generate moq -out mock_configAgent_test.go . Agent
-type Agent interface {
+//go:generate moq -out mock_configAgentConfig_test.go . Agent
+type AgentConfig interface {
 	Get(string, interface{}) error
 	Set(string, interface{}) error
 	Delete(string) error
+}
+
+func LoadConfig(name string) (AppConfig, error) {
+	return viper.LoadViperConfig(name)
 }

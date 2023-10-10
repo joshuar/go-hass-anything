@@ -11,7 +11,6 @@ import (
 
 	ui "github.com/joshuar/go-hass-anything/internal/agent/ui/bubbletea"
 	"github.com/joshuar/go-hass-anything/pkg/config"
-	viper "github.com/joshuar/go-hass-anything/pkg/config/viper"
 	"github.com/joshuar/go-hass-anything/pkg/hass"
 	"github.com/joshuar/go-hass-anything/pkg/mqtt"
 	"github.com/rs/zerolog/log"
@@ -25,7 +24,7 @@ var (
 )
 
 type agent struct {
-	Config  config.Agent
+	Config  config.AgentConfig
 	ui      AgentUI
 	done    chan struct{}
 	id      string
@@ -40,7 +39,7 @@ func NewAgent(id, name string) *agent {
 		name: name,
 	}
 	a.ui = ui.NewBubbleTeaUI()
-	if a.Config, err = viper.Load(""); err != nil {
+	if a.Config, err = config.LoadConfig(""); err != nil {
 		log.Warn().Err(err).Msg("No agent config found.")
 	}
 	return a
