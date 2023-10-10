@@ -16,7 +16,6 @@ import (
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"github.com/joshuar/go-hass-anything/pkg/apps/helpers"
 	"github.com/joshuar/go-hass-anything/pkg/config"
-	viper "github.com/joshuar/go-hass-anything/pkg/config/viper"
 	"github.com/joshuar/go-hass-anything/pkg/hass"
 	"github.com/joshuar/go-hass-anything/pkg/mqtt"
 	"github.com/joshuar/go-hass-anything/pkg/web"
@@ -31,7 +30,7 @@ const (
 )
 
 type exampleApp struct {
-	config      config.App
+	config      config.AppConfig
 	loadData    *load.AvgStat
 	weatherData []byte
 }
@@ -45,7 +44,7 @@ func newExampleApp() *exampleApp {
 	var err error
 	app := &exampleApp{}
 	// load our app config. if we don't have a config, set some defaults
-	if app.config, err = viper.Load(appName); err != nil && app.config != nil {
+	if app.config, err = config.LoadConfig(appName); err != nil && app.config != nil {
 		log.Info().Msgf("Setting default weather service to %s", weatherURL)
 		app.config.Set(weatherURLpref, weatherURL)
 	}
@@ -114,7 +113,12 @@ func (a *exampleApp) getLoadAvgs(ctx context.Context) error {
 }
 
 // Our app needs to satisfy the hass.MQTTDevice interface to be able to send its
-// data through the agent. The following three methods achieve that.
+// data through the agent. The following four methods achieve that.
+
+// Name simply returns the name of this app.
+func (a *exampleApp) Name() string {
+	return appName
+}
 
 // Configuration is called when our app is first registered in Home Assistant and
 // will return configuration messages for the data our app will send/receive.
@@ -239,16 +243,9 @@ func Run(ctx context.Context, client hass.MQTTClient) {
 
 	// check if our app is registered. If not, send the configuration messages
 	// and then register the app.
-	if !app.config.IsRegistered(appName) {
-		if err := hass.PublishConfigs(app, client); err != nil {
-			log.Error().Err(err).Msg("Failed to publish configs.")
-			return
-		} else {
-			if err = app.config.Register(appName); err != nil {
-				log.Error().Err(err).Msg("Failed to register configuration.")
-				return
-			}
-		}
+	if err := hass.Register(app, client); err != nil {
+		log.Error().Err(err).Msg("Could not register app!")
+		return
 	}
 
 	// add our button subscription
