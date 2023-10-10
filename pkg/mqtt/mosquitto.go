@@ -71,7 +71,7 @@ func (c *MQTTClient) Publish(msgs ...*MQTTMsg) error {
 				i++
 			}
 		}
-		log.Trace().Int("msgCount", i).Msg("Finished publishing messages.")
+		log.Debug().Int("msgCount", i).Msg("Finished publishing messages.")
 		return nil
 	})
 

@@ -8,6 +8,7 @@ package hass
 import (
 	"github.com/joshuar/go-hass-anything/pkg/config"
 	"github.com/joshuar/go-hass-anything/pkg/mqtt"
+	"github.com/rs/zerolog/log"
 )
 
 type MQTTDevice interface {
@@ -36,6 +37,7 @@ func Register(device MQTTDevice, client MQTTClient) error {
 				return err
 			}
 		}
+		log.Debug().Str("appName", device.Name()).Msg("App registered.")
 	}
 	return nil
 }
@@ -52,6 +54,7 @@ func UnRegister(device MQTTDevice, client MQTTClient) error {
 	if err := cfg.UnRegister(device.Name()); err != nil {
 		return err
 	}
+	log.Debug().Str("appName", device.Name()).Msg("App unregistered.")
 	return nil
 }
 
@@ -60,6 +63,7 @@ func PublishConfigs(device MQTTDevice, client MQTTClient) error {
 }
 
 func PublishState(device MQTTDevice, client MQTTClient) error {
+	log.Debug().Str("appName", device.Name()).Msg("Publishing messages.")
 	return client.Publish(device.States()...)
 }
 
