@@ -67,6 +67,15 @@ directories for each app you develop.
 > your app. Make sure you at least have this file if you split your app code
 > into multiple files.
 
+### Configuration
+
+When using the agent, it will create and utilise per-app configurations stored in the
+users home directory (`~/.config/go-hass-anything/APPNAME/config.toml` on
+Linux). Within your app code, you can retrieve the config with
+`config.LoadConfig(appName)`, which will return a `config.AppConfig` interface
+that can be used to access configuration entries. See the code in
+`pkg/config/config.go` for the interface methods.  
+
 ### Code Requirements
 
 To develop an app to be run by the agent:
@@ -81,8 +90,6 @@ You don't need to worry about setting up a connection to MQTT (satisfying
 
 All functions should respect context cancellation and act appropriately on this
 signal.
-
-You need to at least have
 
 #### Run Function
 
