@@ -8,7 +8,6 @@ Wants=network-online.target
 After=network-online.target
 
 [Service]
-ExecStartPre=/usr/bin/go-hass-anything configure
 ExecStart=/usr/bin/go-hass-anything run
 Type=simple
 
