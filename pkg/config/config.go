@@ -15,7 +15,7 @@ import (
 //go:embed VERSION
 var AppVersion string
 
-//go:generate moq -out mock_configAppConfig_test.go . App
+//go:generate moq -out mock_configAppConfig_test.go . AppConfig
 type AppConfig interface {
 	IsRegistered(string) bool
 	Register(string) error
@@ -25,7 +25,7 @@ type AppConfig interface {
 	Delete(string) error
 }
 
-//go:generate moq -out mock_configAgentConfig_test.go . Agent
+//go:generate moq -out mock_configAgentConfig_test.go . AgentConfig
 type AgentConfig interface {
 	Get(string, interface{}) error
 	Set(string, interface{}) error
