@@ -281,12 +281,8 @@ func Clear(_ context.Context, client hass.MQTTClient) {
 	log.Info().Msgf("Clearing %s app data from Home Assistant.", appName)
 	app := newExampleApp()
 
-	if err := hass.Unpublish(app, client); err != nil {
-		log.Error().Err(err).Msg("Failed to clear app data from Home Assistant.")
-	}
-	if err := app.config.UnRegister(appName); err != nil {
-		log.Error().Err(err).Msg("Failed to remove registration.")
-		return
+	if err := hass.UnRegister(app, client); err != nil {
+		log.Error().Err(err).Msg("Failed to unregister app!")
 	}
 }
 
