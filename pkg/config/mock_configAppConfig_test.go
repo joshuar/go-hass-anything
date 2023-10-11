@@ -23,16 +23,16 @@ var _ AppConfig = &AppConfigMock{}
 //			GetFunc: func(s string, ifaceVal interface{}) error {
 //				panic("mock out the Get method")
 //			},
-//			IsRegisteredFunc: func(s string) bool {
+//			IsRegisteredFunc: func() bool {
 //				panic("mock out the IsRegistered method")
 //			},
-//			RegisterFunc: func(s string) error {
+//			RegisterFunc: func() error {
 //				panic("mock out the Register method")
 //			},
 //			SetFunc: func(s string, ifaceVal interface{}) error {
 //				panic("mock out the Set method")
 //			},
-//			UnRegisterFunc: func(s string) error {
+//			UnRegisterFunc: func() error {
 //				panic("mock out the UnRegister method")
 //			},
 //		}
@@ -49,16 +49,16 @@ type AppConfigMock struct {
 	GetFunc func(s string, ifaceVal interface{}) error
 
 	// IsRegisteredFunc mocks the IsRegistered method.
-	IsRegisteredFunc func(s string) bool
+	IsRegisteredFunc func() bool
 
 	// RegisterFunc mocks the Register method.
-	RegisterFunc func(s string) error
+	RegisterFunc func() error
 
 	// SetFunc mocks the Set method.
 	SetFunc func(s string, ifaceVal interface{}) error
 
 	// UnRegisterFunc mocks the UnRegister method.
-	UnRegisterFunc func(s string) error
+	UnRegisterFunc func() error
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -76,13 +76,9 @@ type AppConfigMock struct {
 		}
 		// IsRegistered holds details about calls to the IsRegistered method.
 		IsRegistered []struct {
-			// S is the s argument value.
-			S string
 		}
 		// Register holds details about calls to the Register method.
 		Register []struct {
-			// S is the s argument value.
-			S string
 		}
 		// Set holds details about calls to the Set method.
 		Set []struct {
@@ -93,8 +89,6 @@ type AppConfigMock struct {
 		}
 		// UnRegister holds details about calls to the UnRegister method.
 		UnRegister []struct {
-			// S is the s argument value.
-			S string
 		}
 	}
 	lockDelete       sync.RWMutex
@@ -174,19 +168,16 @@ func (mock *AppConfigMock) GetCalls() []struct {
 }
 
 // IsRegistered calls IsRegisteredFunc.
-func (mock *AppConfigMock) IsRegistered(s string) bool {
+func (mock *AppConfigMock) IsRegistered() bool {
 	if mock.IsRegisteredFunc == nil {
 		panic("AppConfigMock.IsRegisteredFunc: method is nil but AppConfig.IsRegistered was just called")
 	}
 	callInfo := struct {
-		S string
-	}{
-		S: s,
-	}
+	}{}
 	mock.lockIsRegistered.Lock()
 	mock.calls.IsRegistered = append(mock.calls.IsRegistered, callInfo)
 	mock.lockIsRegistered.Unlock()
-	return mock.IsRegisteredFunc(s)
+	return mock.IsRegisteredFunc()
 }
 
 // IsRegisteredCalls gets all the calls that were made to IsRegistered.
@@ -194,10 +185,8 @@ func (mock *AppConfigMock) IsRegistered(s string) bool {
 //
 //	len(mockedAppConfig.IsRegisteredCalls())
 func (mock *AppConfigMock) IsRegisteredCalls() []struct {
-	S string
 } {
 	var calls []struct {
-		S string
 	}
 	mock.lockIsRegistered.RLock()
 	calls = mock.calls.IsRegistered
@@ -206,19 +195,16 @@ func (mock *AppConfigMock) IsRegisteredCalls() []struct {
 }
 
 // Register calls RegisterFunc.
-func (mock *AppConfigMock) Register(s string) error {
+func (mock *AppConfigMock) Register() error {
 	if mock.RegisterFunc == nil {
 		panic("AppConfigMock.RegisterFunc: method is nil but AppConfig.Register was just called")
 	}
 	callInfo := struct {
-		S string
-	}{
-		S: s,
-	}
+	}{}
 	mock.lockRegister.Lock()
 	mock.calls.Register = append(mock.calls.Register, callInfo)
 	mock.lockRegister.Unlock()
-	return mock.RegisterFunc(s)
+	return mock.RegisterFunc()
 }
 
 // RegisterCalls gets all the calls that were made to Register.
@@ -226,10 +212,8 @@ func (mock *AppConfigMock) Register(s string) error {
 //
 //	len(mockedAppConfig.RegisterCalls())
 func (mock *AppConfigMock) RegisterCalls() []struct {
-	S string
 } {
 	var calls []struct {
-		S string
 	}
 	mock.lockRegister.RLock()
 	calls = mock.calls.Register
@@ -274,19 +258,16 @@ func (mock *AppConfigMock) SetCalls() []struct {
 }
 
 // UnRegister calls UnRegisterFunc.
-func (mock *AppConfigMock) UnRegister(s string) error {
+func (mock *AppConfigMock) UnRegister() error {
 	if mock.UnRegisterFunc == nil {
 		panic("AppConfigMock.UnRegisterFunc: method is nil but AppConfig.UnRegister was just called")
 	}
 	callInfo := struct {
-		S string
-	}{
-		S: s,
-	}
+	}{}
 	mock.lockUnRegister.Lock()
 	mock.calls.UnRegister = append(mock.calls.UnRegister, callInfo)
 	mock.lockUnRegister.Unlock()
-	return mock.UnRegisterFunc(s)
+	return mock.UnRegisterFunc()
 }
 
 // UnRegisterCalls gets all the calls that were made to UnRegister.
@@ -294,10 +275,8 @@ func (mock *AppConfigMock) UnRegister(s string) error {
 //
 //	len(mockedAppConfig.UnRegisterCalls())
 func (mock *AppConfigMock) UnRegisterCalls() []struct {
-	S string
 } {
 	var calls []struct {
-		S string
 	}
 	mock.lockUnRegister.RLock()
 	calls = mock.calls.UnRegister

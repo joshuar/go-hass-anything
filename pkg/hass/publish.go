@@ -23,17 +23,24 @@ type MQTTClient interface {
 	Subscribe(...*mqtt.MQTTSubscription) error
 }
 
+// Register will check if the app has been registered and if not, publish the
+// app configs to MQTT, which will in turn register the app with Home Assistant.
+// If successfully registered, it will also record this status in the app
+// configuration. If any of these actions are unsuccessful, it will return an
+// error with more details. Otherwise it returns nil.
 func Register(device MQTTDevice, client MQTTClient) error {
 	var cfg config.AppConfig
 	var err error
 	if cfg, err = config.LoadConfig(device.Name()); err != nil {
-		return err
+		if _, ok := err.(*config.ConfigFileNotFoundError); ok {
+			return err
+		}
 	}
-	if !cfg.IsRegistered(device.Name()) {
+	if !cfg.IsRegistered() {
 		if err := PublishConfigs(device, client); err != nil {
 			return err
 		} else {
-			if err = cfg.Register(device.Name()); err != nil {
+			if err = cfg.Register(); err != nil {
 				return err
 			}
 		}
@@ -42,16 +49,22 @@ func Register(device MQTTDevice, client MQTTClient) error {
 	return nil
 }
 
+// UnRegister performs two actions. First, it removes the app config topics from
+// MQTT, effectively removing the app from Home Assistant. Second, it updates
+// the app config to indicate it is unregistered. It will return an error if
+// either action fails, otherwise it will return nil.
 func UnRegister(device MQTTDevice, client MQTTClient) error {
 	var cfg config.AppConfig
 	var err error
 	if cfg, err = config.LoadConfig(device.Name()); err != nil {
-		return err
+		if _, ok := err.(*config.ConfigFileNotFoundError); ok {
+			return err
+		}
 	}
 	if err := Unpublish(device, client); err != nil {
 		return err
 	}
-	if err := cfg.UnRegister(device.Name()); err != nil {
+	if err := cfg.UnRegister(); err != nil {
 		return err
 	}
 	log.Debug().Str("appName", device.Name()).Msg("App unregistered.")

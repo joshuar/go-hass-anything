@@ -55,15 +55,15 @@ func (c *ViperConfig) Delete(key string) error {
 	return nil
 }
 
-func (c *ViperConfig) IsRegistered(name string) bool {
+func (c *ViperConfig) IsRegistered() bool {
 	return c.store.GetBool(PrefAppRegistered)
 }
 
-func (c *ViperConfig) Register(name string) error {
+func (c *ViperConfig) Register() error {
 	return c.Set(PrefAppRegistered, true)
 }
 
-func (c *ViperConfig) UnRegister(name string) error {
+func (c *ViperConfig) UnRegister() error {
 	return c.Set(PrefAppRegistered, false)
 }
 
