@@ -1,7 +1,6 @@
 before:
   hooks:
     - go mod tidy
-    - go generate ./...
 
 changelog:
   use: github-native
@@ -21,6 +20,9 @@ builds:
       - amd64
       # - arm
       # - arm64
+    hooks:
+      pre:
+        - go generate ./...
 
 archives:
   - format: binary
