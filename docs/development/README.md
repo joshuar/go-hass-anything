@@ -19,7 +19,7 @@ installation of Home Assistant and Mosquitto that can be used for testing. They 
 started automatically.
 
 - Home Assistant will be listening on [localhost:8123](http://localhost:8123).
-- Mosquitto will be listening on localhost:1833.
+- Mosquitto will be listening on [localhost:1833](localhost:1833).
 
 An example configuration for Mosquitto has been provided in
 `deployments/mosquitto/config/mosquitto.conf.example`.
@@ -62,7 +62,7 @@ and information.
 This repository is using [conventional commit
 messages](https://www.conventionalcommits.org/en/v1.0.0/#summary). This provides
 the ability to automatically include relevant notes in the
-[changelog](../CHANGELOG.md). The [TL;DR](https://en.wikipedia.org/wiki/TL;DR)
+[changelog](../../CHANGELOG.md). The [TL;DR](https://en.wikipedia.org/wiki/TL;DR)
 is when writing commit messages, add a prefix:
 
 - `feat:` for a new feature, like a new sensor.
