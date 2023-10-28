@@ -50,7 +50,11 @@ func (e *ConfigFileNotFoundError) Error() string {
 
 func LoadConfig(name string) (AppConfig, error) {
 	var c AppConfig
-	if c, err := viperCustom.LoadViperConfig(name); err != nil && errors.Is(err, err.(viper.ConfigFileNotFoundError)) {
+	c, err := viperCustom.LoadViperConfig(name)
+	if err != nil {
+		return nil, err
+	}
+	if err != nil && errors.Is(err, err.(viper.ConfigFileNotFoundError)) {
 		return c, &ConfigFileNotFoundError{
 			Err: err,
 		}

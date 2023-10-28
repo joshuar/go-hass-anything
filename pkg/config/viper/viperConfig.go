@@ -87,6 +87,7 @@ func LoadViperConfig(name string) (*ViperConfig, error) {
 			return nil, err
 		}
 	}
+	log.Debug().Msgf("Config file %s", c.store.ConfigFileUsed())
 	return c, nil
 }
 
