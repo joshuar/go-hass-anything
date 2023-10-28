@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.2.0](https://github.com/joshuar/go-hass-anything/compare/v1.1.0...v1.2.0) (2023-10-28)
+
+
+### Features
+
+* **mqtt:** use a retry-backoff for initial mqtt connection ([541c64a](https://github.com/joshuar/go-hass-anything/commit/541c64a167694afb7b46a1a032f3f879e81f020d))
+
+
+### Bug Fixes
+
+* **config:** config start logic ([ad18869](https://github.com/joshuar/go-hass-anything/commit/ad18869074a8d59bc555cd5f4eb0dacd8d0fff22))
+
 ## [1.1.0](https://github.com/joshuar/go-hass-anything/compare/v1.0.1...v1.1.0) (2023-10-11)
 
 
