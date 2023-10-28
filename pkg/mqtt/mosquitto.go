@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/cenkalti/backoff/v4"
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"github.com/joshuar/go-hass-anything/pkg/config"
 	"github.com/rs/zerolog/log"
@@ -65,10 +66,14 @@ func (c *MQTTClient) Publish(msgs ...*MQTTMsg) error {
 		var i int
 		for msg := range msgCh {
 			log.Trace().Str("topic", msg.Topic).Bool("retain", msg.Retained).Msg("Publishing message.")
-			if token := c.conn.Publish(msg.Topic, msg.QOS, msg.Retained, []byte(msg.Message)); token.Wait() && token.Error() != nil {
-				return token.Error()
+			if c.conn.IsConnected() {
+				if token := c.conn.Publish(msg.Topic, msg.QOS, msg.Retained, []byte(msg.Message)); token.Wait() && token.Error() != nil {
+					return token.Error()
+				} else {
+					i++
+				}
 			} else {
-				i++
+				log.Debug().Msg("Not connected.")
 			}
 		}
 		log.Debug().Int("msgCount", i).Msg("Finished publishing messages.")
@@ -122,9 +127,18 @@ func NewMQTTClient(cfg AgentConfig) (*MQTTClient, error) {
 	}
 
 	client := MQTT.NewClient(connOpts)
-	if token := client.Connect(); token.Wait() && token.Error() != nil {
-		return nil, token.Error()
+
+	connect := func() error {
+		if token := client.Connect(); token.Wait() && token.Error() != nil {
+			return token.Error()
+		}
+		return nil
 	}
+	err := backoff.Retry(connect, backoff.NewExponentialBackOff())
+	if err != nil {
+		return nil, err
+	}
+
 	log.Debug().Msgf("Connected to MQTT server %s.", c.server)
 	conf := &MQTTClient{
 		conn: client,
