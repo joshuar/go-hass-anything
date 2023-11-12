@@ -9,11 +9,9 @@ import (
 	"bytes"
 	"context"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/carlmjohnson/requests"
-	"github.com/rs/zerolog/log"
 )
 
 type Request interface {
@@ -39,34 +37,22 @@ func (r *genericResponse) Error() error {
 	return r.err
 }
 
-func ExecuteRequest(ctx context.Context, request Request, responseCh chan Response) {
-	var resultBody bytes.Buffer
-	resultHeaders := make(map[string][]string)
-	defer close(responseCh)
+func ExecuteRequest(ctx context.Context, request Request) chan Response {
+	resp := &genericResponse{
+		headers: make(map[string][]string),
+		body:    &bytes.Buffer{},
+	}
+	responseCh := make(chan Response)
 	requestCtx, cancel := context.WithTimeout(ctx, request.Timeout())
-	defer cancel()
-	var wg sync.WaitGroup
-
-	wg.Add(1)
 	go func() {
-		defer wg.Done()
-		err := request.Builder().
-			ToBytesBuffer(&resultBody).
-			CopyHeaders(resultHeaders).
+		defer close(responseCh)
+		defer cancel()
+		resp.err = request.Builder().
+			ToBytesBuffer(resp.body).
+			CopyHeaders(resp.headers).
 			CheckStatus(http.StatusOK).
 			Fetch(requestCtx)
-		if err != nil {
-			log.Info().Err(err).Msg("failed request")
-			cancel()
-			responseCh <- &genericResponse{
-				err: err,
-			}
-		} else {
-			responseCh <- &genericResponse{
-				body:    &resultBody,
-				headers: resultHeaders,
-			}
-		}
+		responseCh <- resp
 	}()
-	wg.Wait()
+	return responseCh
 }

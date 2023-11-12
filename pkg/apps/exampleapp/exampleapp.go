@@ -62,9 +62,7 @@ func newExampleApp() *exampleApp {
 func (a *exampleApp) getWeather(ctx context.Context) error {
 	// we make our web request using web.ExecuteRequest and wait for the
 	// response, handling any error returned.
-	responseCh := make(chan web.Response, 1)
-	web.ExecuteRequest(ctx, a, responseCh)
-	r := <-responseCh
+	r := <-web.ExecuteRequest(ctx, a)
 	if r.Error() != nil {
 		return r.Error()
 	}
