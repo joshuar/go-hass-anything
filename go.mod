@@ -4,6 +4,7 @@ go 1.21
 
 require (
 	github.com/charmbracelet/lipgloss v0.8.0
+	github.com/pelletier/go-toml/v2 v2.1.0
 	github.com/rs/zerolog v1.31.0
 	github.com/spf13/cobra v1.7.0
 	golang.org/x/sync v0.4.0
@@ -25,7 +26,6 @@ require (
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/muesli/reflow v0.3.0 // indirect
 	github.com/muesli/termenv v0.15.2 // indirect
-	github.com/pelletier/go-toml/v2 v2.1.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/power-devops/perfstat v0.0.0-20221212215047-62379fc7944b // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect

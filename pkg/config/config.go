@@ -7,10 +7,8 @@ package config
 
 import (
 	_ "embed"
-	"errors"
 
-	viperCustom "github.com/joshuar/go-hass-anything/pkg/config/viper"
-	"github.com/spf13/viper"
+	tomlConfig "github.com/joshuar/go-hass-anything/pkg/config/toml"
 )
 
 //go:generate sh -c "printf %s $(git tag | tail -1) > VERSION"
@@ -49,15 +47,6 @@ func (e *ConfigFileNotFoundError) Error() string {
 }
 
 func LoadConfig(name string) (AppConfig, error) {
-	var c AppConfig
-	c, err := viperCustom.LoadViperConfig(name)
-	if err != nil {
-		return nil, err
-	}
-	if err != nil && errors.Is(err, err.(viper.ConfigFileNotFoundError)) {
-		return c, &ConfigFileNotFoundError{
-			Err: err,
-		}
-	}
+	c := tomlConfig.LoadConfig(name)
 	return c, nil
 }

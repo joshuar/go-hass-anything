@@ -15,10 +15,9 @@ import (
 var ConfigBasePath = filepath.Join(os.Getenv("HOME"), ".config", "go-hass-anything")
 
 const (
-	PrefMQTTEnabled  = "UseMQTT"
-	PrefMQTTServer   = "MQTTServer"
-	PrefMQTTUser     = "MQTTUser"
-	PrefMQTTPassword = "MQTTPassword"
+	PrefMQTTServer   = "mqttserver"
+	PrefMQTTUser     = "mqttuser"
+	PrefMQTTPassword = "mqttpassword"
 )
 
 func init() {
