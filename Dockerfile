@@ -15,6 +15,6 @@ COPY . .
 RUN go install github.com/matryer/moq@latest
 RUN go install golang.org/x/tools/cmd/stringer@latest
 RUN go generate ./...
-RUN go build -v -o /usr/bin/go-hass-anything ./...
+RUN go build -v -o /go/bin/go-hass-anything
 
 CMD ["go-hass-anything", "run"]
