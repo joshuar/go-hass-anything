@@ -33,8 +33,5 @@
 # ...even if they are in subdirectories
 !*/
 
-internal/apps
-
 # this file is auto-generated and may contain private end-user information
 internal/agent/init.go
-internal/apps
