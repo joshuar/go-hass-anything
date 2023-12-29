@@ -4,6 +4,9 @@
     "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
     "shutdownAction": "stopCompose",
     "containerUser": "vscode",
+    "containerEnv": { 
+        "TZ": "${localEnv:TZ:Australia/Brisbane}", 
+    },
     "features": {
         "ghcr.io/devcontainers/features/go:1": {}
     },
@@ -20,7 +23,11 @@
                 "valentjn.vscode-ltex",
                 "tamasfe.even-better-toml",
                 "eamodio.gitlens"
-            ]
+            ],
+            "settings": {
+                "terminal.integrated.defaultProfile.linux": "fish"
+            }
+
         }
     }
 }

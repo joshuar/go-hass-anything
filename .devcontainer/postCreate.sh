@@ -8,11 +8,7 @@
 # Stop on errors
 set -e
 
-sudo apt -y update 
-
-# Install mosquitto command-line utilities
-export DEBIAN_FRONTEND=noninteractive && \
-    sudo apt -y install mosquitto-clients micro
+cd /workspaces/go-hass-anything && go mod tidy
 
 # Install additional go build packages
 go install golang.org/x/tools/cmd/stringer@latest
