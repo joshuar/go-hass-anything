@@ -22,6 +22,7 @@
 !.github/FUNDING.yml
 !init/systemd/*
 !Dockerfile
+!cosign.*
 
 !README.md
 !LICENSE
