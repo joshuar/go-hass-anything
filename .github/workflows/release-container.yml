@@ -1,0 +1,79 @@
+# Copyright (c) 2023 Joshua Rich <joshua.rich@gmail.com>
+#
+# This software is released under the MIT License.
+# https://opensource.org/licenses/MIT
+
+name: build-container
+
+env:
+  REGISTRY: ghcr.io/${{ github.repository_owner }}
+
+on:
+  release:
+    types: [ created ]
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-push-image:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install/Cache dependencies
+        id: cache_pkg_deps
+        uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: qemu-user-static
+
+      - name: Build container image
+        uses: redhat-actions/buildah-build@v2
+        with:
+          archs: amd64
+          # context: build/package
+          image: ${{ github.repository }}
+          tags: latest
+          containerfiles: Dockerfile
+          layers: false
+          oci: true
+
+      - name: Push to Container Registry
+        uses: redhat-actions/push-to-registry@v2
+        # The id is unused right now, will be used in the next steps
+        id: push
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        with:
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          image: ${{ github.repository }}
+          registry: ${{ env.REGISTRY }}
+          tags: latest
+        env:
+          REGISTRY: ghcr.io/${{ github.repository_owner }}
+      
+      - name: Login to Container Registry
+        uses: redhat-actions/podman-login@v1
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: sigstore/cosign-installer@v3.3.0
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        with:
+          cosign-release: 'v2.2.0'
+
+      - name: Sign container image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          cosign sign -y --key env://COSIGN_PWD ${{ env.REGISTRY }}/${{ github.repository }}@${{ steps.push.outputs.digest }}
+        env:
+          COSIGN_EXPERIMENTAL: false
+          COSIGN_PWD: ${{ secrets.COSIGN_PWD }}

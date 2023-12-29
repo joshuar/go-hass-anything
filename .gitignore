@@ -21,6 +21,7 @@
 !.github/workflows/*
 !.github/FUNDING.yml
 !init/systemd/*
+!Dockerfile
 
 !README.md
 !LICENSE
