@@ -5,6 +5,7 @@ services:
       dockerfile: Dockerfile
     volumes:
       - ../..:/workspaces:cached
+      - "${HOME}/go/src:/go/src"
       - /etc/localtime:/etc/localtime:ro,cached
     command: sleep infinity
     network_mode: host
