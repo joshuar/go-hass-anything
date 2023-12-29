@@ -6,7 +6,7 @@
 name: build-container
 
 env:
-  REGISTRY: ghcr.io/${{ github.repository_owner }}
+  REGISTRY: ghcr.io
 
 on:
   release:
@@ -73,7 +73,7 @@ jobs:
       - name: Sign container image
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
-          cosign sign -y --key env://COSIGN_PWD ${{ env.REGISTRY }}/${{ github.repository }}@${{ steps.push.outputs.digest }}
+          cosign sign -y --key cosign.key ${{ env.REGISTRY }}/${{ github.repository }}@${{ steps.push.outputs.digest }}
         env:
           COSIGN_EXPERIMENTAL: false
-          COSIGN_PWD: ${{ secrets.COSIGN_PWD }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PWD }}
