@@ -12,6 +12,7 @@ COPY go.mod go.sum ./
 RUN go mod download && go mod verify
 
 COPY . .
+RUN go generate ./...
 RUN go build -v -o /usr/local/bin/go-hass-anything ./...
 
 CMD ["go-hass-anything", "run"]
