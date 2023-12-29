@@ -12,6 +12,8 @@ COPY go.mod go.sum ./
 RUN go mod download && go mod verify
 
 COPY . .
+RUN go install github.com/matryer/moq@latest
+RUN go install golang.org/x/tools/cmd/stringer@latest
 RUN go generate ./...
 RUN go build -v -o /usr/local/bin/go-hass-anything ./...
 
