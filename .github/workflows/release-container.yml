@@ -78,7 +78,7 @@ jobs:
           for tag in ${TAGS}; do
             images+="${tag}@${DIGEST} "
           done
-          cosign sign --yes --key cosign.key ${images}
+          cosign --verbose=true sign --yes --key cosign.key ${images}
         env:
           TAGS: ${{ steps.build_image.outputs.tags }}
           COSIGN_PASSWORD: ${{ secrets.COSIGN_PWD }}
