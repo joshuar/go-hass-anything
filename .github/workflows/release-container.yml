@@ -69,7 +69,7 @@ jobs:
         uses: sigstore/cosign-installer@v3.3.0
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
-          cosign-release: 'v2.2.0'
+          cosign-release: 'v2.2.2'
 
       - name: Sign image with a key
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
