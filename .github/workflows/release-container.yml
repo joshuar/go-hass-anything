@@ -80,6 +80,6 @@ jobs:
           done
           cosign sign --yes --key cosign.key ${images}
         env:
-          TAGS: ${{ steps.docker_meta.outputs.tags }}
+          TAGS: ${{ steps.build_image.outputs.tags }}
           COSIGN_PASSWORD: ${{ secrets.COSIGN_PWD }}
           DIGEST: ${{ steps.build_image.outputs.digest }}
