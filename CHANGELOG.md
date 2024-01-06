@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.3.0](https://github.com/joshuar/go-hass-anything/compare/v1.2.0...v1.3.0) (2024-01-06)
+
+
+### Features
+
+* **config:** add a new simple toml-based config package ([8afda51](https://github.com/joshuar/go-hass-anything/commit/8afda51cf97bd5af73ff7e2c303d4c04124538cc))
+* **web:** simplify web request handling ([3f5ee46](https://github.com/joshuar/go-hass-anything/commit/3f5ee46e2e761b24f0f6cf9f5224bb4a0222574d))
+
+
+### Bug Fixes
+
+* **container:** fix Dockerfile, adjust README ([b7b9e51](https://github.com/joshuar/go-hass-anything/commit/b7b9e5106862afd3986fa4d122010e131bfba892))
+
 ## [1.2.0](https://github.com/joshuar/go-hass-anything/compare/v1.1.0...v1.2.0) (2023-10-28)
 
 
