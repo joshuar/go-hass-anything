@@ -17,4 +17,9 @@ RUN go install golang.org/x/tools/cmd/stringer@latest
 RUN go generate ./...
 RUN go build -v -o /go/bin/go-hass-anything
 
-CMD ["go-hass-anything", "run"]
+RUN useradd -ms /bin/bash gouser
+USER gouser
+WORKDIR /home/gouser
+
+ENTRYPOINT ["go-hass-anything"]
+CMD ["run"]

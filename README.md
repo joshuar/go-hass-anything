@@ -17,6 +17,8 @@
 
 ## ⬇️ Installation
 
+## Packages
+
 Head over to the [releases](https://github.com/joshuar/go-hass-anything/releases)
 page and download the appropriate package for your operating system and/or
 distribution:
@@ -25,17 +27,33 @@ distribution:
 - For **Ubuntu**, use the `.deb`.
 - For **Arch**, use the `.tar.zst`.
 
-For other distributions not listed above, you can try the binary, or build it
+Any other distributions not listed above, you can try the binary, or build it
 yourself from source (see [development docs](docs/development/README.md)).
+
+## Container
+
+A Dockerfile that you can use to build an image can be found [here](Dockerfile).
+
+You can build an image with a command like the following from the root of the repository (using Podman):
+
+```shell
+podman build --file ./Dockerfile --tag go-hass-anything
+```
 
 ## 🖱️ Usage
 
 ### Configuration
 
-To run the agent, you first need to configure the MQTT connection. To do so, use the command:
+To run the agent, you first need to configure the MQTT connection. For a package install, use the command:
 
 ```shell
 go-hass-anything configure
+```
+
+For a container, use the following:
+
+```shell
+podman run --interactive --tty go-hass-anything configure
 ```
 
 This will open a user interface in the terminal to enter MQTT connection
@@ -43,10 +61,16 @@ details. You can navigate the fields via the keyboard.
 
 ### Running
 
-Once the agent is configured, you can run it. To do so, use the command:
+Once the agent is configured, you can run it. To do so, for package installs, use the command:
 
 ```shell
 go-hass-anything run
+```
+
+For a container, run:
+
+```shell
+podman run --interactive --tty go-hass-anything
 ```
 
 This will start the agent and any configured apps. If needed each app will send
@@ -70,7 +94,10 @@ If needed/desired, you can remove the app entities from Home Assistant by
 running the command:
 
 ```shell
+# for a package install
 go-hass-anything clear
+# for a container install
+podman run --interactive --tty go-hass-anything clear
 ```
 
 After this, there should be no devices (from Go Hass Anything) and associated
