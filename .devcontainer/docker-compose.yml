@@ -25,7 +25,7 @@ services:
     network_mode: host
     userns_mode: keep-id
   home-assistant:
-    image: ghcr.io/home-assistant/home-assistant:2023.12.3
+    image: ghcr.io/home-assistant/home-assistant:2024.1.2
     volumes:
       - ../deployments/home-assistant/config:/config
     ports:
