@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.3.0](https://github.com/joshuar/go-hass-anything/compare/v1.2.0...v1.3.0) (2024-01-09)
+
+
+### Features
+
+* **config:** add a new simple toml-based config package ([8afda51](https://github.com/joshuar/go-hass-anything/commit/8afda51cf97bd5af73ff7e2c303d4c04124538cc))
+* **web:** simplify web request handling ([3f5ee46](https://github.com/joshuar/go-hass-anything/commit/3f5ee46e2e761b24f0f6cf9f5224bb4a0222574d))
+
+
+### Bug Fixes
+
+* **container:** easier inclusion of own apps into container image ([4fee795](https://github.com/joshuar/go-hass-anything/commit/4fee795ba268baf354323d0f1cd6da395d0bf3eb))
+* **container:** fix Dockerfile, adjust README ([b7b9e51](https://github.com/joshuar/go-hass-anything/commit/b7b9e5106862afd3986fa4d122010e131bfba892))
+* **container:** fully qualify base image ([6f79fcd](https://github.com/joshuar/go-hass-anything/commit/6f79fcdfa4b582bcfacc0c6d171a0f3027a030fe))
+* **container:** ignore failure if apps dir is not a symlink ([342da68](https://github.com/joshuar/go-hass-anything/commit/342da684568b864663336c7ec30d043654d598e3))
+
 ## [1.2.0](https://github.com/joshuar/go-hass-anything/compare/v1.1.0...v1.2.0) (2023-10-28)
 
 
