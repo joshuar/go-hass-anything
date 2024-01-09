@@ -34,10 +34,12 @@ yourself from source (see [development docs](docs/development/README.md)).
 
 A Dockerfile that you can use to build an image can be found [here](Dockerfile).
 
-You can build an image with a command like the following from the root of the repository (using Podman):
+To add your own apps to the container, copy them into a directory in the base of
+the repo (for example, `apps/`) and then specify the build arg `APPDIR` pointing
+to this location:
 
 ```shell
-podman build --file ./Dockerfile --tag go-hass-anything
+podman build --file ./Dockerfile --tag go-hass-anything --build-arg APPDIR=apps
 ```
 
 ## 🖱️ Usage
