@@ -3,7 +3,7 @@
 # This software is released under the MIT License.
 # https://opensource.org/licenses/MIT
 
-FROM golang:1.21
+FROM docker.io/library/golang:1.21
 ARG APPDIR
 
 WORKDIR /usr/src/go-hass-anything
