@@ -14,7 +14,7 @@ RUN go mod download && go mod verify
 COPY . .
 
 # copy the user-specified APPDIR to a location that will be picked up during build
-RUN test -L internal/apps && rm internal/apps
+RUN test -L internal/apps && rm internal/apps || exit 0
 COPY $APPDIR internal/apps/
 
 RUN go install github.com/matryer/moq@latest
