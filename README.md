@@ -53,7 +53,9 @@ go-hass-anything configure
 For a container, use the following:
 
 ```shell
-podman run --interactive --tty go-hass-anything configure
+podman run --interactive --tty --rm \
+    --volume ~/go-hass-anything:/home/gouser:U \
+    ghcr.io/joshuar/go-hass-anything configure
 ```
 
 This will open a user interface in the terminal to enter MQTT connection
@@ -70,7 +72,9 @@ go-hass-anything run
 For a container, run:
 
 ```shell
-podman run --interactive --tty go-hass-anything
+podman run --name my-go-hass-anything \
+    --volume ~/go-hass-anything:/home/gouser:U \
+    ghcr.io/joshuar/go-hass-anything
 ```
 
 This will start the agent and any configured apps. If needed each app will send
@@ -97,7 +101,7 @@ running the command:
 # for a package install
 go-hass-anything clear
 # for a container install
-podman run --interactive --tty go-hass-anything clear
+podman exec my-go-hass-anything clear
 ```
 
 After this, there should be no devices (from Go Hass Anything) and associated
