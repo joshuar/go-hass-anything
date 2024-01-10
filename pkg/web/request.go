@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/carlmjohnson/requests"
+	"github.com/philippta/trip"
 )
 
 type Request interface {
@@ -38,6 +39,14 @@ func (r *genericResponse) Error() error {
 }
 
 func ExecuteRequest(ctx context.Context, request Request) chan Response {
+	var (
+		attempts = 3
+		delay    = 150 * time.Millisecond
+	)
+	t := trip.Default(
+		trip.Retry(attempts, delay, trip.RetryableStatusCodes...),
+	)
+	client := &http.Client{Transport: t}
 	resp := &genericResponse{
 		headers: make(map[string][]string),
 		body:    &bytes.Buffer{},
@@ -51,6 +60,7 @@ func ExecuteRequest(ctx context.Context, request Request) chan Response {
 			ToBytesBuffer(resp.body).
 			CopyHeaders(resp.headers).
 			CheckStatus(http.StatusOK).
+			Client(client).
 			Fetch(requestCtx)
 		responseCh <- resp
 	}()
