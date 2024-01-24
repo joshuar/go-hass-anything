@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.0](https://github.com/joshuar/go-hass-anything/compare/v1.4.0...v2.0.0) (2024-01-24)
+
+
+### ⚠ BREAKING CHANGES
+
+* **all:** major refactor
+
+### Features
+
+* **all:** major refactor ([1fa84be](https://github.com/joshuar/go-hass-anything/commit/1fa84bed3633fcb1ab9cbc68b5c44bb069286403))
+
 ## [1.4.0](https://github.com/joshuar/go-hass-anything/compare/v1.3.0...v1.4.0) (2024-01-24)
 
 
