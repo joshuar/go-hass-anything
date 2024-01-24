@@ -37,7 +37,7 @@ jobs:
           go install github.com/matryer/moq@latest
 
       - name: Run Go Releaser
-        uses: goreleaser/goreleaser-action@v4
+        uses: goreleaser/goreleaser-action@v5
         if: ${{ steps.release_please.outputs.release_created }}
         id: run_goreleaser
         with:
