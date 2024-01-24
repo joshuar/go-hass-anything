@@ -7,7 +7,7 @@ import (
 {{ if (eq $app "exampleapp") }}
 "github.com/joshuar/go-hass-anything/pkg/apps/{{$app}}"
 {{ else }}
-"github.com/joshuar/go-hass-anything/internal/apps/{{$app}}"
+"github.com/joshuar/go-hass-anything/apps/{{$app}}"
 {{ end }}
 {{ end -}}	
 )

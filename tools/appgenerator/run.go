@@ -14,8 +14,10 @@ import (
 	"text/template"
 )
 
-var appPathMatch = "../../internal/apps/*"
-var appFile = "../../internal/agent/init.go"
+var (
+	appPathMatch = "../../apps/*"
+	appFile      = "../../internal/agent/init.go"
+)
 
 //go:embed init.go.tmpl
 var appTmpl string
@@ -27,7 +29,6 @@ func main() {
 	a, err := filepath.Glob(appPathMatch)
 	if err != nil {
 		log.Fatalf("Unable to match apps with %s (%s). Exiting.", appPathMatch, err.Error())
-		os.Exit(-1)
 	}
 	if len(a) == 0 {
 		log.Printf("no apps")
