@@ -2,7 +2,8 @@
     "conventionalCommits.scopes": [
         "web",
         "tools",
-        "config"
+        "config",
+        "go"
     ],
     "go.lintTool": "golangci-lint",
     "go.lintFlags": [
