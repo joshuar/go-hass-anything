@@ -5,10 +5,10 @@
 package cmd
 
 import (
-	"os"
+	"github.com/rs/zerolog/log"
+	"github.com/spf13/cobra"
 
 	"github.com/joshuar/go-hass-anything/internal/logging"
-	"github.com/spf13/cobra"
 )
 
 const (
@@ -37,7 +37,7 @@ var rootCmd = &cobra.Command{
 func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {
-		os.Exit(1)
+		log.Fatal().Err(err).Msg("Could not run command.")
 	}
 }
 

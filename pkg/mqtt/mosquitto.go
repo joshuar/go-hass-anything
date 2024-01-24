@@ -8,16 +8,16 @@ package mqtt
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"os"
 	"strconv"
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
 	MQTT "github.com/eclipse/paho.mqtt.golang"
-	"github.com/joshuar/go-hass-anything/pkg/config"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/sync/errgroup"
+
+	"github.com/joshuar/go-hass-anything/pkg/config"
 )
 
 const (
@@ -25,38 +25,27 @@ const (
 	DefaultServer   = "localhost:1883"
 )
 
-//go:generate moq -out mock_AgentConfig_test.go . AgentConfig
-type AgentConfig interface {
-	GetConfig(string, interface{}) error
-}
-
-type mqttConfig struct {
-	server   string
-	user     string
-	password string
-}
-
-type MQTTMsg struct {
+type Msg struct {
 	Topic    string
 	Message  json.RawMessage
 	QOS      byte
 	Retained bool
 }
 
-type MQTTSubscription struct {
+type Subscription struct {
 	Callback func(MQTT.Client, MQTT.Message)
 	Topic    string
 	QOS      byte
 	Retained bool
 }
 
-type MQTTClient struct {
+type Client struct {
 	conn MQTT.Client
 }
 
-func (c *MQTTClient) Publish(msgs ...*MQTTMsg) error {
+func (c *Client) Publish(msgs ...*Msg) error {
 	g, _ := errgroup.WithContext(context.TODO())
-	msgCh := make(chan *MQTTMsg, len(msgs))
+	msgCh := make(chan *Msg, len(msgs))
 
 	for i := 0; i < len(msgs); i++ {
 		msgCh <- msgs[i]
@@ -69,9 +58,8 @@ func (c *MQTTClient) Publish(msgs ...*MQTTMsg) error {
 			if c.conn.IsConnected() {
 				if token := c.conn.Publish(msg.Topic, msg.QOS, msg.Retained, []byte(msg.Message)); token.Wait() && token.Error() != nil {
 					return token.Error()
-				} else {
-					i++
 				}
+				i++
 			} else {
 				log.Debug().Msg("Not connected.")
 			}
@@ -84,9 +72,9 @@ func (c *MQTTClient) Publish(msgs ...*MQTTMsg) error {
 	return g.Wait()
 }
 
-func (c *MQTTClient) Subscribe(subs ...*MQTTSubscription) error {
+func (c *Client) Subscribe(subs ...*Subscription) error {
 	g, _ := errgroup.WithContext(context.TODO())
-	msgCh := make(chan *MQTTSubscription, len(subs))
+	msgCh := make(chan *Subscription, len(subs))
 
 	for i := 0; i < len(subs); i++ {
 		msgCh <- subs[i]
@@ -106,23 +94,20 @@ func (c *MQTTClient) Subscribe(subs ...*MQTTSubscription) error {
 	return g.Wait()
 }
 
-func NewMQTTClient(cfg AgentConfig) (*MQTTClient, error) {
+func NewMQTTClient() (*Client, error) {
 	hostname, _ := os.Hostname()
 	clientid := hostname + strconv.Itoa(time.Now().Second())
 
-	c := &mqttConfig{}
-	if err := cfg.GetConfig(config.PrefMQTTServer, &c.server); err != nil {
+	prefs, err := config.LoadPreferences()
+	if err != nil {
 		return nil, err
 	}
-	if c.server == "" || c.server == "NOTSET" {
-		return nil, errors.New("invalid server value")
-	}
 
-	connOpts := MQTT.NewClientOptions().AddBroker(c.server).SetClientID(clientid).SetCleanSession(true)
-	if c.user != "" {
-		connOpts.SetUsername(c.user)
-		if c.password != "" {
-			connOpts.SetPassword(c.password)
+	connOpts := MQTT.NewClientOptions().AddBroker(prefs.MQTTServer).SetClientID(clientid).SetCleanSession(true)
+	if prefs.MQTTUser != "" {
+		connOpts.SetUsername(prefs.MQTTUser)
+		if prefs.MQTTPassword != "" {
+			connOpts.SetPassword(prefs.MQTTPassword)
 		}
 	}
 
@@ -134,13 +119,13 @@ func NewMQTTClient(cfg AgentConfig) (*MQTTClient, error) {
 		}
 		return nil
 	}
-	err := backoff.Retry(connect, backoff.NewExponentialBackOff())
+	err = backoff.Retry(connect, backoff.NewExponentialBackOff())
 	if err != nil {
 		return nil, err
 	}
 
-	log.Debug().Msgf("Connected to MQTT server %s.", c.server)
-	conf := &MQTTClient{
+	log.Debug().Msgf("Connected to MQTT server %s.", prefs.MQTTServer)
+	conf := &Client{
 		conn: client,
 	}
 

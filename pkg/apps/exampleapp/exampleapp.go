@@ -14,13 +14,14 @@ import (
 
 	"github.com/carlmjohnson/requests"
 	MQTT "github.com/eclipse/paho.mqtt.golang"
+	"github.com/rs/zerolog/log"
+	"github.com/shirou/gopsutil/v3/load"
+
 	"github.com/joshuar/go-hass-anything/pkg/apps/helpers"
 	"github.com/joshuar/go-hass-anything/pkg/config"
 	"github.com/joshuar/go-hass-anything/pkg/hass"
 	"github.com/joshuar/go-hass-anything/pkg/mqtt"
 	"github.com/joshuar/go-hass-anything/pkg/web"
-	"github.com/rs/zerolog/log"
-	"github.com/shirou/gopsutil/v3/load"
 )
 
 const (
@@ -120,8 +121,8 @@ func (a *exampleApp) Name() string {
 
 // Configuration is called when our app is first registered in Home Assistant and
 // will return configuration messages for the data our app will send/receive.
-func (a *exampleApp) Configuration() []*mqtt.MQTTMsg {
-	var msgs []*mqtt.MQTTMsg
+func (a *exampleApp) Configuration() []*mqtt.Msg {
+	var msgs []*mqtt.Msg
 	var entities []*hass.EntityConfig
 
 	// deviceInfo is used to associate each sensor to our example app device in Home Assistant
@@ -189,11 +190,11 @@ func (a *exampleApp) Configuration() []*mqtt.MQTTMsg {
 }
 
 // States is called when we want to send our sensor data to Home Assistant
-func (a *exampleApp) States() []*mqtt.MQTTMsg {
-	var msgs []*mqtt.MQTTMsg
+func (a *exampleApp) States() []*mqtt.Msg {
+	var msgs []*mqtt.Msg
 
 	// we retrieve the weather data and send that as the weather sensor state
-	msgs = append(msgs, &mqtt.MQTTMsg{
+	msgs = append(msgs, &mqtt.Msg{
 		Topic:   mqtt.DiscoveryPrefix + "/sensor/" + appName + "/example_app_weather_temp/state",
 		Message: a.weatherData,
 	})
@@ -210,7 +211,7 @@ func (a *exampleApp) States() []*mqtt.MQTTMsg {
 		case "15":
 			l = a.loadData.Load15
 		}
-		msgs = append(msgs, &mqtt.MQTTMsg{
+		msgs = append(msgs, &mqtt.Msg{
 			Topic:   mqtt.DiscoveryPrefix + "/sensor/" + appName + "/" + id + "/state",
 			Message: json.RawMessage(strconv.FormatFloat(l, 'f', -1, 64)),
 		})
@@ -221,11 +222,11 @@ func (a *exampleApp) States() []*mqtt.MQTTMsg {
 
 // Subscriptions is called once to register the callbacks we will use when Home
 // Assistant sends back messages on any command topics.
-func (a *exampleApp) Subscriptions() []*mqtt.MQTTSubscription {
-	var msgs []*mqtt.MQTTSubscription
+func (a *exampleApp) Subscriptions() []*mqtt.Subscription {
+	var msgs []*mqtt.Subscription
 
 	// we add our callback for our button
-	msgs = append(msgs, &mqtt.MQTTSubscription{
+	msgs = append(msgs, &mqtt.Subscription{
 		Topic:    mqtt.DiscoveryPrefix + "/button/" + appName + "/example_app_button/toggle",
 		Callback: buttonCallback,
 	})

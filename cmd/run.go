@@ -15,9 +15,10 @@ import (
 
 	"github.com/rs/zerolog/log"
 
+	"github.com/spf13/cobra"
+
 	"github.com/joshuar/go-hass-anything/internal/agent"
 	"github.com/joshuar/go-hass-anything/pkg/mqtt"
-	"github.com/spf13/cobra"
 )
 
 var runCmd = &cobra.Command{
@@ -29,7 +30,7 @@ var runCmd = &cobra.Command{
 		defer cancelFunc()
 
 		agent := agent.NewAgent(AgentID, AgentName)
-		mqtt, err := mqtt.NewMQTTClient(agent)
+		mqtt, err := mqtt.NewMQTTClient()
 		if err != nil {
 			log.Fatal().Err(err).Msg("Could not connect to broker.")
 		}

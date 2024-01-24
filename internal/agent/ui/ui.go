@@ -11,6 +11,4 @@ type Agent interface {
 	AppName() string
 	AppID() string
 	Stop()
-	GetConfig(string, interface{}) error
-	SetConfig(string, interface{}) error
 }

@@ -6,21 +6,22 @@
 package hass
 
 import (
+	"github.com/rs/zerolog/log"
+
 	"github.com/joshuar/go-hass-anything/pkg/config"
 	"github.com/joshuar/go-hass-anything/pkg/mqtt"
-	"github.com/rs/zerolog/log"
 )
 
 type MQTTDevice interface {
 	Name() string
-	Configuration() []*mqtt.MQTTMsg
-	States() []*mqtt.MQTTMsg
-	Subscriptions() []*mqtt.MQTTSubscription
+	Configuration() []*mqtt.Msg
+	States() []*mqtt.Msg
+	Subscriptions() []*mqtt.Subscription
 }
 
 type MQTTClient interface {
-	Publish(...*mqtt.MQTTMsg) error
-	Subscribe(...*mqtt.MQTTSubscription) error
+	Publish(...*mqtt.Msg) error
+	Subscribe(...*mqtt.Subscription) error
 }
 
 // Register will check if the app has been registered and if not, publish the
@@ -85,9 +86,9 @@ func Subscribe(device MQTTDevice, client MQTTClient) error {
 }
 
 func Unpublish(device MQTTDevice, client MQTTClient) error {
-	var msgs []*mqtt.MQTTMsg
+	var msgs []*mqtt.Msg
 	for _, msg := range device.Configuration() {
-		msgs = append(msgs, &mqtt.MQTTMsg{
+		msgs = append(msgs, &mqtt.Msg{
 			Topic:    msg.Topic,
 			Message:  []byte(``),
 			Retained: true,

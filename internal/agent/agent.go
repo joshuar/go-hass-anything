@@ -10,10 +10,8 @@ import (
 	"sync"
 
 	ui "github.com/joshuar/go-hass-anything/internal/agent/ui/bubbletea"
-	"github.com/joshuar/go-hass-anything/pkg/config"
 	"github.com/joshuar/go-hass-anything/pkg/hass"
 	"github.com/joshuar/go-hass-anything/pkg/mqtt"
-	"github.com/rs/zerolog/log"
 )
 
 //go:generate go run ../../tools/appgenerator/run.go arg1
@@ -24,7 +22,6 @@ var (
 )
 
 type agent struct {
-	Config  config.AgentConfig
 	ui      AgentUI
 	done    chan struct{}
 	id      string
@@ -33,15 +30,11 @@ type agent struct {
 }
 
 func NewAgent(id, name string) *agent {
-	var err error
 	a := &agent{
 		id:   id,
 		name: name,
 	}
 	a.ui = ui.NewBubbleTeaUI()
-	if a.Config, err = config.LoadConfig(""); err != nil {
-		log.Warn().Err(err).Msg("No agent config found.")
-	}
 	return a
 }
 
@@ -61,28 +54,20 @@ func (a *agent) Stop() {
 	close(a.done)
 }
 
-func (a *agent) GetConfig(key string, value interface{}) error {
-	return a.Config.Get(key, value)
-}
-
-func (a *agent) SetConfig(key string, value interface{}) error {
-	return a.Config.Set(key, value)
-}
-
 func (a *agent) Configure() {
 	a.ui.ShowConfiguration(a)
 	a.ui.Run()
 }
 
-func (a *agent) RunApps(ctx context.Context, client *mqtt.MQTTClient) {
+func (a *agent) RunApps(ctx context.Context, client *mqtt.Client) {
 	a.doApps(ctx, client, RunList)
 }
 
-func (a *agent) ClearApps(ctx context.Context, client *mqtt.MQTTClient) {
+func (a *agent) ClearApps(ctx context.Context, client *mqtt.Client) {
 	a.doApps(ctx, client, ClearList)
 }
 
-func (a *agent) doApps(ctx context.Context, client *mqtt.MQTTClient, appList []func(context.Context, hass.MQTTClient)) {
+func (a *agent) doApps(ctx context.Context, client *mqtt.Client, appList []func(context.Context, hass.MQTTClient)) {
 	var wg sync.WaitGroup
 	for _, app := range appList {
 		wg.Add(1)

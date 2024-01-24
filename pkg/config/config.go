@@ -25,13 +25,6 @@ type AppConfig interface {
 	Delete(string) error
 }
 
-//go:generate moq -out mock_configAgentConfig_test.go . AgentConfig
-type AgentConfig interface {
-	Get(string, interface{}) error
-	Set(string, interface{}) error
-	Delete(string) error
-}
-
 type ConfigFileNotFoundError struct {
 	Err error
 }

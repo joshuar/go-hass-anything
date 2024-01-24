@@ -12,9 +12,10 @@ import (
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"github.com/iancoleman/strcase"
-	"github.com/joshuar/go-hass-anything/pkg/mqtt"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
+
+	"github.com/joshuar/go-hass-anything/pkg/mqtt"
 )
 
 type EntityConfig struct {
@@ -64,12 +65,12 @@ type Origin struct {
 
 // MarshalConfig will marshal a config message and payload from the given
 // EntityConfig.
-func MarshalConfig(e *EntityConfig) (*mqtt.MQTTMsg, error) {
-	var msg *mqtt.MQTTMsg
+func MarshalConfig(e *EntityConfig) (*mqtt.Msg, error) {
+	var msg *mqtt.Msg
 	if jsonConfig, err := json.Marshal(e.Entity); err != nil {
 		return nil, err
 	} else {
-		msg = &mqtt.MQTTMsg{
+		msg = &mqtt.Msg{
 			Topic:    e.ConfigTopic,
 			Message:  jsonConfig,
 			Retained: true,
@@ -81,14 +82,14 @@ func MarshalConfig(e *EntityConfig) (*mqtt.MQTTMsg, error) {
 // MarshalState will marshal a state message and payload from the given
 // EntityConfig and state value. Where an entity state is combined with other
 // entities, it might be better to manually create a state message.
-func MarshalState(e *EntityConfig) (*mqtt.MQTTMsg, error) {
+func MarshalState(e *EntityConfig) (*mqtt.Msg, error) {
 	if e.StateCallback == nil {
 		return nil, errors.New("entity does not have a state callback function")
 	}
 	if value, err := e.StateCallback(); err != nil {
 		return nil, err
 	} else {
-		msg := &mqtt.MQTTMsg{
+		msg := &mqtt.Msg{
 			Topic:    e.Entity.StateTopic,
 			Message:  value,
 			Retained: false,
@@ -98,11 +99,11 @@ func MarshalState(e *EntityConfig) (*mqtt.MQTTMsg, error) {
 }
 
 // MarshalState will marshal a subscription from the given EntityConfig.
-func MarshalSubscription(e *EntityConfig) (*mqtt.MQTTSubscription, error) {
+func MarshalSubscription(e *EntityConfig) (*mqtt.Subscription, error) {
 	if e.CommandCallback == nil {
 		return nil, errors.New("entity does not have a command callback function")
 	}
-	msg := &mqtt.MQTTSubscription{
+	msg := &mqtt.Subscription{
 		Topic:    e.Entity.CommandTopic,
 		Callback: e.CommandCallback,
 	}
