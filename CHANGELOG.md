@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.4.0](https://github.com/joshuar/go-hass-anything/compare/v1.3.0...v1.4.0) (2024-01-24)
+
+
+### Features
+
+* **tools:** :sparkles: appgenerator path adjustment ([7387f7b](https://github.com/joshuar/go-hass-anything/commit/7387f7ba4d6f4929f60c3a985c78ef2b0a0e9567))
+* **web:** :sparkles: add retries to web requests ([1f29917](https://github.com/joshuar/go-hass-anything/commit/1f29917ad9b9b1ddf2f39cb6e64f823fe7901e9c))
+
 ## [1.3.0](https://github.com/joshuar/go-hass-anything/compare/v1.2.0...v1.3.0) (2024-01-09)
 
 
