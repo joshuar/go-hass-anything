@@ -18,6 +18,7 @@
 !.golangci.yaml
 !.goreleaser.yaml
 !.devcontainer/*
+!.vscode/*
 !.github/workflows/*
 !.github/FUNDING.yml
 !init/systemd/*
