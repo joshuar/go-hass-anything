@@ -20,7 +20,7 @@ jobs:
           release-type: go
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         if: ${{ steps.release_please.outputs.release_created }}
         with:
           fetch-depth: 0
