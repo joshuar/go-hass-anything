@@ -3,7 +3,8 @@
         "web",
         "tools",
         "config",
-        "go"
+        "go",
+        "git"
     ],
     "go.lintTool": "golangci-lint",
     "go.lintFlags": [
