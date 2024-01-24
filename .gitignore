@@ -9,31 +9,21 @@
 
 # But not these files...
 !/.gitignore
+!/.vscode/**/*
+!/.github/**/*
+!/.devcontainer/**/*
 
-!*.go
 !*.md
-!*.tmpl
+!*.go
 !go.sum
 !go.mod
-!.golangci.yaml
-!.goreleaser.yaml
-!.devcontainer/*
-!.vscode/*
-!.github/workflows/*
-!.github/FUNDING.yml
-!init/systemd/*
-!Dockerfile
-!cosign.*
 
 !README.md
 !LICENSE
-
-!/deployments/mosquitto/config/mosquitto.conf.example
 
 # !Makefile
 
 # ...even if they are in subdirectories
 !*/
 
-# this file is auto-generated and may contain private end-user information
 internal/agent/init.go
