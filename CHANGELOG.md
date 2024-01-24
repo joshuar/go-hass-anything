@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.2](https://github.com/joshuar/go-hass-anything/compare/v2.0.1...v2.0.2) (2024-01-24)
+
+
+### Miscellaneous Chores
+
+* release 2.0.2 ([6a6343a](https://github.com/joshuar/go-hass-anything/commit/6a6343a94a35ea66ba1f0ff1b84fb0c545c59eb0))
+
 ## [2.0.1](https://github.com/joshuar/go-hass-anything/compare/v2.0.0...v2.0.1) (2024-01-24)
 
 
