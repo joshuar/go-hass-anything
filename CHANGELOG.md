@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.1](https://github.com/joshuar/go-hass-anything/compare/v2.0.0...v2.0.1) (2024-01-24)
+
+
+### Bug Fixes
+
+* **config:** :recycle: ensure tomlconfig has own package name following conventions ([8514f5f](https://github.com/joshuar/go-hass-anything/commit/8514f5f6127d89bce787f34114689e07b5624974))
+
 ## [2.0.0](https://github.com/joshuar/go-hass-anything/compare/v1.4.0...v2.0.0) (2024-01-24)
 
 
