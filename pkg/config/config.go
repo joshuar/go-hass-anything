@@ -5,9 +5,7 @@
 
 package config
 
-import (
-	tomlConfig "github.com/joshuar/go-hass-anything/pkg/config/toml"
-)
+import "github.com/joshuar/go-hass-anything/pkg/config/tomlconfig"
 
 //go:generate moq -out mock_configAppConfig_test.go . AppConfig
 type AppConfig interface {
@@ -34,6 +32,6 @@ func (e *ConfigFileNotFoundError) Error() string {
 }
 
 func LoadConfig(name string) (AppConfig, error) {
-	c := tomlConfig.LoadConfig(name)
+	c := tomlconfig.LoadTOMLConfig(name)
 	return c, nil
 }

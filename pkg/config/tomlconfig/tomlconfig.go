@@ -3,7 +3,7 @@
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
-package config
+package tomlconfig
 
 import (
 	"errors"
@@ -19,9 +19,7 @@ const (
 	PrefAppRegistered = "registered"
 )
 
-var (
-	configBasePath = filepath.Join(os.Getenv("HOME"), ".config", "go-hass-anything")
-)
+var configBasePath = filepath.Join(os.Getenv("HOME"), ".config", "go-hass-anything")
 
 type tomlConfig struct {
 	file string
@@ -45,7 +43,7 @@ func (c *tomlConfig) write(items map[string]interface{}) error {
 	if err != nil {
 		return err
 	}
-	err = os.WriteFile(c.file, b, 0644)
+	err = os.WriteFile(c.file, b, 0o644)
 	if err != nil {
 		return err
 	}
@@ -129,7 +127,7 @@ func newTomlConfig(path string) *tomlConfig {
 	return c
 }
 
-func LoadConfig(name string) *tomlConfig {
+func LoadTOMLConfig(name string) *tomlConfig {
 	var path string
 	if name != "" {
 		path = filepath.Join(configBasePath, name)
