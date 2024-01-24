@@ -24,7 +24,7 @@ linters-settings:
   gocyclo:
     min-complexity: 15
   goimports:
-    local-prefixes: github.com/joshuar/go-hass-agent
+    local-prefixes: github.com/joshuar/go-hass-anything
   dupl:
     threshold: 100
   funlen:
