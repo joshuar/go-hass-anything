@@ -19,9 +19,7 @@ const (
 	PrefAppRegistered = "app.registered"
 )
 
-var (
-	configBasePath = filepath.Join(os.Getenv("HOME"), ".config", "go-hass-anything")
-)
+var configBasePath = filepath.Join(os.Getenv("HOME"), ".config", "go-hass-anything")
 
 type ViperConfig struct {
 	store *viper.Viper

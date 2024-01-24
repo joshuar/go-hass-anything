@@ -25,8 +25,8 @@ type tomlConfig struct {
 	file string
 }
 
-func (c *tomlConfig) read() (map[string]interface{}, error) {
-	items := make(map[string]interface{})
+func (c *tomlConfig) read() (map[string]any, error) {
+	items := make(map[string]any)
 	b, err := os.ReadFile(c.file)
 	if err != nil {
 		return nil, err
@@ -38,19 +38,19 @@ func (c *tomlConfig) read() (map[string]interface{}, error) {
 	return items, nil
 }
 
-func (c *tomlConfig) write(items map[string]interface{}) error {
+func (c *tomlConfig) write(items map[string]any) error {
 	b, err := toml.Marshal(items)
 	if err != nil {
 		return err
 	}
-	err = os.WriteFile(c.file, b, 0o644)
+	err = os.WriteFile(c.file, b, 0o600)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (c *tomlConfig) Get(key string, value interface{}) error {
+func (c *tomlConfig) Get(key string, value any) error {
 	items, err := c.read()
 	if err != nil {
 		return err
@@ -70,7 +70,7 @@ func (c *tomlConfig) Get(key string, value interface{}) error {
 	return nil
 }
 
-func (c *tomlConfig) Set(key string, value interface{}) error {
+func (c *tomlConfig) Set(key string, value any) error {
 	items, err := c.read()
 	if err != nil {
 		return err
@@ -116,7 +116,7 @@ func newTomlConfig(path string) *tomlConfig {
 			log.Debug().Err(err).Msgf("Failed to create new config directory %s.", path)
 		} else {
 			log.Debug().Msgf("Created new config directory %s.", path)
-			i := make(map[string]interface{})
+			i := make(map[string]any)
 			i[PrefAppRegistered] = false
 			err := c.write(i)
 			if err != nil {
@@ -132,7 +132,7 @@ func LoadTOMLConfig(name string) *tomlConfig {
 	if name != "" {
 		path = filepath.Join(configBasePath, name)
 	} else {
-		path = filepath.Join(configBasePath)
+		path = configBasePath
 	}
 	return newTomlConfig(path)
 }
