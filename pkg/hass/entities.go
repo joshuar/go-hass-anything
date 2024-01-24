@@ -12,7 +12,6 @@ import (
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"github.com/iancoleman/strcase"
-	"github.com/joshuar/go-hass-anything/pkg/config"
 	"github.com/joshuar/go-hass-anything/pkg/mqtt"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -220,9 +219,8 @@ func (e *EntityConfig) WithOriginInfo(o *Origin) *EntityConfig {
 // to the entity config.
 func (e *EntityConfig) WithDefaultOriginInfo() *EntityConfig {
 	e.Entity.Origin = &Origin{
-		Name:    "Go Hass Agent",
-		URL:     "https://github.com/joshuar/go-hass-agent",
-		Version: config.AppVersion,
+		Name: "Go Hass Anything",
+		URL:  "https://github.com/joshuar/go-hass-anything",
 	}
 	return e
 }

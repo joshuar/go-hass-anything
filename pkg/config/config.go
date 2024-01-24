@@ -6,14 +6,8 @@
 package config
 
 import (
-	_ "embed"
-
 	tomlConfig "github.com/joshuar/go-hass-anything/pkg/config/toml"
 )
-
-//go:generate sh -c "printf %s $(git tag | tail -1) > VERSION"
-//go:embed VERSION
-var AppVersion string
 
 //go:generate moq -out mock_configAppConfig_test.go . AppConfig
 type AppConfig interface {
