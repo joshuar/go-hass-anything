@@ -8,7 +8,7 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/joshuar/go-hass-anything/v2/internal/agent"
+	"github.com/joshuar/go-hass-anything/v3/internal/agent"
 )
 
 var configCmd = &cobra.Command{

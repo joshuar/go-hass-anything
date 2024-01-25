@@ -9,7 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rs/zerolog/log"
 
-	"github.com/joshuar/go-hass-anything/v2/pkg/config"
+	"github.com/joshuar/go-hass-anything/v3/pkg/config"
 )
 
 type Agent interface {

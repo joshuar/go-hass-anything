@@ -8,8 +8,8 @@ package hass
 import (
 	"github.com/rs/zerolog/log"
 
-	"github.com/joshuar/go-hass-anything/v2/pkg/config"
-	"github.com/joshuar/go-hass-anything/v2/pkg/mqtt"
+	"github.com/joshuar/go-hass-anything/v3/pkg/config"
+	"github.com/joshuar/go-hass-anything/v3/pkg/mqtt"
 )
 
 type MQTTDevice interface {

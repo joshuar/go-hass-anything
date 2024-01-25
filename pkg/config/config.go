@@ -5,7 +5,7 @@
 
 package config
 
-import "github.com/joshuar/go-hass-anything/v2/pkg/config/tomlconfig"
+import "github.com/joshuar/go-hass-anything/v3/pkg/config/tomlconfig"
 
 //go:generate moq -out mock_configAppConfig_test.go . AppConfig
 type AppConfig interface {

@@ -1,4 +1,4 @@
-module github.com/joshuar/go-hass-anything/v2
+module github.com/joshuar/go-hass-anything/v3
 
 go 1.21
 

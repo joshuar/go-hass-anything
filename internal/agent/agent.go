@@ -9,9 +9,9 @@ import (
 	"context"
 	"sync"
 
-	ui "github.com/joshuar/go-hass-anything/v2/internal/agent/ui/bubbletea"
-	"github.com/joshuar/go-hass-anything/v2/pkg/hass"
-	"github.com/joshuar/go-hass-anything/v2/pkg/mqtt"
+	ui "github.com/joshuar/go-hass-anything/v3/internal/agent/ui/bubbletea"
+	"github.com/joshuar/go-hass-anything/v3/pkg/hass"
+	"github.com/joshuar/go-hass-anything/v3/pkg/mqtt"
 )
 
 //go:generate go run ../../tools/appgenerator/run.go arg1

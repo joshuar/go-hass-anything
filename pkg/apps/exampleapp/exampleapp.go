@@ -17,11 +17,11 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/shirou/gopsutil/v3/load"
 
-	"github.com/joshuar/go-hass-anything/v2/pkg/apps/helpers"
-	"github.com/joshuar/go-hass-anything/v2/pkg/config"
-	"github.com/joshuar/go-hass-anything/v2/pkg/hass"
-	"github.com/joshuar/go-hass-anything/v2/pkg/mqtt"
-	"github.com/joshuar/go-hass-anything/v2/pkg/web"
+	"github.com/joshuar/go-hass-anything/v3/pkg/apps/helpers"
+	"github.com/joshuar/go-hass-anything/v3/pkg/config"
+	"github.com/joshuar/go-hass-anything/v3/pkg/hass"
+	"github.com/joshuar/go-hass-anything/v3/pkg/mqtt"
+	"github.com/joshuar/go-hass-anything/v3/pkg/web"
 )
 
 const (
