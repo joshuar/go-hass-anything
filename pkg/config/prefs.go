@@ -18,28 +18,28 @@ var (
 	PreferencesFile = "config.toml"
 )
 
-type AppPreferences struct {
+type Preferences struct {
 	MQTTServer   string `toml:"mqttserver"`
 	MQTTUser     string `toml:"mqttuser,omitempty"`
 	MQTTPassword string `toml:"mqttpassword,omitempty"`
 }
 
-type Pref func(*AppPreferences)
+type Pref func(*Preferences)
 
 func MQTTServer(server string) Pref {
-	return func(args *AppPreferences) {
+	return func(args *Preferences) {
 		args.MQTTServer = server
 	}
 }
 
 func MQTTUser(user string) Pref {
-	return func(args *AppPreferences) {
+	return func(args *Preferences) {
 		args.MQTTUser = user
 	}
 }
 
 func MQTTPassword(password string) Pref {
-	return func(args *AppPreferences) {
+	return func(args *Preferences) {
 		args.MQTTPassword = password
 	}
 }
@@ -51,7 +51,7 @@ func SavePreferences(path string, setters ...Pref) error {
 	file := filepath.Join(path, PreferencesFile)
 	checkPath(path)
 
-	args := &AppPreferences{
+	args := &Preferences{
 		MQTTServer:   "localhost:1883",
 		MQTTUser:     "",
 		MQTTPassword: "",
@@ -71,13 +71,13 @@ func SavePreferences(path string, setters ...Pref) error {
 	return nil
 }
 
-func LoadPreferences(path string) (*AppPreferences, error) {
+func LoadPreferences(path string) (*Preferences, error) {
 	if path == "" {
 		path = ConfigBasePath
 	}
 	file := filepath.Join(path, PreferencesFile)
 
-	p := &AppPreferences{}
+	p := &Preferences{}
 	b, err := os.ReadFile(file)
 	if err != nil {
 		return nil, err
