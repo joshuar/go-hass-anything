@@ -28,8 +28,8 @@ var (
 )
 
 type formInputModel struct {
-	focusIndex int
 	formInputs []textinput.Model
+	focusIndex int
 	cursorMode cursor.Mode
 }
 
@@ -66,8 +66,7 @@ func (m formInputModel) View() string {
 }
 
 func (m formInputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	if msg, ok := msg.(tea.KeyMsg); ok {
 		switch msg.String() {
 		case "ctrl+c", "esc":
 			return m, tea.Quit
