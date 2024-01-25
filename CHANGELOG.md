@@ -1,5 +1,24 @@
 # Changelog
 
+## [3.0.0](https://github.com/joshuar/go-hass-anything/compare/v2.0.3...v3.0.0) (2024-01-25)
+
+
+### ⚠ BREAKING CHANGES
+
+* **all:** update import path for breaking change
+* **config:** rename exported struct AppPreferences -> Preferences
+* **config,agent,mqtt:** allow specifying a path to MQTT config file
+
+### Features
+
+* **all:** update import path for breaking change ([866e894](https://github.com/joshuar/go-hass-anything/commit/866e8943d9eeda8bf6321d8cf865068d99ac34e8))
+* **config,agent,mqtt:** allow specifying a path to MQTT config file ([48eb067](https://github.com/joshuar/go-hass-anything/commit/48eb0674520f5d54db09e36076232e3b65884485))
+
+
+### Code Refactoring
+
+* **config:** rename exported struct AppPreferences -&gt; Preferences ([b849504](https://github.com/joshuar/go-hass-anything/commit/b84950424402e7e255eb8b4c60ea7fad272b4fb1))
+
 ## [2.0.3](https://github.com/joshuar/go-hass-anything/compare/v2.0.2...v2.0.3) (2024-01-25)
 
 
