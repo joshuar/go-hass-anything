@@ -26,12 +26,6 @@ var _ Agent = &AgentMock{}
 //			AppVersionFunc: func() string {
 //				panic("mock out the AppVersion method")
 //			},
-//			GetConfigFunc: func(s string, ifaceVal interface{}) error {
-//				panic("mock out the GetConfig method")
-//			},
-//			SetConfigFunc: func(s string, ifaceVal interface{}) error {
-//				panic("mock out the SetConfig method")
-//			},
 //			StopFunc: func()  {
 //				panic("mock out the Stop method")
 //			},
@@ -51,12 +45,6 @@ type AgentMock struct {
 	// AppVersionFunc mocks the AppVersion method.
 	AppVersionFunc func() string
 
-	// GetConfigFunc mocks the GetConfig method.
-	GetConfigFunc func(s string, ifaceVal interface{}) error
-
-	// SetConfigFunc mocks the SetConfig method.
-	SetConfigFunc func(s string, ifaceVal interface{}) error
-
 	// StopFunc mocks the Stop method.
 	StopFunc func()
 
@@ -71,20 +59,6 @@ type AgentMock struct {
 		// AppVersion holds details about calls to the AppVersion method.
 		AppVersion []struct {
 		}
-		// GetConfig holds details about calls to the GetConfig method.
-		GetConfig []struct {
-			// S is the s argument value.
-			S string
-			// IfaceVal is the ifaceVal argument value.
-			IfaceVal interface{}
-		}
-		// SetConfig holds details about calls to the SetConfig method.
-		SetConfig []struct {
-			// S is the s argument value.
-			S string
-			// IfaceVal is the ifaceVal argument value.
-			IfaceVal interface{}
-		}
 		// Stop holds details about calls to the Stop method.
 		Stop []struct {
 		}
@@ -92,8 +66,6 @@ type AgentMock struct {
 	lockAppID      sync.RWMutex
 	lockAppName    sync.RWMutex
 	lockAppVersion sync.RWMutex
-	lockGetConfig  sync.RWMutex
-	lockSetConfig  sync.RWMutex
 	lockStop       sync.RWMutex
 }
 
@@ -175,78 +147,6 @@ func (mock *AgentMock) AppVersionCalls() []struct {
 	mock.lockAppVersion.RLock()
 	calls = mock.calls.AppVersion
 	mock.lockAppVersion.RUnlock()
-	return calls
-}
-
-// GetConfig calls GetConfigFunc.
-func (mock *AgentMock) GetConfig(s string, ifaceVal interface{}) error {
-	if mock.GetConfigFunc == nil {
-		panic("AgentMock.GetConfigFunc: method is nil but Agent.GetConfig was just called")
-	}
-	callInfo := struct {
-		S        string
-		IfaceVal interface{}
-	}{
-		S:        s,
-		IfaceVal: ifaceVal,
-	}
-	mock.lockGetConfig.Lock()
-	mock.calls.GetConfig = append(mock.calls.GetConfig, callInfo)
-	mock.lockGetConfig.Unlock()
-	return mock.GetConfigFunc(s, ifaceVal)
-}
-
-// GetConfigCalls gets all the calls that were made to GetConfig.
-// Check the length with:
-//
-//	len(mockedAgent.GetConfigCalls())
-func (mock *AgentMock) GetConfigCalls() []struct {
-	S        string
-	IfaceVal interface{}
-} {
-	var calls []struct {
-		S        string
-		IfaceVal interface{}
-	}
-	mock.lockGetConfig.RLock()
-	calls = mock.calls.GetConfig
-	mock.lockGetConfig.RUnlock()
-	return calls
-}
-
-// SetConfig calls SetConfigFunc.
-func (mock *AgentMock) SetConfig(s string, ifaceVal interface{}) error {
-	if mock.SetConfigFunc == nil {
-		panic("AgentMock.SetConfigFunc: method is nil but Agent.SetConfig was just called")
-	}
-	callInfo := struct {
-		S        string
-		IfaceVal interface{}
-	}{
-		S:        s,
-		IfaceVal: ifaceVal,
-	}
-	mock.lockSetConfig.Lock()
-	mock.calls.SetConfig = append(mock.calls.SetConfig, callInfo)
-	mock.lockSetConfig.Unlock()
-	return mock.SetConfigFunc(s, ifaceVal)
-}
-
-// SetConfigCalls gets all the calls that were made to SetConfig.
-// Check the length with:
-//
-//	len(mockedAgent.SetConfigCalls())
-func (mock *AgentMock) SetConfigCalls() []struct {
-	S        string
-	IfaceVal interface{}
-} {
-	var calls []struct {
-		S        string
-		IfaceVal interface{}
-	}
-	mock.lockSetConfig.RLock()
-	calls = mock.calls.SetConfig
-	mock.lockSetConfig.RUnlock()
 	return calls
 }
 

@@ -17,8 +17,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/joshuar/go-hass-anything/internal/agent"
-	"github.com/joshuar/go-hass-anything/pkg/mqtt"
+	"github.com/joshuar/go-hass-anything/v2/internal/agent"
+	"github.com/joshuar/go-hass-anything/v2/pkg/mqtt"
 )
 
 var runCmd = &cobra.Command{

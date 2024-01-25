@@ -5,7 +5,7 @@
 
 package agent
 
-import ui "github.com/joshuar/go-hass-anything/internal/agent/ui/bubbletea"
+import ui "github.com/joshuar/go-hass-anything/v2/internal/agent/ui/bubbletea"
 
 type AgentUI interface {
 	Run()

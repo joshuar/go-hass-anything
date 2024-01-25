@@ -17,7 +17,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/joshuar/go-hass-anything/pkg/config"
+	"github.com/joshuar/go-hass-anything/v2/pkg/config"
 )
 
 const (

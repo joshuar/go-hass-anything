@@ -15,7 +15,7 @@ import (
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 
-	"github.com/joshuar/go-hass-anything/pkg/mqtt"
+	"github.com/joshuar/go-hass-anything/v2/pkg/mqtt"
 )
 
 type EntityConfig struct {
