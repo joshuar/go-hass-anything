@@ -98,7 +98,7 @@ func NewMQTTClient() (*Client, error) {
 	hostname, _ := os.Hostname()
 	clientid := hostname + strconv.Itoa(time.Now().Second())
 
-	prefs, err := config.LoadPreferences()
+	prefs, err := config.LoadPreferences("")
 	if err != nil {
 		return nil, err
 	}

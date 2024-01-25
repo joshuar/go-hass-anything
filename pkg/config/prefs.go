@@ -15,7 +15,7 @@ import (
 
 var (
 	ConfigBasePath  = filepath.Join(os.Getenv("HOME"), ".config", "go-hass-anything")
-	PreferencesFile = filepath.Join(ConfigBasePath, "config.toml")
+	PreferencesFile = "config.toml"
 )
 
 type AppPreferences struct {
@@ -44,7 +44,13 @@ func MQTTPassword(password string) Pref {
 	}
 }
 
-func SavePreferences(setters ...Pref) error {
+func SavePreferences(path string, setters ...Pref) error {
+	if path == "" {
+		path = ConfigBasePath
+	}
+	file := filepath.Join(path, PreferencesFile)
+	checkPath(path)
+
 	args := &AppPreferences{
 		MQTTServer:   "localhost:1883",
 		MQTTUser:     "",
@@ -58,16 +64,21 @@ func SavePreferences(setters ...Pref) error {
 	if err != nil {
 		return err
 	}
-	err = os.WriteFile(PreferencesFile, b, 0o600)
+	err = os.WriteFile(file, b, 0o600)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func LoadPreferences() (*AppPreferences, error) {
+func LoadPreferences(path string) (*AppPreferences, error) {
+	if path == "" {
+		path = ConfigBasePath
+	}
+	file := filepath.Join(path, PreferencesFile)
+
 	p := &AppPreferences{}
-	b, err := os.ReadFile(PreferencesFile)
+	b, err := os.ReadFile(file)
 	if err != nil {
 		return nil, err
 	}
@@ -78,13 +89,13 @@ func LoadPreferences() (*AppPreferences, error) {
 	return p, nil
 }
 
-func init() {
-	_, err := os.Stat(ConfigBasePath)
+func checkPath(path string) {
+	_, err := os.Stat(path)
 	if os.IsNotExist(err) {
-		if err := os.MkdirAll(ConfigBasePath, os.ModePerm); err != nil {
-			log.Debug().Err(err).Msgf("Failed to create new config directory %s.", ConfigBasePath)
+		if err := os.MkdirAll(path, os.ModePerm); err != nil {
+			log.Debug().Err(err).Msgf("Failed to create new config directory %s.", path)
 		} else {
-			log.Debug().Msgf("Created new config directory %s.", ConfigBasePath)
+			log.Debug().Msgf("Created new config directory %s.", path)
 		}
 	}
 }

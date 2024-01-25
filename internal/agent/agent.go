@@ -55,7 +55,7 @@ func (a *agent) Stop() {
 }
 
 func (a *agent) Configure() {
-	a.ui.ShowConfiguration(a)
+	a.ui.ShowConfiguration()
 	a.ui.Run()
 }
 

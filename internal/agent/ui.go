@@ -5,9 +5,7 @@
 
 package agent
 
-import ui "github.com/joshuar/go-hass-anything/v2/internal/agent/ui/bubbletea"
-
 type AgentUI interface {
 	Run()
-	ShowConfiguration(ui.Agent)
+	ShowConfiguration()
 }
