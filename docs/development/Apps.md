@@ -13,10 +13,10 @@ You can develop an app to send data to Home Assistant via MQTT in two ways:
 - As a group of apps managed by the *agent* by satisfying an interface defined
   by the agent needed to manage each app.
 
-Which path to take is up to you. As a suggestion, if you want to send different
-data from different places to Home Assistant, you'll likely want to develop apps
-that run under the agent as a single executable, as opposed to having multiple
-separate Go executables for each app and its data.
+Which path to take is up to you.  If you want to send different data from
+different places to Home Assistant, you'll likely want to develop apps that run
+under the agent as a single executable. Otherwise, you can embed the packages
+under `pkg/` into your own application.
 
 In either case, apps should satisfy [Home Assistant MQTT
 Discovery](https://www.home-assistant.io/integrations/mqtt/#mqtt-discovery).
@@ -34,7 +34,7 @@ For an app using Go Hass Anything, that means the app:
 Additionally, if the app is self-contained and not running through the agent
 framework, it will need to supply a `hass.MQTTClient` to the `hass.*` functions.
 
-## Example App
+## Example App running under the Agent
 
 Check out the [example app](../../internal/apps/exampleApp/exampleApp.go) which
 demonstrates:
@@ -54,11 +54,11 @@ well.
 ### Code Location
 
 > [!IMPORTANT]
-> App directories are not committed to version control. This allows your apps to
+> The app directory is not committed to version control. This allows your apps to
 > remain private. But it also means that if you desire version control of your
-> apps, you should set up either git submodules or use subtree merging.
+> apps, you should set up your own repo for them.
 
-You can put your code in `internal/apps/myapp/myapp.go`. You can create multiple
+You can put your code in `apps`. You can create multiple
 directories for each app you develop.
 
 > [!NOTE]

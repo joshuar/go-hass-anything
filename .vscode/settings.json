@@ -6,7 +6,8 @@
         "go",
         "git",
         "all",
-        "ui"
+        "ui",
+        "docs/development"
     ],
     "go.lintTool": "golangci-lint",
     "go.lintFlags": [
