@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.3](https://github.com/joshuar/go-hass-anything/compare/v2.0.2...v2.0.3) (2024-01-25)
+
+
+### Bug Fixes
+
+* **all:** :ambulance: fix module path after new major version ([00506af](https://github.com/joshuar/go-hass-anything/commit/00506afc14cb55763efaa610a749bfbc1cd693a3))
+
 ## [2.0.2](https://github.com/joshuar/go-hass-anything/compare/v2.0.1...v2.0.2) (2024-01-24)
 
 
