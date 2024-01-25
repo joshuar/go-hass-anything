@@ -19,7 +19,12 @@ var (
 	ConfigBasePath = filepath.Join(os.Getenv("HOME"), ".config", "go-hass-anything")
 	// PreferencesFile is the default filename used for storing the preferences
 	// on disk. While it can be overridden, this is usually unnecessary.
-	PreferencesFile = "config.toml"
+	PreferencesFile    = "config.toml"
+	defaultPreferences = Preferences{
+		MQTTServer:   "localhost:1883",
+		MQTTUser:     "",
+		MQTTPassword: "",
+	}
 )
 
 // Preferences is a struct containing the general preferences for either the
@@ -71,16 +76,12 @@ func SavePreferences(path string, setters ...Pref) error {
 	file := filepath.Join(path, PreferencesFile)
 	checkPath(path)
 
-	args := &Preferences{
-		MQTTServer:   "localhost:1883",
-		MQTTUser:     "",
-		MQTTPassword: "",
-	}
+	args := defaultPreferences
 	for _, setter := range setters {
-		setter(args)
+		setter(&args)
 	}
 
-	b, err := toml.Marshal(args)
+	b, err := toml.Marshal(&args)
 	if err != nil {
 		return err
 	}
@@ -100,7 +101,7 @@ func LoadPreferences(path string) (*Preferences, error) {
 	}
 	file := filepath.Join(path, PreferencesFile)
 
-	p := &Preferences{}
+	p := defaultPreferences
 	b, err := os.ReadFile(file)
 	if err != nil {
 		return nil, err
@@ -109,7 +110,7 @@ func LoadPreferences(path string) (*Preferences, error) {
 	if err != nil {
 		return nil, err
 	}
-	return p, nil
+	return &p, nil
 }
 
 func checkPath(path string) {
