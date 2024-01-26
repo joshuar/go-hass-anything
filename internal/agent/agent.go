@@ -15,7 +15,6 @@ import (
 )
 
 //go:generate go run ../../tools/appgenerator/run.go arg1
-
 var (
 	RunList   []func(context.Context, hass.MQTTClient)
 	ClearList []func(context.Context, hass.MQTTClient)
@@ -59,15 +58,15 @@ func (a *agent) Configure() {
 	a.ui.Run()
 }
 
-func (a *agent) RunApps(ctx context.Context, client *mqtt.Client) {
-	a.doApps(ctx, client, RunList)
+func RunApps(ctx context.Context, client *mqtt.Client) {
+	doApps(ctx, client, RunList)
 }
 
-func (a *agent) ClearApps(ctx context.Context, client *mqtt.Client) {
-	a.doApps(ctx, client, ClearList)
+func ClearApps(ctx context.Context, client *mqtt.Client) {
+	doApps(ctx, client, ClearList)
 }
 
-func (a *agent) doApps(ctx context.Context, client *mqtt.Client, appList []func(context.Context, hass.MQTTClient)) {
+func doApps(ctx context.Context, client *mqtt.Client, appList []func(context.Context, hass.MQTTClient)) {
 	var wg sync.WaitGroup
 	for _, app := range appList {
 		wg.Add(1)

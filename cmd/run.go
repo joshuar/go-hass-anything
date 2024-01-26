@@ -29,7 +29,6 @@ var runCmd = &cobra.Command{
 		ctx, cancelFunc := context.WithCancel(context.TODO())
 		defer cancelFunc()
 
-		agent := agent.NewAgent(AgentID, AgentName)
 		mqtt, err := mqtt.NewMQTTClient("")
 		if err != nil {
 			log.Fatal().Err(err).Msg("Could not connect to broker.")
