@@ -14,9 +14,9 @@ import (
 )
 
 var (
-	// ConfigBasePath is the default path under which the preferences are
+	// PreferencesDir is the default path under which the preferences are
 	// written. It can be overridden in the Save/Load functions as needed.
-	ConfigBasePath = filepath.Join(os.Getenv("HOME"), ".config", "go-hass-anything")
+	PreferencesDir = filepath.Join(os.Getenv("HOME"), ".config", "go-hass-anything")
 	// PreferencesFile is the default filename used for storing the preferences
 	// on disk. While it can be overridden, this is usually unnecessary.
 	PreferencesFile    = "mqtt-config.toml"
@@ -25,6 +25,7 @@ var (
 		MQTTUser:     "",
 		MQTTPassword: "",
 	}
+	AppRegistryDir = filepath.Join(os.Getenv("HOME"), ".config", "go-hass-anything", "appregistry")
 )
 
 // Preferences is a struct containing the general preferences for either the
@@ -71,7 +72,7 @@ func MQTTPassword(password string) Pref {
 // by PreferencesFile under the location specified by ConfigBasePath.
 func SavePreferences(path string, setters ...Pref) error {
 	if path == "" {
-		path = ConfigBasePath
+		path = PreferencesDir
 	}
 	file := filepath.Join(path, PreferencesFile)
 	checkPath(path)
@@ -97,7 +98,7 @@ func SavePreferences(path string, setters ...Pref) error {
 // PreferencesFile under the location specified by ConfigBasePath.
 func LoadPreferences(path string) (*Preferences, error) {
 	if path == "" {
-		path = ConfigBasePath
+		path = PreferencesDir
 	}
 	file := filepath.Join(path, PreferencesFile)
 
