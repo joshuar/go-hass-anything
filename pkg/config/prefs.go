@@ -19,7 +19,7 @@ var (
 	ConfigBasePath = filepath.Join(os.Getenv("HOME"), ".config", "go-hass-anything")
 	// PreferencesFile is the default filename used for storing the preferences
 	// on disk. While it can be overridden, this is usually unnecessary.
-	PreferencesFile    = "config.toml"
+	PreferencesFile    = "mqtt-config.toml"
 	defaultPreferences = Preferences{
 		MQTTServer:   "localhost:1883",
 		MQTTUser:     "",

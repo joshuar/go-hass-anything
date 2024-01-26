@@ -94,11 +94,13 @@ func (c *Client) Subscribe(subs ...*Subscription) error {
 	return g.Wait()
 }
 
-func NewMQTTClient() (*Client, error) {
+// NewMQTTClient will establish a new connection to the MQTT service, using the
+// configuration found under the path specified with prefsPath.
+func NewMQTTClient(prefsPath string) (*Client, error) {
 	hostname, _ := os.Hostname()
 	clientid := hostname + strconv.Itoa(time.Now().Second())
 
-	prefs, err := config.LoadPreferences("")
+	prefs, err := config.LoadPreferences(prefsPath)
 	if err != nil {
 		return nil, err
 	}
