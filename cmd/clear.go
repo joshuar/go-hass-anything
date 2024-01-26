@@ -30,7 +30,7 @@ var clearCmd = &cobra.Command{
 		defer cancelFunc()
 
 		agent := agent.NewAgent(AgentID, AgentName)
-		mqtt, err := mqtt.NewMQTTClient()
+		mqtt, err := mqtt.NewMQTTClient("")
 		if err != nil {
 			log.Fatal().Err(err).Msg("Could not connect to broker.")
 		}
