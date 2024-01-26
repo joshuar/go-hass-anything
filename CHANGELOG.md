@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.0.1](https://github.com/joshuar/go-hass-anything/compare/v3.0.0...v3.0.1) (2024-01-26)
+
+
+### Bug Fixes
+
+* **cmd:** :bug: fix missing parameter to mqtt.NewMQTTClient ([aa247a4](https://github.com/joshuar/go-hass-anything/commit/aa247a49c177ad49be38181da191afe645779bc1))
+* **config:** :bug: make sure Save/Load use default preferences where appropriate ([9ecc19d](https://github.com/joshuar/go-hass-anything/commit/9ecc19d9053b7d0036ee3473aafaf87249c9bcec))
+* **mqtt,config:** :bug: prefs propagation fixes ([8b720f0](https://github.com/joshuar/go-hass-anything/commit/8b720f089b1777b6d9abb9e873940f1f5cc0ab2c))
+
 ## [3.0.0](https://github.com/joshuar/go-hass-anything/compare/v2.0.3...v3.0.0) (2024-01-25)
 
 
