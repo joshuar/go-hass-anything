@@ -20,8 +20,8 @@ type MQTTDevice interface {
 }
 
 type MQTTClient interface {
-	Publish(...*mqtt.Msg) error
-	Subscribe(...*mqtt.Subscription) error
+	Publish(msgs ...*mqtt.Msg) error
+	Subscribe(msgs ...*mqtt.Subscription) error
 }
 
 // Register will check if the app has been registered and if not, publish the
@@ -29,21 +29,13 @@ type MQTTClient interface {
 // If successfully registered, it will also record this status in the app
 // configuration. If any of these actions are unsuccessful, it will return an
 // error with more details. Otherwise it returns nil.
-func Register(device MQTTDevice, client MQTTClient) error {
-	var cfg config.AppConfig
-	var err error
-	if cfg, err = config.LoadConfig(device.Name()); err != nil {
-		if _, ok := err.(*config.ConfigFileNotFoundError); ok {
-			return err
-		}
-	}
-	if !cfg.IsRegistered() {
+func Register(registryPath string, device MQTTDevice, client MQTTClient) error {
+	if !config.IsRegistered(registryPath, device.Name()) {
 		if err := PublishConfigs(device, client); err != nil {
 			return err
-		} else {
-			if err = cfg.Register(); err != nil {
-				return err
-			}
+		}
+		if err := config.Register(registryPath, device.Name()); err != nil {
+			return err
 		}
 		log.Debug().Str("appName", device.Name()).Msg("App registered.")
 	}
@@ -54,18 +46,11 @@ func Register(device MQTTDevice, client MQTTClient) error {
 // MQTT, effectively removing the app from Home Assistant. Second, it updates
 // the app config to indicate it is unregistered. It will return an error if
 // either action fails, otherwise it will return nil.
-func UnRegister(device MQTTDevice, client MQTTClient) error {
-	var cfg config.AppConfig
-	var err error
-	if cfg, err = config.LoadConfig(device.Name()); err != nil {
-		if _, ok := err.(*config.ConfigFileNotFoundError); ok {
-			return err
-		}
-	}
+func UnRegister(registryPath string, device MQTTDevice, client MQTTClient) error {
 	if err := Unpublish(device, client); err != nil {
 		return err
 	}
-	if err := cfg.UnRegister(); err != nil {
+	if err := config.UnRegister(registryPath, device.Name()); err != nil {
 		return err
 	}
 	log.Debug().Str("appName", device.Name()).Msg("App unregistered.")

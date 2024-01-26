@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 
 	"github.com/pelletier/go-toml/v2"
-	"github.com/rs/zerolog/log"
 )
 
 var (
@@ -75,7 +74,9 @@ func SavePreferences(path string, setters ...Pref) error {
 		path = PreferencesDir
 	}
 	file := filepath.Join(path, PreferencesFile)
-	checkPath(path)
+	if err := checkPath(path); err != nil {
+		return err
+	}
 
 	args := defaultPreferences
 	for _, setter := range setters {
@@ -114,13 +115,45 @@ func LoadPreferences(path string) (*Preferences, error) {
 	return &p, nil
 }
 
-func checkPath(path string) {
+func Register(path, app string) error {
+	if path == "" {
+		path = AppRegistryDir
+	}
+	file := filepath.Join(path, app)
+	if err := checkPath(path); err != nil {
+		return err
+	}
+
+	if fs, err := os.Create(file); err != nil {
+		return err
+	} else {
+		return fs.Close()
+	}
+}
+
+func UnRegister(path, app string) error {
+	if path == "" {
+		path = AppRegistryDir
+	}
+	file := filepath.Join(path, app)
+	return os.Remove(file)
+}
+
+func IsRegistered(path, app string) bool {
+	if path == "" {
+		path = AppRegistryDir
+	}
+	file := filepath.Join(path, app)
+	if _, err := os.Stat(file); os.IsNotExist(err) {
+		return false
+	}
+	return true
+}
+
+func checkPath(path string) error {
 	_, err := os.Stat(path)
 	if os.IsNotExist(err) {
-		if err := os.MkdirAll(path, os.ModePerm); err != nil {
-			log.Debug().Err(err).Msgf("Failed to create new config directory %s.", path)
-		} else {
-			log.Debug().Msgf("Created new config directory %s.", path)
-		}
+		return os.MkdirAll(path, os.ModePerm)
 	}
+	return nil
 }

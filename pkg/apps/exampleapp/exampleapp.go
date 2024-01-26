@@ -242,7 +242,7 @@ func Run(ctx context.Context, client hass.MQTTClient) {
 
 	// check if our app is registered. If not, send the configuration messages
 	// and then register the app.
-	if err := hass.Register(app, client); err != nil {
+	if err := hass.Register("", app, client); err != nil {
 		log.Error().Err(err).Msg("Could not register app!")
 		return
 	}
@@ -280,7 +280,7 @@ func Clear(_ context.Context, client hass.MQTTClient) {
 	log.Info().Msgf("Clearing %s app data from Home Assistant.", appName)
 	app := newExampleApp()
 
-	if err := hass.UnRegister(app, client); err != nil {
+	if err := hass.UnRegister("", app, client); err != nil {
 		log.Error().Err(err).Msg("Failed to unregister app!")
 	}
 }
