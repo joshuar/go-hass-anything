@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.1.0](https://github.com/joshuar/go-hass-anything/compare/v3.0.1...v3.1.0) (2024-01-26)
+
+
+### Features
+
+* **config:** registering an app is now independent of any app config; a path to the registry can be specified for customisation ([d3f16db](https://github.com/joshuar/go-hass-anything/commit/d3f16dbd583c7c422333be8d6b5d9cc90b0d479b))
+
 ## [3.0.1](https://github.com/joshuar/go-hass-anything/compare/v3.0.0...v3.0.1) (2024-01-26)
 
 
