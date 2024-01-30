@@ -9,7 +9,8 @@
         "ui",
         "docs/development",
         "cmd",
-        "agent"
+        "agent",
+        "hass"
     ],
     "go.lintTool": "golangci-lint",
     "go.lintFlags": [

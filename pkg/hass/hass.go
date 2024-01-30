@@ -31,7 +31,7 @@ type MQTTClient interface {
 // error with more details. Otherwise it returns nil.
 func Register(registryPath string, device MQTTDevice, client MQTTClient) error {
 	if !config.IsRegistered(registryPath, device.Name()) {
-		if err := PublishConfigs(device, client); err != nil {
+		if err := client.Publish(device.Configuration()...); err != nil {
 			return err
 		}
 		if err := config.Register(registryPath, device.Name()); err != nil {
@@ -47,7 +47,15 @@ func Register(registryPath string, device MQTTDevice, client MQTTClient) error {
 // the app config to indicate it is unregistered. It will return an error if
 // either action fails, otherwise it will return nil.
 func UnRegister(registryPath string, device MQTTDevice, client MQTTClient) error {
-	if err := Unpublish(device, client); err != nil {
+	var msgs []*mqtt.Msg
+	for _, msg := range device.Configuration() {
+		msgs = append(msgs, &mqtt.Msg{
+			Topic:    msg.Topic,
+			Message:  []byte(``),
+			Retained: true,
+		})
+	}
+	if err := client.Publish(msgs...); err != nil {
 		return err
 	}
 	if err := config.UnRegister(registryPath, device.Name()); err != nil {
@@ -57,10 +65,6 @@ func UnRegister(registryPath string, device MQTTDevice, client MQTTClient) error
 	return nil
 }
 
-func PublishConfigs(device MQTTDevice, client MQTTClient) error {
-	return client.Publish(device.Configuration()...)
-}
-
 func PublishState(device MQTTDevice, client MQTTClient) error {
 	log.Debug().Str("appName", device.Name()).Msg("Publishing messages.")
 	return client.Publish(device.States()...)
@@ -68,16 +72,4 @@ func PublishState(device MQTTDevice, client MQTTClient) error {
 
 func Subscribe(device MQTTDevice, client MQTTClient) error {
 	return client.Subscribe(device.Subscriptions()...)
-}
-
-func Unpublish(device MQTTDevice, client MQTTClient) error {
-	var msgs []*mqtt.Msg
-	for _, msg := range device.Configuration() {
-		msgs = append(msgs, &mqtt.Msg{
-			Topic:    msg.Topic,
-			Message:  []byte(``),
-			Retained: true,
-		})
-	}
-	return client.Publish(msgs...)
 }
