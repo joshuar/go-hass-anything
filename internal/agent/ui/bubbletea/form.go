@@ -40,13 +40,17 @@ func (m formInputModel) Init() tea.Cmd {
 func (m formInputModel) View() string {
 	var b strings.Builder
 
-	b.WriteRune('\n')
-	b.WriteString("Enter the requested details as follows:")
+	b.WriteString("Enter MQTT connection details:")
 	b.WriteRune('\n')
 	b.WriteRune('\n')
 
 	for i := range m.formInputs {
 		b.WriteString(m.formInputs[i].View())
+		b.WriteRune('\n')
+		b.WriteRune('\n')
+		b.WriteRune('\t')
+		b.WriteString(explanationText[i])
+		b.WriteRune('\n')
 		if i < len(m.formInputs)-1 {
 			b.WriteRune('\n')
 		}
@@ -57,10 +61,6 @@ func (m formInputModel) View() string {
 		button = &focusedButton
 	}
 	fmt.Fprintf(&b, "\n\n%s\n\n", *button)
-
-	b.WriteString(helpStyle.Render("cursor mode is "))
-	b.WriteString(cursorModeHelpStyle.Render(m.cursorMode.String()))
-	b.WriteString(helpStyle.Render(" (ctrl+r to change style)"))
 
 	return b.String()
 }
