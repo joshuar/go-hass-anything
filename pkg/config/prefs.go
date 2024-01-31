@@ -20,7 +20,7 @@ var (
 	// on disk. While it can be overridden, this is usually unnecessary.
 	PreferencesFile    = "mqtt-config.toml"
 	defaultPreferences = Preferences{
-		MQTTServer:   "localhost:1883",
+		MQTTServer:   "tcp://localhost:1883",
 		MQTTUser:     "",
 		MQTTPassword: "",
 	}
