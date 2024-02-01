@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.2.0](https://github.com/joshuar/go-hass-anything/compare/v3.1.0...v3.2.0) (2024-02-01)
+
+
+### Features
+
+* **config:** :fire: remove deprecated and unused viperconfig wrapper ([889563e](https://github.com/joshuar/go-hass-anything/commit/889563e3ec511f522bd78a79f7fcacb17060a039))
+* **config:** :sparkles: assume a default path/file for config, provide methods for overriding ([13d190c](https://github.com/joshuar/go-hass-anything/commit/13d190c61c44c3477a5985c32386974c9e1ea324))
+
 ## [3.1.0](https://github.com/joshuar/go-hass-anything/compare/v3.0.1...v3.1.0) (2024-01-26)
 
 
