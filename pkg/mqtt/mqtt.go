@@ -16,14 +16,18 @@ import (
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"github.com/rs/zerolog/log"
 	"golang.org/x/sync/errgroup"
-
-	"github.com/joshuar/go-hass-anything/v3/pkg/config"
 )
 
 const (
 	DiscoveryPrefix = "homeassistant"
 	DefaultServer   = "localhost:1883"
 )
+
+type prefs interface {
+	MQTTServer() string
+	MQTTUser() string
+	MQTTPassword() string
+}
 
 type Msg struct {
 	Topic    string
@@ -96,15 +100,15 @@ func (c *Client) Subscribe(subs ...*Subscription) error {
 
 // NewMQTTClient will establish a new connection to the MQTT service, using the
 // configuration found under the path specified with prefsPath.
-func NewMQTTClient(prefs *config.Preferences) (*Client, error) {
+func NewMQTTClient(preferences prefs) (*Client, error) {
 	hostname, _ := os.Hostname()
 	clientid := hostname + strconv.Itoa(time.Now().Second())
 
-	connOpts := MQTT.NewClientOptions().AddBroker(prefs.MQTTServer).SetClientID(clientid).SetCleanSession(true)
-	if prefs.MQTTUser != "" {
-		connOpts.SetUsername(prefs.MQTTUser)
-		if prefs.MQTTPassword != "" {
-			connOpts.SetPassword(prefs.MQTTPassword)
+	connOpts := MQTT.NewClientOptions().AddBroker(preferences.MQTTServer()).SetClientID(clientid).SetCleanSession(true)
+	if preferences.MQTTUser() != "" {
+		connOpts.SetUsername(preferences.MQTTUser())
+		if preferences.MQTTPassword() != "" {
+			connOpts.SetPassword(preferences.MQTTPassword())
 		}
 	}
 
@@ -121,7 +125,7 @@ func NewMQTTClient(prefs *config.Preferences) (*Client, error) {
 		return nil, err
 	}
 
-	log.Debug().Msgf("Connected to MQTT server %s.", prefs.MQTTServer)
+	log.Debug().Msgf("Connected to MQTT server %s.", preferences.MQTTServer())
 	conf := &Client{
 		conn: client,
 	}

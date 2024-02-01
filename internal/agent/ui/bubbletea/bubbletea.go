@@ -34,9 +34,9 @@ func (ui *bubbleteaUI) ShowConfiguration() {
 	if err != nil {
 		log.Warn().Err(err).Msg("No existing config found.")
 	} else {
-		mqttForm.formInputs[0].SetValue(prefs.MQTTServer)
-		mqttForm.formInputs[1].SetValue(prefs.MQTTUser)
-		mqttForm.formInputs[2].SetValue(prefs.MQTTPassword)
+		mqttForm.formInputs[0].SetValue(prefs.Server)
+		mqttForm.formInputs[1].SetValue(prefs.User)
+		mqttForm.formInputs[2].SetValue(prefs.Password)
 	}
 
 	ui.p = tea.NewProgram(mqttForm)

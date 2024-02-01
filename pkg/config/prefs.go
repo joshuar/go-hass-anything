@@ -20,9 +20,9 @@ var (
 	// on disk. While it can be overridden, this is usually unnecessary.
 	PreferencesFile    = "mqtt-config.toml"
 	defaultPreferences = Preferences{
-		MQTTServer:   "tcp://localhost:1883",
-		MQTTUser:     "",
-		MQTTPassword: "",
+		Server:   "tcp://localhost:1883",
+		User:     "",
+		Password: "",
 	}
 	AppRegistryDir = filepath.Join(os.Getenv("HOME"), ".config", "go-hass-anything", "appregistry")
 )
@@ -31,12 +31,24 @@ var (
 // agent or for any code that imports go-hass-anything as a package. Currently,
 // these preferences are for MQTT connectivity selection.
 type Preferences struct {
-	// MQTTServer is the URL for the MQTT server.
-	MQTTServer string `toml:"mqttserver"`
-	// MQTTUser is the username for connecting to the server (optional).
-	MQTTUser string `toml:"mqttuser,omitempty"`
-	// MQTTPassword is the password for connecting to the server (optional).
-	MQTTPassword string `toml:"mqttpassword,omitempty"`
+	// Server is the URL for the MQTT server.
+	Server string `toml:"mqttserver"`
+	// User is the username for connecting to the server (optional).
+	User string `toml:"mqttuser,omitempty"`
+	// Password is the password for connecting to the server (optional).
+	Password string `toml:"mqttpassword,omitempty"`
+}
+
+func (p *Preferences) MQTTServer() string {
+	return p.Server
+}
+
+func (p *Preferences) MQTTUser() string {
+	return p.User
+}
+
+func (p *Preferences) MQTTPassword() string {
+	return p.Password
 }
 
 // Pref is a functional type for applying a value to a particular preference.
@@ -46,7 +58,7 @@ type Pref func(*Preferences)
 // to the specified value.
 func MQTTServer(server string) Pref {
 	return func(args *Preferences) {
-		args.MQTTServer = server
+		args.Server = server
 	}
 }
 
@@ -54,7 +66,7 @@ func MQTTServer(server string) Pref {
 // to the specified value.
 func MQTTUser(user string) Pref {
 	return func(args *Preferences) {
-		args.MQTTUser = user
+		args.User = user
 	}
 }
 
@@ -62,7 +74,7 @@ func MQTTUser(user string) Pref {
 // to the specified value.
 func MQTTPassword(password string) Pref {
 	return func(args *Preferences) {
-		args.MQTTPassword = password
+		args.Password = password
 	}
 }
 
