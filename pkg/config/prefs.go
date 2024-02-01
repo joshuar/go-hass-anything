@@ -13,12 +13,12 @@ import (
 )
 
 var (
-	// PreferencesDir is the default path under which the preferences are
+	// preferencesDir is the default path under which the preferences are
 	// written. It can be overridden in the Save/Load functions as needed.
-	PreferencesDir = filepath.Join(os.Getenv("HOME"), ".config", "go-hass-anything")
-	// PreferencesFile is the default filename used for storing the preferences
+	preferencesDir = filepath.Join(os.Getenv("HOME"), ".config", "go-hass-anything")
+	// preferencesFile is the default filename used for storing the preferences
 	// on disk. While it can be overridden, this is usually unnecessary.
-	PreferencesFile    = "mqtt-config.toml"
+	preferencesFile    = "mqtt-config.toml"
 	defaultPreferences = Preferences{
 		Server:   "tcp://localhost:1883",
 		User:     "",
@@ -81,48 +81,37 @@ func MQTTPassword(password string) Pref {
 // SavePreferences writes the given preferences to disk under the specified
 // path. If the path is "", the preferences are saved to the file specified
 // by PreferencesFile under the location specified by ConfigBasePath.
-func SavePreferences(path string, setters ...Pref) error {
-	if path == "" {
-		path = PreferencesDir
-	}
-	file := filepath.Join(path, PreferencesFile)
-	if err := checkPath(path); err != nil {
+func SavePreferences(setters ...Pref) error {
+	file := filepath.Join(preferencesDir, preferencesFile)
+	if err := checkPath(preferencesDir); err != nil {
 		return err
 	}
 
-	args := defaultPreferences
+	prefs, err := LoadPreferences()
+	if err != nil {
+		return err
+	}
 	for _, setter := range setters {
-		setter(&args)
+		setter(prefs)
 	}
 
-	b, err := toml.Marshal(&args)
-	if err != nil {
-		return err
-	}
-	err = os.WriteFile(file, b, 0o600)
-	if err != nil {
-		return err
-	}
-	return nil
+	return write(prefs, file)
 }
 
 // LoadPreferences retrives all Preferences from disk at the given path. If the
 // path is "", the preferences are loaded from the file specified by
 // PreferencesFile under the location specified by ConfigBasePath.
-func LoadPreferences(path string) (*Preferences, error) {
-	if path == "" {
-		path = PreferencesDir
-	}
-	file := filepath.Join(path, PreferencesFile)
+func LoadPreferences() (*Preferences, error) {
+	file := filepath.Join(preferencesDir, preferencesFile)
 
 	p := defaultPreferences
 	b, err := os.ReadFile(file)
 	if err != nil {
-		return nil, err
+		return &p, err
 	}
 	err = toml.Unmarshal(b, &p)
 	if err != nil {
-		return nil, err
+		return &p, err
 	}
 	return &p, nil
 }
@@ -160,6 +149,26 @@ func IsRegistered(path, app string) bool {
 		return false
 	}
 	return true
+}
+
+func SetPath(path string) {
+	preferencesDir = path
+}
+
+func SetFile(file string) {
+	preferencesFile = file
+}
+
+func write(prefs *Preferences, file string) error {
+	b, err := toml.Marshal(prefs)
+	if err != nil {
+		return err
+	}
+	err = os.WriteFile(file, b, 0o600)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func checkPath(path string) error {

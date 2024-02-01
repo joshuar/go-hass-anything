@@ -30,7 +30,7 @@ var clearCmd = &cobra.Command{
 		ctx, cancelFunc := context.WithCancel(context.TODO())
 		defer cancelFunc()
 
-		prefs, err := config.LoadPreferences("")
+		prefs, err := config.LoadPreferences()
 		if err != nil {
 			log.Fatal().Err(err).Msg("Could not load preferences.")
 		}

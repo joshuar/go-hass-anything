@@ -30,7 +30,7 @@ func NewBubbleTeaUI() *bubbleteaUI {
 func (ui *bubbleteaUI) ShowConfiguration() {
 	mqttForm := mqttConfiguration()
 
-	prefs, err := config.LoadPreferences("")
+	prefs, err := config.LoadPreferences()
 	if err != nil {
 		log.Warn().Err(err).Msg("No existing config found.")
 	} else {
@@ -44,7 +44,7 @@ func (ui *bubbleteaUI) ShowConfiguration() {
 		log.Error().Err(err).Msg("Could not start configuration UI.")
 	}
 
-	err = config.SavePreferences("",
+	err = config.SavePreferences(
 		config.MQTTServer(mqttForm.formInputs[0].Value()),
 		config.MQTTUser(mqttForm.formInputs[1].Value()),
 		config.MQTTPassword(mqttForm.formInputs[2].Value()),
