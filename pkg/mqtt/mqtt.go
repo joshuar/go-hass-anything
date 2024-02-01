@@ -96,14 +96,9 @@ func (c *Client) Subscribe(subs ...*Subscription) error {
 
 // NewMQTTClient will establish a new connection to the MQTT service, using the
 // configuration found under the path specified with prefsPath.
-func NewMQTTClient(prefsPath string) (*Client, error) {
+func NewMQTTClient(prefs *config.Preferences) (*Client, error) {
 	hostname, _ := os.Hostname()
 	clientid := hostname + strconv.Itoa(time.Now().Second())
-
-	prefs, err := config.LoadPreferences(prefsPath)
-	if err != nil {
-		return nil, err
-	}
 
 	connOpts := MQTT.NewClientOptions().AddBroker(prefs.MQTTServer).SetClientID(clientid).SetCleanSession(true)
 	if prefs.MQTTUser != "" {
@@ -121,7 +116,7 @@ func NewMQTTClient(prefsPath string) (*Client, error) {
 		}
 		return nil
 	}
-	err = backoff.Retry(connect, backoff.NewExponentialBackOff())
+	err := backoff.Retry(connect, backoff.NewExponentialBackOff())
 	if err != nil {
 		return nil, err
 	}
