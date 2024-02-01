@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 
 	"github.com/pelletier/go-toml/v2"
+	"github.com/rs/zerolog/log"
 )
 
 var (
@@ -39,14 +40,17 @@ type Preferences struct {
 	Password string `toml:"mqttpassword,omitempty"`
 }
 
+// MQTTServer returns the current server set in the preferences.
 func (p *Preferences) MQTTServer() string {
 	return p.Server
 }
 
+// MQTTUser returns any username set in the preferences.
 func (p *Preferences) MQTTUser() string {
 	return p.User
 }
 
+// MQTTPassword returns any password set in the preferences.
 func (p *Preferences) MQTTPassword() string {
 	return p.Password
 }
@@ -151,10 +155,16 @@ func IsRegistered(path, app string) bool {
 	return true
 }
 
+// SetPath will set the path to the preferences file to the given path. This
+// function is optional and a default path is used when calling Load/Save if it
+// is not called.
 func SetPath(path string) {
 	preferencesDir = path
 }
 
+// SetFile will set the filename of the preferences file to the given name. This
+// function is optional and a default filename is used when calling Load/Save if
+// it is not called.
 func SetFile(file string) {
 	preferencesFile = file
 }
@@ -174,6 +184,8 @@ func write(prefs *Preferences, file string) error {
 func checkPath(path string) error {
 	_, err := os.Stat(path)
 	if os.IsNotExist(err) {
+		log.Debug().Str("preferencesPath", path).
+			Msg("Creating new preferences path.")
 		return os.MkdirAll(path, os.ModePerm)
 	}
 	return nil
