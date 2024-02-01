@@ -1,6 +1,6 @@
 module github.com/joshuar/go-hass-anything/v3
 
-go 1.21
+go 1.21.6
 
 require (
 	github.com/charmbracelet/lipgloss v0.9.1
