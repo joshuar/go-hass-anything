@@ -116,17 +116,14 @@ Currently, only Linux is supported. Though the code is designed to be extensible
 to other operating systems. See [the development docs](docs/development/README.md) for
 details on how to extend for other operating systems.
 
-## 🧑‍🤝‍🧑 Contributing
+## Issues, Feature Requests, Contributing
 
-### Development
-
-I would welcome your contribution! If you find any improvement or issue you want
-to fix, feel free to send a pull request!
-
-Some documentation for development can be found in
-the [docs](docs/README.md). There is information for developing
-Go Hass Anything for different operating systems as well as adding additional
-apps. This might help anyone to look to contribute, extend or fork this tool.
+- Found an issue? Please [report
+  it](https://github.com/joshuar/go-hass-anything/issues/new?assignees=joshuar&labels=&template=bug_report.md&title=%5BBUG%5D)!
+- Have a suggestion for a feature? Submit a [feature
+  request](https://github.com/joshuar/go-hass-anything/issues/new?assignees=joshuar&labels=&template=feature_request.md&title=)!
+- Want to help develop Go Hass Anything? See the [contributing
+  guidelines](CONTRIBUTING.md).
 
 ## License
 
