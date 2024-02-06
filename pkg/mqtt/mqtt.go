@@ -29,6 +29,7 @@ type prefs interface {
 	MQTTPassword() string
 }
 
+// Msg represents a message that can be sent or received on the MQTT bus.
 type Msg struct {
 	Topic    string
 	Message  json.RawMessage
@@ -36,6 +37,8 @@ type Msg struct {
 	Retained bool
 }
 
+// Subscription represents a listener on a specific Topic, that will pass any
+// messages sent to that topic to the Callback function.
 type Subscription struct {
 	Callback func(MQTT.Client, MQTT.Message)
 	Topic    string
@@ -43,10 +46,13 @@ type Subscription struct {
 	Retained bool
 }
 
+// Client is the connection to the MQTT broker.
 type Client struct {
 	conn MQTT.Client
 }
 
+// Publish will send the list of messages it is passed to the broker that the
+// client is connected to. Any errors in publihsing will be returned.
 func (c *Client) Publish(msgs ...*Msg) error {
 	g, _ := errgroup.WithContext(context.TODO())
 	msgCh := make(chan *Msg, len(msgs))
@@ -76,6 +82,9 @@ func (c *Client) Publish(msgs ...*Msg) error {
 	return g.Wait()
 }
 
+// Subscribe will parse the list of subscriptions and listen on their topics,
+// passing any received messages to their callback functions. Any error in
+// setting up a subscription will be returned.
 func (c *Client) Subscribe(subs ...*Subscription) error {
 	g, _ := errgroup.WithContext(context.TODO())
 	msgCh := make(chan *Subscription, len(subs))
@@ -131,4 +140,21 @@ func NewMQTTClient(preferences prefs) (*Client, error) {
 	}
 
 	return conf, nil
+}
+
+// NewMsg is a conveinience function to create a new Msg with a given topic and
+// message body. The returned Msg can be further customised directly for
+// specifying retention and QoS parameters.
+func NewMsg(topic string, msg json.RawMessage) *Msg {
+	return &Msg{
+		Topic:   topic,
+		Message: msg,
+	}
+}
+
+// Retain sets the Retained status of a Msg to true, ensuring that it will be
+// retained on the MQTT bus when sent.
+func (m *Msg) Retain() *Msg {
+	m.Retained = true
+	return m
 }

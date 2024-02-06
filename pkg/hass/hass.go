@@ -34,11 +34,7 @@ func Register(device MQTTDevice, client MQTTClient) error {
 func UnRegister(device MQTTDevice, client MQTTClient) error {
 	var msgs []*mqtt.Msg
 	for _, msg := range device.Configuration() {
-		msgs = append(msgs, &mqtt.Msg{
-			Topic:    msg.Topic,
-			Message:  []byte(``),
-			Retained: true,
-		})
+		msgs = append(msgs, mqtt.NewMsg(msg.Topic, []byte(``)).Retain())
 	}
 	return client.Publish(msgs...)
 }

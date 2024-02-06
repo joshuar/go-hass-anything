@@ -70,11 +70,7 @@ func MarshalConfig(e *EntityConfig) (*mqtt.Msg, error) {
 	if jsonConfig, err := json.Marshal(e.Entity); err != nil {
 		return nil, err
 	} else {
-		msg = &mqtt.Msg{
-			Topic:    e.ConfigTopic,
-			Message:  jsonConfig,
-			Retained: true,
-		}
+		msg = mqtt.NewMsg(e.ConfigTopic, jsonConfig).Retain()
 	}
 	return msg, nil
 }
@@ -89,11 +85,7 @@ func MarshalState(e *EntityConfig) (*mqtt.Msg, error) {
 	if value, err := e.StateCallback(); err != nil {
 		return nil, err
 	} else {
-		msg := &mqtt.Msg{
-			Topic:    e.Entity.StateTopic,
-			Message:  value,
-			Retained: false,
-		}
+		msg := mqtt.NewMsg(e.Entity.StateTopic, value)
 		return msg, nil
 	}
 }

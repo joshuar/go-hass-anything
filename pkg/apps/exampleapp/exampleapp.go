@@ -205,10 +205,8 @@ func (a *exampleApp) States() []*mqtt.Msg {
 	var msgs []*mqtt.Msg
 
 	// we retrieve the weather data and send that as the weather sensor state
-	msgs = append(msgs, &mqtt.Msg{
-		Topic:   mqtt.DiscoveryPrefix + "/sensor/" + appName + "/example_app_weather_temp/state",
-		Message: a.weatherData,
-	})
+	msgs = append(msgs,
+		mqtt.NewMsg(mqtt.DiscoveryPrefix+"/sensor/"+appName+"/example_app_weather_temp/state", a.weatherData))
 
 	// we retrieve our load avgs
 	for _, loads := range []string{"1", "5", "15"} {
@@ -222,10 +220,10 @@ func (a *exampleApp) States() []*mqtt.Msg {
 		case "15":
 			l = a.loadData.Load15
 		}
-		msgs = append(msgs, &mqtt.Msg{
-			Topic:   mqtt.DiscoveryPrefix + "/sensor/" + appName + "/" + id + "/state",
-			Message: json.RawMessage(strconv.FormatFloat(l, 'f', -1, 64)),
-		})
+		msgs = append(msgs,
+			mqtt.NewMsg(
+				mqtt.DiscoveryPrefix+"/sensor/"+appName+"/"+id+"/state",
+				json.RawMessage(strconv.FormatFloat(l, 'f', -1, 64))))
 	}
 
 	return msgs
