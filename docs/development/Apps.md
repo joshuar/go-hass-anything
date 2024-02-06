@@ -25,14 +25,13 @@ Their operation is roughly:
 1. Send discovery message/payload (once only).
 2. Send state messages/payloads (as required).
 
-For an app using Go Hass Anything, that means the app:
+For an app using Go Hass Anything, that means the app satisfies the
+`hass.MQTTDevice` and `Agent.App` interfaces. These share common methods so it
+is easy to satisfy both. 
 
-- Satisfies the `hass.MQTTDevice` interface.
-- Uses `hass.PublishConfigs` to send its discovery message.
-- Uses `hass.PublishState` to send its state messages.
-
-Additionally, if the app is self-contained and not running through the agent
-framework, it will need to supply a `hass.MQTTClient` to the `hass.*` functions.
+If the app is self-contained and not running through the agent framework, it
+should satisfy `hass.MQTTDEvice` and will need to supply a `hass.MQTTClient` to
+the `hass.*` functions it will use directly.
 
 ## Example App running under the Agent
 
@@ -69,52 +68,64 @@ directories for each app you develop.
 
 ### Configuration
 
-When using the agent, it will create and utilise per-app configurations stored in the
-users home directory (`~/.config/go-hass-anything/APPNAME/config.toml` on
-Linux). Within your app code, you can retrieve the config with
-`config.LoadConfig(appName)`, which will return a `config.AppConfig` interface
-that can be used to access configuration entries. See the code in
-`pkg/config/config.go` for the interface methods.  
+When using the agent, it will create and utilise per-app configurations stored
+in the users home directory
+(`~/.config/go-hass-anything/APPNAME-preferences.toml` on Linux). Within your
+app code, you can retrieve the config with
+`preferences.LoadAppPreferences(appname)`, which will return a
+`preferences.AppConfig` containing a `map[string]any` called `Prefs`, containing
+any stored preferences as a key-value map.
 
 ### Code Requirements
 
-To develop an app to be run by the agent:
+To develop an app to be run by the agent, create a concrete type that satisfies
+the `hass.MQTTDevice` and `agent.App`. Effectively, the type should have the
+following methods:
 
-- Create a concrete type that satisfies the `hass.MQTTDevice` interface.
-- Create the following exported functions:
-  - `Run(context.Context, hass.MQTTClient)`.
-  - `Clear(context.Context, hass.MQTTClient)`.
+```go
+	Name() string
+	Configuration() []*mqtt.Msg
+	States() []*mqtt.Msg
+	Subscriptions() []*mqtt.Subscription
+	Run(ctx context.Context, client hass.MQTTClient) error
+```
 
 You don't need to worry about setting up a connection to MQTT (satisfying
 `hass.MQTTClient`), the agent will do that for you.
 
-All functions should respect context cancellation and act appropriately on this
-signal.
+The `Run` function should respect context cancellation and act appropriately on
+this signal.
 
-#### Run Function
+#### Name()
 
-This function should:
+This should return the app name as a string. This is used for defining the
+app configuration file (if used) and in various places for display by the agent.
 
-- Run `hass.PublishConfigs(hass.MQTTDevice, hass.MQTTClient)` **once** to send
-  the config messages and payloads to Home Assistant. Pass your concrete type
-  (that satisfies `hass.MQTTDevice`) and the `hass.MQTTClient` passed in by the
-  agent.
-- On some kind of interval or event/feedback loop, run
-  `hass.PublishState(hass.MQTTDevice, hass.MQTTClient)` to send state payloads
-  to Home Assistant.
 
-#### Clear Function
+#### Configuration() []*mqtt.Msg
 
-This function should:
+This function should return an array of `mqtt.Msg`, each message representing
+the configuration topics and details for the sensors provided by the app.
 
-- Run `hass.UnPublish(hass.MQTTDevice, hass.MQTTClient)` to remove all entities
-  and the device associated with this app from Home Assistant. Repeat runs
-  should be a no-op.
+#### States() []*mqtt.Msg
+
+This function should return an array of `mqtt.Msg`, each message representing a
+single state topic for a sensor provided by the app.
+
+#### Subscriptions []*mqtt.Subscription
+
+This function should return an array of `mqtt.Subscription`, each message representing a
+single subscription topic for which the app wants to listen on. Each of these
+subscriptions should have a callback function that is run when a message is
+received on the topic.
+
+#### Run(ctx context.Context, client hass.MQTTClient) error
+
+This function should, on some kind of interval or event/feedback loop, run
+`hass.PublishState(hass.MQTTDevice, hass.MQTTClient)` to send state payloads to
+Home Assistant. It can also set up any subscriptions directly.
 
 ### Adding to the agent
-
-Apps the agent runs need their `Run` function appended to the agent `RunList`
-variable and their `Clear` function appended to the agent `ClearList` variable.
 
 If you have followed the requirements above for both location and code
 functions, you can run `go generate ./...` in the repo root to add your app(s)
