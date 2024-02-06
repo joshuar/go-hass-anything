@@ -10,7 +10,8 @@
         "docs/development",
         "cmd",
         "agent",
-        "hass"
+        "hass",
+        "examples"
     ],
     "go.lintTool": "golangci-lint",
     "go.lintFlags": [

@@ -46,7 +46,7 @@ type exampleApp struct {
 // ~/.config/go-hass-anything/exampleApp-preferences.toml. We can store whatever
 // preferences our app needs in this file by providing a map[string]any that
 // maps preferences to values.
-func New() *exampleApp {
+func New(_ context.Context) (*exampleApp, error) {
 	app := &exampleApp{}
 	// load our app config. if we don't have a config, set some defaults
 	p, err := preferences.LoadAppPreferences(app.Name())
@@ -59,7 +59,7 @@ func New() *exampleApp {
 		}
 	}
 	app.config = p
-	return app
+	return app, nil
 }
 
 // getWeather sends a request for the weather, using the web.ExecuteRequest
