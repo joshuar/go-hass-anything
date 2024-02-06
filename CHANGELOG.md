@@ -1,5 +1,22 @@
 # Changelog
 
+## [4.0.0](https://github.com/joshuar/go-hass-anything/compare/v3.2.0...v4.0.0) (2024-02-06)
+
+
+### ⚠ BREAKING CHANGES
+
+* config -> preferences rewrite
+
+### Bug Fixes
+
+* **examples:** :bug: fix exampleapp New func ([fd8200a](https://github.com/joshuar/go-hass-anything/commit/fd8200a400879e439ac61765a884d584a6da9072))
+* **tools:** :bug: fix import path in generator template ([cab23b2](https://github.com/joshuar/go-hass-anything/commit/cab23b28785425fd3dd83c99608099c5da1e0f82))
+
+
+### Code Refactoring
+
+* config -&gt; preferences rewrite ([9816c02](https://github.com/joshuar/go-hass-anything/commit/9816c026d472a27fd16b7401db694fc8b527c400))
+
 ## [3.2.0](https://github.com/joshuar/go-hass-anything/compare/v3.1.0...v3.2.0) (2024-02-01)
 
 
