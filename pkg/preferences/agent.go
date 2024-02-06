@@ -3,11 +3,12 @@
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
-package config
+package preferences
 
 import (
 	"os"
 	"path/filepath"
+	"slices"
 
 	"github.com/pelletier/go-toml/v2"
 	"github.com/rs/zerolog/log"
@@ -19,25 +20,17 @@ var (
 	preferencesDir = filepath.Join(os.Getenv("HOME"), ".config", "go-hass-anything")
 	// preferencesFile is the default filename used for storing the preferences
 	// on disk. While it can be overridden, this is usually unnecessary.
-	preferencesFile    = "mqtt-config.toml"
-	defaultPreferences = Preferences{
-		Server:   "tcp://localhost:1883",
-		User:     "",
-		Password: "",
-	}
-	AppRegistryDir = filepath.Join(os.Getenv("HOME"), ".config", "go-hass-anything", "appregistry")
+	preferencesFile = "mqtt-config.toml"
 )
 
 // Preferences is a struct containing the general preferences for either the
 // agent or for any code that imports go-hass-anything as a package. Currently,
 // these preferences are for MQTT connectivity selection.
 type Preferences struct {
-	// Server is the URL for the MQTT server.
-	Server string `toml:"mqttserver"`
-	// User is the username for connecting to the server (optional).
-	User string `toml:"mqttuser,omitempty"`
-	// Password is the password for connecting to the server (optional).
-	Password string `toml:"mqttpassword,omitempty"`
+	Server         string   `toml:"mqttserver"`
+	User           string   `toml:"mqttuser,omitempty"`
+	Password       string   `toml:"mqttpassword,omitempty"`
+	RegisteredApps []string `toml:"registeredapps,omitempty"`
 }
 
 // MQTTServer returns the current server set in the preferences.
@@ -53,6 +46,12 @@ func (p *Preferences) MQTTUser() string {
 // MQTTPassword returns any password set in the preferences.
 func (p *Preferences) MQTTPassword() string {
 	return p.Password
+}
+
+// IsRegistered will check whether the given app has been recorded as registered
+// in the preferences.
+func (p *Preferences) IsRegistered(app string) bool {
+	return slices.Contains(p.RegisteredApps, app)
 }
 
 // Pref is a functional type for applying a value to a particular preference.
@@ -82,6 +81,26 @@ func MQTTPassword(password string) Pref {
 	}
 }
 
+// RegisterApps is the functional preference that appends the list of given apps
+// to the existing registered apps in the preferences.
+func RegisterApps(apps ...string) Pref {
+	return func(args *Preferences) {
+		args.RegisteredApps = append(args.RegisteredApps, apps...)
+	}
+}
+
+// UnRegisterApps is the functional preference that will remove the list of
+// given apps from the registered apps in the preferences.
+func UnRegisterApps(apps ...string) Pref {
+	return func(args *Preferences) {
+		for _, app := range apps {
+			args.RegisteredApps = slices.DeleteFunc(args.RegisteredApps, func(a string) bool {
+				return a == app
+			})
+		}
+	}
+}
+
 // SavePreferences writes the given preferences to disk under the specified
 // path. If the path is "", the preferences are saved to the file specified
 // by PreferencesFile under the location specified by ConfigBasePath.
@@ -108,51 +127,16 @@ func SavePreferences(setters ...Pref) error {
 func LoadPreferences() (*Preferences, error) {
 	file := filepath.Join(preferencesDir, preferencesFile)
 
-	p := defaultPreferences
+	p := defaultPreferences()
 	b, err := os.ReadFile(file)
 	if err != nil {
-		return &p, err
+		return p, err
 	}
 	err = toml.Unmarshal(b, &p)
 	if err != nil {
-		return &p, err
+		return p, err
 	}
-	return &p, nil
-}
-
-func Register(path, app string) error {
-	if path == "" {
-		path = AppRegistryDir
-	}
-	file := filepath.Join(path, app)
-	if err := checkPath(path); err != nil {
-		return err
-	}
-
-	if fs, err := os.Create(file); err != nil {
-		return err
-	} else {
-		return fs.Close()
-	}
-}
-
-func UnRegister(path, app string) error {
-	if path == "" {
-		path = AppRegistryDir
-	}
-	file := filepath.Join(path, app)
-	return os.Remove(file)
-}
-
-func IsRegistered(path, app string) bool {
-	if path == "" {
-		path = AppRegistryDir
-	}
-	file := filepath.Join(path, app)
-	if _, err := os.Stat(file); os.IsNotExist(err) {
-		return false
-	}
-	return true
+	return p, nil
 }
 
 // SetPath will set the path to the preferences file to the given path. This
@@ -169,7 +153,15 @@ func SetFile(file string) {
 	preferencesFile = file
 }
 
-func write(prefs *Preferences, file string) error {
+func defaultPreferences() *Preferences {
+	return &Preferences{
+		Server:   "tcp://localhost:1883",
+		User:     "",
+		Password: "",
+	}
+}
+
+func write(prefs any, file string) error {
 	b, err := toml.Marshal(prefs)
 	if err != nil {
 		return err

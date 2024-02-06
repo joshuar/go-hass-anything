@@ -3,6 +3,10 @@
 package agent
 
 import (
+	"context"
+
+	"github.com/rs/zerolog/log"
+
 {{ range $app := . -}}
 {{ if (eq $app "exampleapp") }}
 "github.com/joshuar/go-hass-anything/v3/pkg/apps/{{$app}}"
@@ -13,6 +17,12 @@ import (
 )
 
 func init() {
-	RunList = append(RunList,{{range $i, $app := .}}{{if $i}},{{end}}{{$app}}.Run{{end}})
-	ClearList = append(ClearList,{{range $i, $app := .}}{{if $i}},{{end}}{{$app}}.Clear{{end}})
+	ctx, _ := context.WithCancel(context.Background())
+{{ range $app := . -}}
+	if a, err := {{$app}}.New(ctx); err != nil {
+		log.Warn().Err(err).Str("app",a.Name()).Msg("Could not set-up app.")
+	} else {
+		AppList = append(AppList, a)
+	}
+{{ end -}}	
 }

@@ -9,7 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rs/zerolog/log"
 
-	"github.com/joshuar/go-hass-anything/v3/pkg/config"
+	"github.com/joshuar/go-hass-anything/v4/pkg/preferences"
 )
 
 type Agent interface {
@@ -30,7 +30,7 @@ func NewBubbleTeaUI() *bubbleteaUI {
 func (ui *bubbleteaUI) ShowConfiguration() {
 	mqttForm := mqttConfiguration()
 
-	prefs, err := config.LoadPreferences()
+	prefs, err := preferences.LoadPreferences()
 	if err != nil {
 		log.Warn().Err(err).Msg("No existing config found.")
 	} else {
@@ -44,10 +44,10 @@ func (ui *bubbleteaUI) ShowConfiguration() {
 		log.Error().Err(err).Msg("Could not start configuration UI.")
 	}
 
-	err = config.SavePreferences(
-		config.MQTTServer(mqttForm.formInputs[0].Value()),
-		config.MQTTUser(mqttForm.formInputs[1].Value()),
-		config.MQTTPassword(mqttForm.formInputs[2].Value()),
+	err = preferences.SavePreferences(
+		preferences.MQTTServer(mqttForm.formInputs[0].Value()),
+		preferences.MQTTUser(mqttForm.formInputs[1].Value()),
+		preferences.MQTTPassword(mqttForm.formInputs[2].Value()),
 	)
 	if err != nil {
 		log.Error().Err(err).Msg("Problem saving preferences.")

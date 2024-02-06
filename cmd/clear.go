@@ -17,9 +17,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/joshuar/go-hass-anything/v3/internal/agent"
-	"github.com/joshuar/go-hass-anything/v3/pkg/config"
-	"github.com/joshuar/go-hass-anything/v3/pkg/mqtt"
+	"github.com/joshuar/go-hass-anything/v4/internal/agent"
+	"github.com/joshuar/go-hass-anything/v4/pkg/mqtt"
+	"github.com/joshuar/go-hass-anything/v4/pkg/preferences"
 )
 
 var clearCmd = &cobra.Command{
@@ -30,7 +30,7 @@ var clearCmd = &cobra.Command{
 		ctx, cancelFunc := context.WithCancel(context.TODO())
 		defer cancelFunc()
 
-		prefs, err := config.LoadPreferences()
+		prefs, err := preferences.LoadPreferences()
 		if err != nil {
 			log.Fatal().Err(err).Msg("Could not load preferences.")
 		}

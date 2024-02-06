@@ -68,7 +68,7 @@ func (c *Client) Publish(msgs ...*Msg) error {
 				log.Debug().Msg("Not connected.")
 			}
 		}
-		log.Debug().Int("msgCount", i).Msg("Finished publishing messages.")
+		log.Trace().Int("msgCount", i).Msg("Finished publishing messages.")
 		return nil
 	})
 

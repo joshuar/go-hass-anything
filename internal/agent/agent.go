@@ -9,15 +9,17 @@ import (
 	"context"
 	"sync"
 
-	ui "github.com/joshuar/go-hass-anything/v3/internal/agent/ui/bubbletea"
-	"github.com/joshuar/go-hass-anything/v3/pkg/hass"
-	"github.com/joshuar/go-hass-anything/v3/pkg/mqtt"
+	"github.com/rs/zerolog/log"
+
+	ui "github.com/joshuar/go-hass-anything/v4/internal/agent/ui/bubbletea"
+	"github.com/joshuar/go-hass-anything/v4/pkg/hass"
+	"github.com/joshuar/go-hass-anything/v4/pkg/mqtt"
+	"github.com/joshuar/go-hass-anything/v4/pkg/preferences"
 )
 
 //go:generate go run ../../tools/appgenerator/run.go arg1
 var (
-	RunList   []func(context.Context, hass.MQTTClient)
-	ClearList []func(context.Context, hass.MQTTClient)
+	AppList []App
 )
 
 type agent struct {
@@ -26,6 +28,14 @@ type agent struct {
 	id      string
 	name    string
 	version string
+}
+
+type App interface {
+	Name() string
+	Configuration() []*mqtt.Msg
+	States() []*mqtt.Msg
+	Subscriptions() []*mqtt.Subscription
+	Run(ctx context.Context, client hass.MQTTClient) error
 }
 
 func NewAgent(id, name string) *agent {
@@ -58,22 +68,67 @@ func (a *agent) Configure() {
 	a.ui.Run()
 }
 
-func RunApps(ctx context.Context, client *mqtt.Client) {
-	doApps(ctx, client, RunList)
+func Run(ctx context.Context, client hass.MQTTClient) {
+	prefs, err := preferences.LoadPreferences()
+	if err != nil {
+		log.Error().Err(err).Msg("Could not load preferences.")
+		return
+	}
+
+	var appsToRun []App
+	var registeredApps []string
+	for _, app := range AppList {
+		if prefs.IsRegistered(app.Name()) {
+			appsToRun = append(appsToRun, app)
+		} else {
+			if err := hass.Register(app, client); err != nil {
+				log.Error().Err(err).Str("app", app.Name()).Msg("Could not register app.")
+				continue
+			}
+			appsToRun = append(appsToRun, app)
+			registeredApps = append(registeredApps, app.Name())
+			log.Info().Str("app", app.Name()).Msg("App registered.")
+		}
+	}
+	if err := preferences.SavePreferences(preferences.RegisterApps(registeredApps...)); err != nil {
+		log.Warn().Err(err).Msg("Failed to save registered apps in preferences.")
+	}
+	runApps(ctx, client, appsToRun)
 }
 
-func ClearApps(ctx context.Context, client *mqtt.Client) {
-	doApps(ctx, client, ClearList)
+func ClearApps(ctx context.Context, client hass.MQTTClient) {
+	prefs, err := preferences.LoadPreferences()
+	if err != nil {
+		log.Error().Err(err).Msg("Could not load preferences.")
+		return
+	}
+	var unRegisteredApps []string
+	for _, app := range AppList {
+		if prefs.IsRegistered(app.Name()) {
+			if err := hass.UnRegister(app, client); err != nil {
+				log.Error().Err(err).Str("app", app.Name()).Msg("Could not unregister app.")
+				continue
+			}
+			unRegisteredApps = append(unRegisteredApps, app.Name())
+		}
+	}
+	if err := preferences.SavePreferences(preferences.UnRegisterApps(unRegisteredApps...)); err != nil {
+		log.Warn().Err(err).Msg("Failed to update registered apps in preferences.")
+	}
 }
 
-func doApps(ctx context.Context, client *mqtt.Client, appList []func(context.Context, hass.MQTTClient)) {
+func runApps(ctx context.Context, client hass.MQTTClient, apps []App) {
 	var wg sync.WaitGroup
-	for _, app := range appList {
+	for _, app := range apps {
+		log.Debug().Str("app", app.Name()).Msg("Running app.")
 		wg.Add(1)
-		go func(a func(context.Context, hass.MQTTClient)) {
+		go func(a App) {
 			defer wg.Done()
-			a(ctx, client)
+			if err := a.Run(ctx, client); err != nil {
+				log.Debug().Err(err).Msg("Error running app.")
+			}
 		}(app)
 	}
 	wg.Wait()
+	log.Debug().Msg("here")
 }

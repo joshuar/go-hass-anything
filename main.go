@@ -8,7 +8,7 @@ import (
 	"log"
 	"syscall"
 
-	"github.com/joshuar/go-hass-anything/v3/cmd"
+	"github.com/joshuar/go-hass-anything/v4/cmd"
 )
 
 func init() {

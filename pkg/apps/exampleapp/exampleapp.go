@@ -8,6 +8,7 @@ package exampleapp
 import (
 	"context"
 	"encoding/json"
+	"os"
 	"os/exec"
 	"strconv"
 	"time"
@@ -17,11 +18,11 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/shirou/gopsutil/v3/load"
 
-	"github.com/joshuar/go-hass-anything/v3/pkg/apps/helpers"
-	"github.com/joshuar/go-hass-anything/v3/pkg/config"
-	"github.com/joshuar/go-hass-anything/v3/pkg/hass"
-	"github.com/joshuar/go-hass-anything/v3/pkg/mqtt"
-	"github.com/joshuar/go-hass-anything/v3/pkg/web"
+	"github.com/joshuar/go-hass-anything/v4/pkg/apps/helpers"
+	"github.com/joshuar/go-hass-anything/v4/pkg/hass"
+	"github.com/joshuar/go-hass-anything/v4/pkg/mqtt"
+	"github.com/joshuar/go-hass-anything/v4/pkg/preferences"
+	"github.com/joshuar/go-hass-anything/v4/pkg/web"
 )
 
 const (
@@ -30,25 +31,34 @@ const (
 	weatherURLpref = "weatherURL"
 )
 
+var defaultPrefs = map[string]any{
+	"weatherURL": weatherURL,
+}
+
 type exampleApp struct {
-	config      config.AppConfig
 	loadData    *load.AvgStat
+	config      *preferences.AppPreferences
 	weatherData []byte
 }
 
-// newExampleApp sets up our example app. We make use of our custom viper
-// wrapper that allows storing our config in
-// ~/.config/go-hass-anything/exampleApp/config.toml. This is used for storing
-// the registration status of our app (whether we need to send config messages
-// or not at a minimum) and we also store the URL to the weather service.
-func newExampleApp() *exampleApp {
-	var err error
+// New sets up our example app. We make use of the preference loading/saving in
+// the agent to provide a file for our app preferences at
+// ~/.config/go-hass-anything/exampleApp-preferences.toml. We can store whatever
+// preferences our app needs in this file by providing a map[string]any that
+// maps preferences to values.
+func New() *exampleApp {
 	app := &exampleApp{}
 	// load our app config. if we don't have a config, set some defaults
-	if app.config, err = config.LoadConfig(appName); err != nil && app.config != nil {
+	p, err := preferences.LoadAppPreferences(app.Name())
+	if os.IsNotExist(err) {
 		log.Info().Msgf("Setting default weather service to %s", weatherURL)
-		app.config.Set(weatherURLpref, weatherURL)
+		p.Prefs = defaultPrefs
+		err := preferences.SaveAppPreferences(app.Name(), preferences.SetAppPreferences(p.Prefs))
+		if err != nil {
+			log.Warn().Err(err).Msg("Could not save app preferences.")
+		}
 	}
+	app.config = p
 	return app
 }
 
@@ -84,9 +94,9 @@ func (a *exampleApp) Builder() *requests.Builder {
 	// we get the weather service URL from our app config. If we can't get the
 	// config value, we can't continue, so we exit with an error message.
 	var serviceURL string
-	err := a.config.Get(weatherURLpref, &serviceURL)
-	if err != nil {
-		log.Error().Err(err).Msg("Could not retrieve weather service URL from config.")
+	var ok bool
+	if serviceURL, ok = a.config.Prefs[weatherURLpref].(string); !ok {
+		log.Error().Msg("Could not retrieve weather service URL from config.")
 		return nil
 	}
 
@@ -103,12 +113,13 @@ func (a *exampleApp) Timeout() time.Duration {
 // getLoadAvgs fetches the load averages for the system running
 // go-hass-anything, using the very handy gopsutil package
 func (a *exampleApp) getLoadAvgs(ctx context.Context) error {
-	if l, err := load.AvgWithContext(ctx); err != nil {
+	var l *load.AvgStat
+	var err error
+	if l, err = load.AvgWithContext(ctx); err != nil {
 		return err
-	} else {
-		a.loadData = l
-		return nil
 	}
+	a.loadData = l
+	return nil
 }
 
 // Our app needs to satisfy the hass.MQTTDevice interface to be able to send its
@@ -160,9 +171,9 @@ func (a *exampleApp) Configuration() []*mqtt.Msg {
 			WithValueTemplate("{{ value_json.current_condition[0].temp_C }}"))
 
 	// we have three sensors for the loadavgs
-	for _, load := range []string{"1", "5", "15"} {
+	for _, l := range []string{"1", "5", "15"} {
 		entities = append(entities,
-			hass.NewEntityByID("example_app_load"+load, appName).
+			hass.NewEntityByID("example_app_load"+l, appName).
 				AsSensor().
 				WithDeviceInfo(deviceInfo).
 				WithOriginInfo(originInfo).
@@ -189,7 +200,7 @@ func (a *exampleApp) Configuration() []*mqtt.Msg {
 	return msgs
 }
 
-// States is called when we want to send our sensor data to Home Assistant
+// States is called when we want to send our sensor data to Home Assistant.
 func (a *exampleApp) States() []*mqtt.Msg {
 	var msgs []*mqtt.Msg
 
@@ -200,10 +211,10 @@ func (a *exampleApp) States() []*mqtt.Msg {
 	})
 
 	// we retrieve our load avgs
-	for _, load := range []string{"1", "5", "15"} {
-		id := "example_app_load" + load
+	for _, loads := range []string{"1", "5", "15"} {
+		id := "example_app_load" + loads
 		var l float64
-		switch load {
+		switch loads {
 		case "1":
 			l = a.loadData.Load1
 		case "5":
@@ -236,34 +247,26 @@ func (a *exampleApp) Subscriptions() []*mqtt.Subscription {
 // Run is the function that the agent calls to start our app. In it, we create
 // our app struct, register our app (if needed), listen for our button press,
 // then set up a loop to send our sensor data.
-func Run(ctx context.Context, client hass.MQTTClient) {
+func (a *exampleApp) Run(ctx context.Context, client hass.MQTTClient) error {
 	log.Info().Str("appName", appName).Msg("Starting app.")
-	app := newExampleApp()
-
-	// check if our app is registered. If not, send the configuration messages
-	// and then register the app.
-	if err := hass.Register("", app, client); err != nil {
-		log.Error().Err(err).Msg("Could not register app!")
-		return
-	}
 
 	// add our button subscription
-	if err := hass.Subscribe(app, client); err != nil {
+	if err := hass.Subscribe(a, client); err != nil {
 		log.Error().Err(err).Msg("Could not activate subscriptions.")
 	}
 
 	// create a function we will use whenever we want to send our app state
 	sendState := func() {
 		// get the weather
-		if err := app.getWeather(ctx); err != nil {
+		if err := a.getWeather(ctx); err != nil {
 			log.Error().Err(err).Msg("Could not get weather data.")
 		}
 		// get the load averages
-		if err := app.getLoadAvgs(ctx); err != nil {
+		if err := a.getLoadAvgs(ctx); err != nil {
 			log.Error().Err(err).Msg("Could not get load averages.")
 		}
 		// send our data
-		if err := hass.PublishState(app, client); err != nil {
+		if err := hass.PublishState(a, client); err != nil {
 			log.Error().Err(err).Msg("Failed to publish state.")
 		}
 	}
@@ -271,18 +274,7 @@ func Run(ctx context.Context, client hass.MQTTClient) {
 	// we use a helper function, PollSensors, that takes care of setting up a
 	// ticker to run every minute (with a little bit of jitter) to send our data
 	helpers.PollSensors(ctx, sendState, time.Minute, time.Second*5)
-}
-
-// Clear is the function that is called by the agent when we run the agent's
-// clear command. It will remove all the sensors, button and their data from
-// Home Assistant.
-func Clear(_ context.Context, client hass.MQTTClient) {
-	log.Info().Msgf("Clearing %s app data from Home Assistant.", appName)
-	app := newExampleApp()
-
-	if err := hass.UnRegister("", app, client); err != nil {
-		log.Error().Err(err).Msg("Failed to unregister app!")
-	}
+	return nil
 }
 
 // buttonCallback is our callback function that is run when somebody presses the
