@@ -96,6 +96,19 @@ You don't need to worry about setting up a connection to MQTT (satisfying
 The `Run` function should respect context cancellation and act appropriately on
 this signal.
 
+Create a function called `New` that is used to instantiate your app with the signature:
+
+```go
+func New(ctx context.Context) (*yourAppStruct, error)
+```
+
+This function should return your concrete type that satisfies the interface
+methods above, or an error if the app cannot be initialised. You can put
+whatever code you need in this function to set up your application (i.e.,
+reading from configs, setting up connections, etc.).
+
+The interface methods are explained below.
+
 #### Name()
 
 This should return the app name as a string. This is used for defining the
