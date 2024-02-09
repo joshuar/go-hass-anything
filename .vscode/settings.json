@@ -12,7 +12,8 @@
         "agent",
         "hass",
         "examples",
-        "devcontainer"
+        "devcontainer",
+        "container"
     ],
     "go.lintTool": "golangci-lint",
     "go.lintFlags": [
