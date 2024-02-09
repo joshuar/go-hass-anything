@@ -17,9 +17,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/joshuar/go-hass-anything/v4/internal/agent"
-	"github.com/joshuar/go-hass-anything/v4/pkg/mqtt"
-	"github.com/joshuar/go-hass-anything/v4/pkg/preferences"
+	"github.com/joshuar/go-hass-anything/v5/internal/agent"
+	"github.com/joshuar/go-hass-anything/v5/pkg/mqtt"
+	"github.com/joshuar/go-hass-anything/v5/pkg/preferences"
 )
 
 var clearCmd = &cobra.Command{
@@ -35,7 +35,7 @@ var clearCmd = &cobra.Command{
 			log.Fatal().Err(err).Msg("Could not load preferences.")
 		}
 
-		mqtt, err := mqtt.NewMQTTClient(prefs)
+		mqtt, err := mqtt.NewMQTTClient(ctx, prefs)
 		if err != nil {
 			log.Fatal().Err(err).Msg("Could not connect to broker.")
 		}

@@ -6,7 +6,7 @@
 package hass
 
 import (
-	"github.com/joshuar/go-hass-anything/v4/pkg/mqtt"
+	"github.com/joshuar/go-hass-anything/v5/pkg/mqtt"
 )
 
 type MQTTDevice interface {

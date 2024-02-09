@@ -11,10 +11,10 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	ui "github.com/joshuar/go-hass-anything/v4/internal/agent/ui/bubbletea"
-	"github.com/joshuar/go-hass-anything/v4/pkg/hass"
-	"github.com/joshuar/go-hass-anything/v4/pkg/mqtt"
-	"github.com/joshuar/go-hass-anything/v4/pkg/preferences"
+	ui "github.com/joshuar/go-hass-anything/v5/internal/agent/ui/bubbletea"
+	"github.com/joshuar/go-hass-anything/v5/pkg/hass"
+	"github.com/joshuar/go-hass-anything/v5/pkg/mqtt"
+	"github.com/joshuar/go-hass-anything/v5/pkg/preferences"
 )
 
 //go:generate go run ../../tools/appgenerator/run.go arg1
