@@ -11,7 +11,8 @@
         "cmd",
         "agent",
         "hass",
-        "examples"
+        "examples",
+        "devcontainer"
     ],
     "go.lintTool": "golangci-lint",
     "go.lintFlags": [
