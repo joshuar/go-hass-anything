@@ -1,5 +1,23 @@
 # Changelog
 
+## [5.0.0](https://github.com/joshuar/go-hass-anything/compare/v4.0.0...v5.0.0) (2024-02-09)
+
+
+### ⚠ BREAKING CHANGES
+
+* Creating an MQTT client now requires passing a context. This supports cancellation to avoid a connection problem to the broker resulting in inifinite retries.
+
+### Features
+
+* context aware MQTT client creation ([63a125d](https://github.com/joshuar/go-hass-anything/commit/63a125d175e5728d16a0e15de6d70c66af575c2c))
+
+
+### Bug Fixes
+
+* **agent:** :bug: save new preferences when no existing preferences file ([774e09b](https://github.com/joshuar/go-hass-anything/commit/774e09b1a460df56a395fccfaff22a177f42beff))
+* **examples:** :bug: fix api path in exampleapp ([71a9e35](https://github.com/joshuar/go-hass-anything/commit/71a9e3522d49bd53e0f0124779187c78a52847a2))
+* **tools:** :bug: update appgenerator template for new api version ([4a82d47](https://github.com/joshuar/go-hass-anything/commit/4a82d47cfd49a18ebc5995b3e862895e1d3342ec))
+
 ## [4.0.0](https://github.com/joshuar/go-hass-anything/compare/v3.2.0...v4.0.0) (2024-02-06)
 
 
