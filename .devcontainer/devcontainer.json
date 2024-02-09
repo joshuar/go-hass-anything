@@ -4,8 +4,8 @@
     "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
     "shutdownAction": "stopCompose",
     "containerUser": "vscode",
-    "containerEnv": { 
-        "TZ": "${localEnv:TZ:Australia/Brisbane}", 
+    "containerEnv": {
+        "TZ": "${localEnv:TZ:Australia/Brisbane}"
     },
     "features": {
         "ghcr.io/devcontainers/features/go:1": {}

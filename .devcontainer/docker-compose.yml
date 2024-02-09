@@ -5,7 +5,6 @@ services:
       dockerfile: Dockerfile
     volumes:
       - ../..:/workspaces:cached
-      - "${HOME}/go/src:/go/src"
       - /etc/localtime:/etc/localtime:ro,cached
     command: sleep infinity
     network_mode: host
@@ -25,7 +24,7 @@ services:
     network_mode: host
     userns_mode: keep-id
   home-assistant:
-    image: ghcr.io/home-assistant/home-assistant:2024.1.5
+    image: ghcr.io/home-assistant/home-assistant:2024.2.0
     volumes:
       - ../deployments/home-assistant/config:/config
     ports:
