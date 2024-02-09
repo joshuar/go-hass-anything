@@ -111,7 +111,7 @@ func SavePreferences(setters ...Pref) error {
 	}
 
 	prefs, err := LoadPreferences()
-	if err != nil {
+	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
 	for _, setter := range setters {
