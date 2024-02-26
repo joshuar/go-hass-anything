@@ -34,17 +34,17 @@ type Preferences struct {
 }
 
 // MQTTServer returns the current server set in the preferences.
-func (p *Preferences) MQTTServer() string {
+func (p *Preferences) GetMQTTServer() string {
 	return p.Server
 }
 
 // MQTTUser returns any username set in the preferences.
-func (p *Preferences) MQTTUser() string {
+func (p *Preferences) GetMQTTUser() string {
 	return p.User
 }
 
 // MQTTPassword returns any password set in the preferences.
-func (p *Preferences) MQTTPassword() string {
+func (p *Preferences) GetMQTTPassword() string {
 	return p.Password
 }
 
@@ -57,25 +57,25 @@ func (p *Preferences) IsRegistered(app string) bool {
 // Pref is a functional type for applying a value to a particular preference.
 type Pref func(*Preferences)
 
-// MQTTServer is the functional preference that sets the MQTTServer preference
+// SetMQTTServer is the functional preference that sets the SetMQTTServer preference
 // to the specified value.
-func MQTTServer(server string) Pref {
+func SetMQTTServer(server string) Pref {
 	return func(args *Preferences) {
 		args.Server = server
 	}
 }
 
-// MQTTUser is the functional preference that sets the MQTTUser preference
+// SetMQTTUser is the functional preference that sets the SetMQTTUser preference
 // to the specified value.
-func MQTTUser(user string) Pref {
+func SetMQTTUser(user string) Pref {
 	return func(args *Preferences) {
 		args.User = user
 	}
 }
 
-// MQTTPassword is the functional preference that sets the MQTTPassword preference
+// SetMQTTPassword is the functional preference that sets the SetMQTTPassword preference
 // to the specified value.
-func MQTTPassword(password string) Pref {
+func SetMQTTPassword(password string) Pref {
 	return func(args *Preferences) {
 		args.Password = password
 	}

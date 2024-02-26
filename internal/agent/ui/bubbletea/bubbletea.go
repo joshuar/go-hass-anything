@@ -45,9 +45,9 @@ func (ui *bubbleteaUI) ShowConfiguration() {
 	}
 
 	err = preferences.SavePreferences(
-		preferences.MQTTServer(mqttForm.formInputs[0].Value()),
-		preferences.MQTTUser(mqttForm.formInputs[1].Value()),
-		preferences.MQTTPassword(mqttForm.formInputs[2].Value()),
+		preferences.SetMQTTServer(mqttForm.formInputs[0].Value()),
+		preferences.SetMQTTUser(mqttForm.formInputs[1].Value()),
+		preferences.SetMQTTPassword(mqttForm.formInputs[2].Value()),
 	)
 	if err != nil {
 		log.Error().Err(err).Msg("Problem saving preferences.")

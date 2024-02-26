@@ -24,9 +24,9 @@ const (
 )
 
 type prefs interface {
-	MQTTServer() string
-	MQTTUser() string
-	MQTTPassword() string
+	GetMQTTServer() string
+	GetMQTTUser() string
+	GetMQTTPassword() string
 }
 
 // Msg represents a message that can be sent or received on the MQTT bus.
@@ -109,15 +109,15 @@ func (c *Client) Subscribe(subs ...*Subscription) error {
 
 // NewMQTTClient will establish a new connection to the MQTT service, using the
 // configuration found under the path specified with prefsPath.
-func NewMQTTClient(ctx context.Context, preferences prefs) (*Client, error) {
+func NewMQTTClient(ctx context.Context, prefs prefs) (*Client, error) {
 	hostname, _ := os.Hostname()
 	clientid := hostname + strconv.Itoa(time.Now().Second())
 
-	connOpts := MQTT.NewClientOptions().AddBroker(preferences.MQTTServer()).SetClientID(clientid).SetCleanSession(true)
-	if preferences.MQTTUser() != "" {
-		connOpts.SetUsername(preferences.MQTTUser())
-		if preferences.MQTTPassword() != "" {
-			connOpts.SetPassword(preferences.MQTTPassword())
+	connOpts := MQTT.NewClientOptions().AddBroker(prefs.GetMQTTServer()).SetClientID(clientid).SetCleanSession(true)
+	if prefs.GetMQTTUser() != "" {
+		connOpts.SetUsername(prefs.GetMQTTUser())
+		if prefs.GetMQTTPassword() != "" {
+			connOpts.SetPassword(prefs.GetMQTTPassword())
 		}
 	}
 
@@ -134,7 +134,7 @@ func NewMQTTClient(ctx context.Context, preferences prefs) (*Client, error) {
 		return nil, err
 	}
 
-	log.Debug().Msgf("Connected to MQTT server %s.", preferences.MQTTServer())
+	log.Debug().Msgf("Connected to MQTT server %s.", prefs.GetMQTTServer())
 	conf := &Client{
 		conn: client,
 	}
