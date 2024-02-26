@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.0.1](https://github.com/joshuar/go-hass-anything/compare/v5.0.0...v5.0.1) (2024-02-26)
+
+
+### Miscellaneous Chores
+
+* release 5.0.1 ([8ab1115](https://github.com/joshuar/go-hass-anything/commit/8ab1115529e3760361205078b578e79c3b2530e0))
+
 ## [5.0.0](https://github.com/joshuar/go-hass-anything/compare/v4.0.0...v5.0.0) (2024-02-09)
 
 
