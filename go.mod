@@ -28,7 +28,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/power-devops/perfstat v0.0.0-20221212215047-62379fc7944b // indirect
 	github.com/rivo/uniseg v0.4.6 // indirect
-	github.com/yusufpapurcu/wmi v1.2.3 // indirect
+	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	golang.org/x/term v0.16.0 // indirect
 )
 
@@ -44,9 +44,9 @@ require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/philippta/trip v0.2.0
-	github.com/shirou/gopsutil/v3 v3.24.1
+	github.com/shirou/gopsutil/v3 v3.24.2
 	github.com/spf13/pflag v1.0.5 // indirect
 	golang.org/x/net v0.20.0 // indirect
-	golang.org/x/sys v0.16.0 // indirect
+	golang.org/x/sys v0.17.0 // indirect
 	golang.org/x/text v0.14.0
 )
