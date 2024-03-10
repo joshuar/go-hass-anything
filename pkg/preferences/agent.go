@@ -8,7 +8,6 @@ package preferences
 import (
 	"os"
 	"path/filepath"
-	"slices"
 
 	"github.com/pelletier/go-toml/v2"
 	"github.com/rs/zerolog/log"
@@ -21,16 +20,20 @@ var (
 	// preferencesFile is the default filename used for storing the preferences
 	// on disk. While it can be overridden, this is usually unnecessary.
 	preferencesFile = "mqtt-config.toml"
+	// defaultServer is the default MQTT broker URL.
+	defaultServer = "tcp://localhost:1883"
+	// defaultTopicPrefix is the default prefix that is appended to topics.
+	defaultTopicPrefix = "homeassistant"
 )
 
 // Preferences is a struct containing the general preferences for either the
 // agent or for any code that imports go-hass-anything as a package. Currently,
 // these preferences are for MQTT connectivity selection.
 type Preferences struct {
-	Server         string   `toml:"mqttserver"`
-	User           string   `toml:"mqttuser,omitempty"`
-	Password       string   `toml:"mqttpassword,omitempty"`
-	RegisteredApps []string `toml:"registeredapps,omitempty"`
+	Server      string `toml:"mqttserver"`
+	User        string `toml:"mqttuser,omitempty"`
+	Password    string `toml:"mqttpassword,omitempty"`
+	TopicPrefix string `toml:"topicprefix"`
 }
 
 // MQTTServer returns the current server set in the preferences.
@@ -48,16 +51,15 @@ func (p *Preferences) GetMQTTPassword() string {
 	return p.Password
 }
 
-// IsRegistered will check whether the given app has been recorded as registered
-// in the preferences.
-func (p *Preferences) IsRegistered(app string) bool {
-	return slices.Contains(p.RegisteredApps, app)
+// TopicPrefix returns the topic prefix set in the preferences.
+func (p *Preferences) GetTopicPrefix() string {
+	return p.TopicPrefix
 }
 
 // Pref is a functional type for applying a value to a particular preference.
 type Pref func(*Preferences)
 
-// SetMQTTServer is the functional preference that sets the SetMQTTServer preference
+// SetMQTTServer is the functional preference that sets the MQTT server preference
 // to the specified value.
 func SetMQTTServer(server string) Pref {
 	return func(args *Preferences) {
@@ -65,7 +67,7 @@ func SetMQTTServer(server string) Pref {
 	}
 }
 
-// SetMQTTUser is the functional preference that sets the SetMQTTUser preference
+// SetMQTTUser is the functional preference that sets the MQTT user preference
 // to the specified value.
 func SetMQTTUser(user string) Pref {
 	return func(args *Preferences) {
@@ -73,7 +75,7 @@ func SetMQTTUser(user string) Pref {
 	}
 }
 
-// SetMQTTPassword is the functional preference that sets the SetMQTTPassword preference
+// SetMQTTPassword is the functional preference that sets the MQTT password preference
 // to the specified value.
 func SetMQTTPassword(password string) Pref {
 	return func(args *Preferences) {
@@ -81,23 +83,11 @@ func SetMQTTPassword(password string) Pref {
 	}
 }
 
-// RegisterApps is the functional preference that appends the list of given apps
-// to the existing registered apps in the preferences.
-func RegisterApps(apps ...string) Pref {
+// SetTopicPrefix is the functional preference that sets the topic prefix preference
+// to the specified value.
+func SetTopicPrefix(prefix string) Pref {
 	return func(args *Preferences) {
-		args.RegisteredApps = append(args.RegisteredApps, apps...)
-	}
-}
-
-// UnRegisterApps is the functional preference that will remove the list of
-// given apps from the registered apps in the preferences.
-func UnRegisterApps(apps ...string) Pref {
-	return func(args *Preferences) {
-		for _, app := range apps {
-			args.RegisteredApps = slices.DeleteFunc(args.RegisteredApps, func(a string) bool {
-				return a == app
-			})
-		}
+		args.TopicPrefix = prefix
 	}
 }
 
@@ -155,9 +145,10 @@ func SetFile(file string) {
 
 func defaultPreferences() *Preferences {
 	return &Preferences{
-		Server:   "tcp://localhost:1883",
-		User:     "",
-		Password: "",
+		Server:      defaultServer,
+		User:        "",
+		Password:    "",
+		TopicPrefix: defaultTopicPrefix,
 	}
 }
 

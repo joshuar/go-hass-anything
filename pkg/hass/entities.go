@@ -15,7 +15,7 @@ import (
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 
-	"github.com/joshuar/go-hass-anything/v5/pkg/mqtt"
+	"github.com/joshuar/go-hass-anything/v6/pkg/mqtt"
 )
 
 type EntityConfig struct {
@@ -25,7 +25,7 @@ type EntityConfig struct {
 	StateCallback      func() (json.RawMessage, error)
 	AttributesCallback func() (json.RawMessage, error)
 	ConfigTopic        string
-	prefix             string
+	topicPrefix        string
 }
 
 type Entity struct {
@@ -70,7 +70,7 @@ func MarshalConfig(e *EntityConfig) (*mqtt.Msg, error) {
 	if jsonConfig, err := json.Marshal(e.Entity); err != nil {
 		return nil, err
 	} else {
-		msg = mqtt.NewMsg(e.ConfigTopic, jsonConfig).Retain()
+		msg = mqtt.NewMsg(e.ConfigTopic, jsonConfig)
 	}
 	return msg, nil
 }
@@ -106,57 +106,55 @@ func MarshalSubscription(e *EntityConfig) (*mqtt.Subscription, error) {
 // and app. Use this function where you don't care about the id of the
 // underlying sensor in Home Assistant. The id will be derived from the name by
 // converting it to snake_case.
-func NewEntityByName(name, app string) *EntityConfig {
+func NewEntityByName(name, app, prefix string) *EntityConfig {
 	return &EntityConfig{
 		Entity: &Entity{
 			Name:     FormatName(name),
 			UniqueID: FormatID(name),
 		},
-		App: strings.ToLower(app),
+		App:         strings.ToLower(app),
+		topicPrefix: prefix,
 	}
 }
 
 // NewEntityByID will create a new entity and config based off the given id and
 // app. Use this when you want to ensure the exact format of the id for the
 // underlying sensor in Home Assistant. The name will be derived from the id.
-func NewEntityByID(id, app string) *EntityConfig {
+func NewEntityByID(id, app, prefix string) *EntityConfig {
 	return &EntityConfig{
 		Entity: &Entity{
 			Name:     FormatName(id),
 			UniqueID: id,
 		},
-		App: strings.ToLower(app),
+		App:         strings.ToLower(app),
+		topicPrefix: prefix,
 	}
 }
 
 // AsSensor will configure appropriate MQTT topics to represent a Home Assistant sensor.
 func (e *EntityConfig) AsSensor() *EntityConfig {
-	e.prefix = strings.Join([]string{mqtt.DiscoveryPrefix, "sensor", e.App, e.Entity.UniqueID}, "/")
-	e.ConfigTopic = e.prefix + "/config"
-	e.Entity.StateTopic = e.prefix + "/state"
+	prefix := strings.Join([]string{e.topicPrefix, "sensor", e.App, e.Entity.UniqueID}, "/")
+	e.ConfigTopic = prefix + "/config"
+	e.Entity.StateTopic = prefix + "/state"
+	e.Entity.AttributesTopic = prefix + "/attributes"
 	return e
 }
 
 // AsBinarySensor will configure appropriate MQTT topics to represent a Home Assistant binary_sensor.
 func (e *EntityConfig) AsBinarySensor() *EntityConfig {
-	e.prefix = strings.Join([]string{mqtt.DiscoveryPrefix, "binary_sensor", e.App, e.Entity.UniqueID}, "/")
-	e.ConfigTopic = e.prefix + "/config"
-	e.Entity.StateTopic = e.prefix + "/state"
+	prefix := strings.Join([]string{e.topicPrefix, "binary_sensor", e.App, e.Entity.UniqueID}, "/")
+	e.ConfigTopic = prefix + "/config"
+	e.Entity.StateTopic = prefix + "/state"
+	e.Entity.AttributesTopic = prefix + "/attributes"
 	return e
 }
 
 // AsButton will configure appropriate MQTT topics to represent a Home Assistant button.
 func (e *EntityConfig) AsButton() *EntityConfig {
-	e.prefix = strings.Join([]string{mqtt.DiscoveryPrefix, "button", e.App, e.Entity.UniqueID}, "/")
-	e.ConfigTopic = e.prefix + "/config"
-	e.Entity.CommandTopic = e.prefix + "/toggle"
-	return e
-}
-
-// WithAttributes ensures that the entity has a topic that can be used to
-// publish its attributes.
-func (e *EntityConfig) WithAttributesTopic() *EntityConfig {
-	e.Entity.AttributesTopic = e.prefix + "/attributes"
+	prefix := strings.Join([]string{e.topicPrefix, "button", e.App, e.Entity.UniqueID}, "/")
+	e.ConfigTopic = prefix + "/config"
+	e.Entity.CommandTopic = prefix + "/toggle"
+	e.Entity.AttributesTopic = prefix + "/attributes"
 	return e
 }
 

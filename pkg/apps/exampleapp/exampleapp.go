@@ -18,11 +18,11 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/shirou/gopsutil/v3/load"
 
-	"github.com/joshuar/go-hass-anything/v5/pkg/apps/helpers"
-	"github.com/joshuar/go-hass-anything/v5/pkg/hass"
-	"github.com/joshuar/go-hass-anything/v5/pkg/mqtt"
-	"github.com/joshuar/go-hass-anything/v5/pkg/preferences"
-	"github.com/joshuar/go-hass-anything/v5/pkg/web"
+	"github.com/joshuar/go-hass-anything/v6/pkg/apps/helpers"
+	"github.com/joshuar/go-hass-anything/v6/pkg/hass"
+	"github.com/joshuar/go-hass-anything/v6/pkg/mqtt"
+	"github.com/joshuar/go-hass-anything/v6/pkg/preferences"
+	"github.com/joshuar/go-hass-anything/v6/pkg/web"
 )
 
 const (
@@ -136,6 +136,16 @@ func (a *exampleApp) Configuration() []*mqtt.Msg {
 	var msgs []*mqtt.Msg
 	var entities []*hass.EntityConfig
 
+	// Fetch the topic prefix from the agent preferences. Usually, this will
+	// default to "homeassistant".
+	var topicPrefix string
+	appPrefs, err := preferences.LoadPreferences()
+	if err != nil {
+		log.Warn().Err(err).Msg("Could not load app preferences.")
+
+	}
+	topicPrefix = appPrefs.GetTopicPrefix()
+
 	// deviceInfo is used to associate each sensor to our example app device in Home Assistant
 	deviceInfo := &hass.Device{
 		Name:        appName,
@@ -161,7 +171,7 @@ func (a *exampleApp) Configuration() []*mqtt.Msg {
 	// create more sensors and extract other values out of this response if
 	// desired.
 	entities = append(entities,
-		hass.NewEntityByName("ExampleApp Weather Temp", appName).
+		hass.NewEntityByName("ExampleApp Weather Temp", appName, topicPrefix).
 			AsSensor().
 			WithDeviceInfo(deviceInfo).
 			WithOriginInfo(originInfo).
@@ -173,7 +183,7 @@ func (a *exampleApp) Configuration() []*mqtt.Msg {
 	// we have three sensors for the loadavgs
 	for _, l := range []string{"1", "5", "15"} {
 		entities = append(entities,
-			hass.NewEntityByID("example_app_load"+l, appName).
+			hass.NewEntityByID("example_app_load"+l, appName, topicPrefix).
 				AsSensor().
 				WithDeviceInfo(deviceInfo).
 				WithOriginInfo(originInfo).
@@ -184,7 +194,7 @@ func (a *exampleApp) Configuration() []*mqtt.Msg {
 	// we also have a button that when pressed in Home Assistant, will perform
 	// an action
 	entities = append(entities,
-		hass.NewEntityByID("example_app_button", appName).
+		hass.NewEntityByID("example_app_button", appName, topicPrefix).
 			AsButton().
 			WithCommandCallback(buttonCallback))
 
@@ -204,9 +214,19 @@ func (a *exampleApp) Configuration() []*mqtt.Msg {
 func (a *exampleApp) States() []*mqtt.Msg {
 	var msgs []*mqtt.Msg
 
+	// Fetch the topic prefix from the agent preferences. Usually, this will
+	// default to "homeassistant".
+	var topicPrefix string
+	appPrefs, err := preferences.LoadPreferences()
+	if err != nil {
+		log.Warn().Err(err).Msg("Could not load app preferences.")
+
+	}
+	topicPrefix = appPrefs.GetTopicPrefix()
+
 	// we retrieve the weather data and send that as the weather sensor state
 	msgs = append(msgs,
-		mqtt.NewMsg(mqtt.DiscoveryPrefix+"/sensor/"+appName+"/example_app_weather_temp/state", a.weatherData))
+		mqtt.NewMsg(topicPrefix+"/sensor/"+appName+"/example_app_weather_temp/state", a.weatherData))
 
 	// we retrieve our load avgs
 	for _, loads := range []string{"1", "5", "15"} {
@@ -222,7 +242,7 @@ func (a *exampleApp) States() []*mqtt.Msg {
 		}
 		msgs = append(msgs,
 			mqtt.NewMsg(
-				mqtt.DiscoveryPrefix+"/sensor/"+appName+"/"+id+"/state",
+				topicPrefix+"/sensor/"+appName+"/"+id+"/state",
 				json.RawMessage(strconv.FormatFloat(l, 'f', -1, 64))))
 	}
 
@@ -234,9 +254,19 @@ func (a *exampleApp) States() []*mqtt.Msg {
 func (a *exampleApp) Subscriptions() []*mqtt.Subscription {
 	var msgs []*mqtt.Subscription
 
+	// Fetch the topic prefix from the agent preferences. Usually, this will
+	// default to "homeassistant".
+	var topicPrefix string
+	appPrefs, err := preferences.LoadPreferences()
+	if err != nil {
+		log.Warn().Err(err).Msg("Could not load app preferences.")
+
+	}
+	topicPrefix = appPrefs.GetTopicPrefix()
+
 	// we add our callback for our button
 	msgs = append(msgs, &mqtt.Subscription{
-		Topic:    mqtt.DiscoveryPrefix + "/button/" + appName + "/example_app_button/toggle",
+		Topic:    topicPrefix + "/button/" + appName + "/example_app_button/toggle",
 		Callback: buttonCallback,
 	})
 	return msgs
