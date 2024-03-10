@@ -17,9 +17,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/joshuar/go-hass-anything/v5/internal/agent"
-	"github.com/joshuar/go-hass-anything/v5/pkg/mqtt"
-	"github.com/joshuar/go-hass-anything/v5/pkg/preferences"
+	"github.com/joshuar/go-hass-anything/v6/internal/agent"
+	"github.com/joshuar/go-hass-anything/v6/pkg/mqtt"
+	"github.com/joshuar/go-hass-anything/v6/pkg/preferences"
 )
 
 var clearCmd = &cobra.Command{

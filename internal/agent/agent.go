@@ -11,10 +11,9 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	ui "github.com/joshuar/go-hass-anything/v5/internal/agent/ui/bubbletea"
-	"github.com/joshuar/go-hass-anything/v5/pkg/hass"
-	"github.com/joshuar/go-hass-anything/v5/pkg/mqtt"
-	"github.com/joshuar/go-hass-anything/v5/pkg/preferences"
+	ui "github.com/joshuar/go-hass-anything/v6/internal/agent/ui/bubbletea"
+	"github.com/joshuar/go-hass-anything/v6/pkg/hass"
+	"github.com/joshuar/go-hass-anything/v6/pkg/mqtt"
 )
 
 //go:generate go run ../../tools/appgenerator/run.go arg1
@@ -69,51 +68,22 @@ func (a *agent) Configure() {
 }
 
 func Run(ctx context.Context, client hass.MQTTClient) {
-	prefs, err := preferences.LoadPreferences()
-	if err != nil {
-		log.Error().Err(err).Msg("Could not load preferences.")
-		return
-	}
-
-	var appsToRun []App
-	var registeredApps []string
+	var appsToRun []hass.MQTTDevice
 	for _, app := range AppList {
-		if prefs.IsRegistered(app.Name()) {
-			appsToRun = append(appsToRun, app)
-		} else {
-			if err := hass.Register(app, client); err != nil {
-				log.Error().Err(err).Str("app", app.Name()).Msg("Could not register app.")
-				continue
-			}
-			appsToRun = append(appsToRun, app)
-			registeredApps = append(registeredApps, app.Name())
-			log.Info().Str("app", app.Name()).Msg("App registered.")
-		}
+		appsToRun = append(appsToRun, app)
 	}
-	if err := preferences.SavePreferences(preferences.RegisterApps(registeredApps...)); err != nil {
-		log.Warn().Err(err).Msg("Failed to save registered apps in preferences.")
+	if err := hass.Register(client, appsToRun...); err != nil {
+		log.Error().Err(err).Msg("Could not register.")
 	}
-	runApps(ctx, client, appsToRun)
+	runApps(ctx, client, AppList)
 }
 
 func ClearApps(ctx context.Context, client hass.MQTTClient) {
-	prefs, err := preferences.LoadPreferences()
-	if err != nil {
-		log.Error().Err(err).Msg("Could not load preferences.")
-		return
-	}
-	var unRegisteredApps []string
 	for _, app := range AppList {
-		if prefs.IsRegistered(app.Name()) {
-			if err := hass.UnRegister(app, client); err != nil {
-				log.Error().Err(err).Str("app", app.Name()).Msg("Could not unregister app.")
-				continue
-			}
-			unRegisteredApps = append(unRegisteredApps, app.Name())
+		if err := hass.UnRegister(client, app); err != nil {
+			log.Error().Err(err).Str("app", app.Name()).Msg("Could not unregister app.")
+			continue
 		}
-	}
-	if err := preferences.SavePreferences(preferences.UnRegisterApps(unRegisteredApps...)); err != nil {
-		log.Warn().Err(err).Msg("Failed to update registered apps in preferences.")
 	}
 }
 

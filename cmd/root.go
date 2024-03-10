@@ -8,7 +8,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 
-	"github.com/joshuar/go-hass-anything/v5/internal/logging"
+	"github.com/joshuar/go-hass-anything/v6/internal/logging"
 )
 
 const (

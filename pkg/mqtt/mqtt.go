@@ -18,11 +18,6 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-const (
-	DiscoveryPrefix = "homeassistant"
-	DefaultServer   = "localhost:1883"
-)
-
 type prefs interface {
 	GetMQTTServer() string
 	GetMQTTUser() string
@@ -142,7 +137,7 @@ func NewMQTTClient(ctx context.Context, prefs prefs) (*Client, error) {
 	return conf, nil
 }
 
-// NewMsg is a conveinience function to create a new Msg with a given topic and
+// NewMsg is a convenience function to create a new Msg with a given topic and
 // message body. The returned Msg can be further customised directly for
 // specifying retention and QoS parameters.
 func NewMsg(topic string, msg json.RawMessage) *Msg {

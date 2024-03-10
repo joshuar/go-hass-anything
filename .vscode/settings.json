@@ -13,6 +13,7 @@
         "hass",
         "examples",
         "devcontainer",
-        "container"
+        "container",
+        "vscode"
     ],
 }
