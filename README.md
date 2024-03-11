@@ -120,6 +120,14 @@ After this, there should be no devices (from Go Hass Anything) and associated
 entities in Home Assistant. If you want to re-add them, execute the run
 command again.
 
+## 🤖 Supported Home Assistant Entities
+
+- [Binary Sensor](https://developers.home-assistant.io/docs/core/entity/binary-sensor).
+- [Sensor](https://developers.home-assistant.io/docs/core/entity/sensor).
+- [Button](https://developers.home-assistant.io/docs/core/entity/button).
+
+_More to come!_
+
 ## 🤝 Compatibility
 
 Currently, only Linux is supported. Though the code is designed to be extensible
