@@ -15,6 +15,16 @@
 
 **Send anything to Home Assistant, through MQTT, powered by Go.**
 
+Go Hass Anything is a framework for writing self-contained apps in Go that can
+send data and listen for controls to/from Home Assistant, over MQTT. 
+
+This can be useful for adding sensors or controls to Home Assistant that are not
+available through an existing Home Assistant integration.
+
+The code is flexible to be imported as a package into your own Go code to
+provide this functionality, or it can be run as its own “agent” process that
+will manage any apps you write. See the docs for more details on both use-cases.
+
 ## ⬇️ Installation
 
 ## Packages
