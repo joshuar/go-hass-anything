@@ -9,7 +9,7 @@ import (
 
 {{ range $app := . -}}
 {{ if (eq $app "exampleapp") }}
-"github.com/joshuar/go-hass-anything/v/pkg/apps/{{$app}}"
+"github.com/joshuar/go-hass-anything/v6/pkg/apps/{{$app}}"
 {{ else }}
 "github.com/joshuar/go-hass-anything/v6/apps/{{$app}}"
 {{ end }}
