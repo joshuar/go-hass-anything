@@ -34,7 +34,7 @@ require (
 
 require (
 	github.com/carlmjohnson/requests v0.23.5
-	github.com/cenkalti/backoff/v4 v4.2.1
+	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/charmbracelet/bubbles v0.18.0
 	github.com/charmbracelet/bubbletea v0.25.0
 	github.com/eclipse/paho.mqtt.golang v1.4.3
