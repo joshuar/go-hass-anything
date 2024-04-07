@@ -5,13 +5,11 @@
 
 ### ⚠ BREAKING CHANGES
 
-* Refactor to support MQTT brokers configured without persistence. The agent will now register all apps on startup and re-register   if Home Assistant is restarted. The code supports similar functionality for when imported   as a package.
-* as a package.
+* Refactor to support MQTT brokers configured without persistence. The agent will now register all apps on startup and re-register   if Home Assistant is restarted. The code supports similar functionality for when imported as a package.
 
 ### Features
 
 * zero persistence MQTT support ([96e5b2c](https://github.com/joshuar/go-hass-anything/commit/96e5b2c709af22b0f9ee6228e94ccb578cc4e126))
-* zero persistence MQTT support ([7ad088a](https://github.com/joshuar/go-hass-anything/commit/7ad088ad3d0a90ea9c027cfc917b2933589b5b7d))
 
 
 ### Bug Fixes
