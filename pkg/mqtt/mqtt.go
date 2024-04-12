@@ -22,14 +22,14 @@ type prefs interface {
 	GetMQTTServer() string
 	GetMQTTUser() string
 	GetMQTTPassword() string
+	GetTopicPrefix() string
 }
 
-// Msg represents a message that can be sent or received on the MQTT bus.
-type Msg struct {
-	Topic    string
-	Message  json.RawMessage
-	QOS      byte
-	Retained bool
+type Device interface {
+	Name() string
+	Configuration() []*Msg
+	States() []*Msg
+	Subscriptions() []*Subscription
 }
 
 // Subscription represents a listener on a specific Topic, that will pass any
@@ -43,7 +43,8 @@ type Subscription struct {
 
 // Client is the connection to the MQTT broker.
 type Client struct {
-	conn MQTT.Client
+	conn    MQTT.Client
+	options *MQTT.ClientOptions
 }
 
 // Publish will send the list of messages it is passed to the broker that the
@@ -90,7 +91,7 @@ func (c *Client) Subscribe(subs ...*Subscription) error {
 
 	g.Go(func() error {
 		for sub := range msgCh {
-			log.Trace().Str("topic", sub.Topic).Bool("retain", sub.Retained).Msg("Adding subscription.")
+			log.Trace().Str("topic", sub.Topic).Bool("retain", sub.Retained).Msg("Subscribing to topic.")
 			if token := c.conn.Subscribe(sub.Topic, sub.QOS, sub.Callback); token.Wait() && token.Error() != nil {
 				return token.Error()
 			}
@@ -102,13 +103,60 @@ func (c *Client) Subscribe(subs ...*Subscription) error {
 	return g.Wait()
 }
 
-// NewMQTTClient will establish a new connection to the MQTT service, using the
-// configuration found under the path specified with prefsPath.
-func NewMQTTClient(ctx context.Context, prefs prefs) (*Client, error) {
+func (c *Client) Unpublish(msgs ...*Msg) error {
+	for _, msg := range msgs {
+		msgs = append(msgs, NewMsg(msg.Topic, []byte(``)))
+	}
+	if err := c.Publish(msgs...); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Connect will establish a new connection to the MQTT service with a generated configuration
+func (c *Client) connect(ctx context.Context) error {
+	c.conn = MQTT.NewClient(c.options)
+
+	connect := func() error {
+		if token := c.conn.Connect(); token.Wait() && token.Error() != nil {
+			return token.Error()
+		}
+		return nil
+	}
+	err := backoff.Retry(connect, backoff.WithContext(backoff.NewExponentialBackOff(), ctx))
+	if err != nil {
+		return err
+	}
+
+	log.Debug().Msg("Connected to MQTT server.")
+	return nil
+}
+
+func NewClient(ctx context.Context, prefs prefs, devices ...Device) (*Client, error) {
+	statusTopic := prefs.GetTopicPrefix() + "/status"
+	onConnectCallback := genOnConnectHandler(statusTopic, devices...)
+	connOpts := genConnOpts(prefs, onConnectCallback)
+	c := &Client{
+		options: connOpts,
+	}
+	if err := c.connect(ctx); err != nil {
+		return nil, err
+	}
+	return c, nil
+}
+
+func genConnOpts(prefs prefs, callback MQTT.OnConnectHandler) *MQTT.ClientOptions {
 	hostname, _ := os.Hostname()
 	clientid := hostname + strconv.Itoa(time.Now().Second())
 
-	connOpts := MQTT.NewClientOptions().AddBroker(prefs.GetMQTTServer()).SetClientID(clientid).SetCleanSession(true)
+	connOpts := MQTT.NewClientOptions().
+		AddBroker(prefs.GetMQTTServer()).
+		SetClientID(clientid).
+		SetCleanSession(true).
+		SetKeepAlive(10 * time.Second).
+		SetAutoReconnect(true).
+		SetOnConnectHandler(callback)
+
 	if prefs.GetMQTTUser() != "" {
 		connOpts.SetUsername(prefs.GetMQTTUser())
 		if prefs.GetMQTTPassword() != "" {
@@ -116,25 +164,72 @@ func NewMQTTClient(ctx context.Context, prefs prefs) (*Client, error) {
 		}
 	}
 
-	client := MQTT.NewClient(connOpts)
+	return connOpts
+}
 
-	connect := func() error {
-		if token := client.Connect(); token.Wait() && token.Error() != nil {
-			return token.Error()
+func genOnConnectHandler(statustopic string, devices ...Device) MQTT.OnConnectHandler {
+	var configs []*Msg
+	var subscriptions []*Subscription
+
+	for _, d := range devices {
+		configs = append(configs, d.Configuration()...)
+		subscriptions = append(subscriptions, d.Subscriptions()...)
+	}
+	HAStatusSub := &Subscription{
+		Topic: statustopic,
+		Callback: func(c MQTT.Client, m MQTT.Message) {
+			switch msg := string(m.Payload()); msg {
+			case "online":
+				log.Debug().Msg("Home Assistant Online.")
+				for _, device := range devices {
+					publish(c, device.Configuration()...)
+					publish(c, device.States()...)
+					subscribe(c, device.Subscriptions()...)
+				}
+			case "offline":
+				log.Debug().Msg("Home Assistant Offline.")
+			}
+		},
+	}
+	subscriptions = append(subscriptions, HAStatusSub)
+	redoFunc := func(c MQTT.Client) {
+		publish(c, configs...)
+		subscribe(c, subscriptions...)
+	}
+	return redoFunc
+}
+
+func publish(c MQTT.Client, msgs ...*Msg) {
+	for _, msg := range msgs {
+		log.Trace().Str("topic", msg.Topic).Bool("retain", msg.Retained).Msg("Publishing message.")
+		if token := c.Publish(msg.Topic, msg.QOS, msg.Retained, []byte(msg.Message)); token.Wait() && token.Error() != nil {
+			log.Error().Err(token.Error()).Str("topic", msg.Topic).Msg("Failed to publish message.")
 		}
-		return nil
 	}
-	err := backoff.Retry(connect, backoff.WithContext(backoff.NewExponentialBackOff(), ctx))
-	if err != nil {
-		return nil, err
-	}
+}
 
-	log.Debug().Msgf("Connected to MQTT server %s.", prefs.GetMQTTServer())
-	conf := &Client{
-		conn: client,
+func subscribe(c MQTT.Client, subs ...*Subscription) {
+	for _, sub := range subs {
+		log.Trace().Str("topic", sub.Topic).Bool("retain", sub.Retained).Msg("Subscribing to topic.")
+		if token := c.Subscribe(sub.Topic, sub.QOS, sub.Callback); token.Wait() && token.Error() != nil {
+			log.Error().Err(token.Error()).Str("topic", sub.Topic).Msg("Failed to subscribe to topic.")
+		}
 	}
+}
 
-	return conf, nil
+// Msg represents a message that can be sent or received on the MQTT bus.
+type Msg struct {
+	Topic    string
+	Message  json.RawMessage
+	QOS      byte
+	Retained bool
+}
+
+// Retain sets the Retained status of a Msg to true, ensuring that it will be
+// retained on the MQTT bus when sent.
+func (m *Msg) Retain() *Msg {
+	m.Retained = true
+	return m
 }
 
 // NewMsg is a convenience function to create a new Msg with a given topic and
@@ -145,11 +240,4 @@ func NewMsg(topic string, msg json.RawMessage) *Msg {
 		Topic:   topic,
 		Message: msg,
 	}
-}
-
-// Retain sets the Retained status of a Msg to true, ensuring that it will be
-// retained on the MQTT bus when sent.
-func (m *Msg) Retain() *Msg {
-	m.Retained = true
-	return m
 }

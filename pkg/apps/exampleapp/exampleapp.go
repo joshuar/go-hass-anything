@@ -18,11 +18,11 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/shirou/gopsutil/v3/load"
 
-	"github.com/joshuar/go-hass-anything/v6/pkg/apps/helpers"
-	"github.com/joshuar/go-hass-anything/v6/pkg/hass"
-	"github.com/joshuar/go-hass-anything/v6/pkg/mqtt"
-	"github.com/joshuar/go-hass-anything/v6/pkg/preferences"
-	"github.com/joshuar/go-hass-anything/v6/pkg/web"
+	"github.com/joshuar/go-hass-anything/v7/pkg/apps/helpers"
+	"github.com/joshuar/go-hass-anything/v7/pkg/hass"
+	"github.com/joshuar/go-hass-anything/v7/pkg/mqtt"
+	"github.com/joshuar/go-hass-anything/v7/pkg/preferences"
+	"github.com/joshuar/go-hass-anything/v7/pkg/web"
 )
 
 const (
@@ -275,11 +275,11 @@ func (a *exampleApp) Subscriptions() []*mqtt.Subscription {
 // Run is the function that the agent calls to start our app. In it, we create
 // our app struct, register our app (if needed), listen for our button press,
 // then set up a loop to send our sensor data.
-func (a *exampleApp) Run(ctx context.Context, client hass.MQTTClient) error {
+func (a *exampleApp) Run(ctx context.Context, client mqtt.Client) error {
 	log.Info().Str("appName", appName).Msg("Starting app.")
 
 	// add our button subscription
-	if err := hass.Subscribe(a, client); err != nil {
+	if err := client.Subscribe(a.Subscriptions()...); err != nil {
 		log.Error().Err(err).Msg("Could not activate subscriptions.")
 	}
 
@@ -294,7 +294,7 @@ func (a *exampleApp) Run(ctx context.Context, client hass.MQTTClient) error {
 			log.Error().Err(err).Msg("Could not get load averages.")
 		}
 		// send our data
-		if err := hass.PublishState(a, client); err != nil {
+		if err := client.Publish(a.States()...); err != nil {
 			log.Error().Err(err).Msg("Failed to publish state.")
 		}
 	}

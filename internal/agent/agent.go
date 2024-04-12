@@ -11,9 +11,9 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	ui "github.com/joshuar/go-hass-anything/v6/internal/agent/ui/bubbletea"
-	"github.com/joshuar/go-hass-anything/v6/pkg/hass"
-	"github.com/joshuar/go-hass-anything/v6/pkg/mqtt"
+	ui "github.com/joshuar/go-hass-anything/v7/internal/agent/ui/bubbletea"
+	"github.com/joshuar/go-hass-anything/v7/pkg/mqtt"
+	"github.com/joshuar/go-hass-anything/v7/pkg/preferences"
 )
 
 //go:generate go run ../../tools/appgenerator/run.go arg1
@@ -34,7 +34,7 @@ type App interface {
 	Configuration() []*mqtt.Msg
 	States() []*mqtt.Msg
 	Subscriptions() []*mqtt.Subscription
-	Run(ctx context.Context, client hass.MQTTClient) error
+	Run(ctx context.Context, client *mqtt.Client) error
 }
 
 func NewAgent(id, name string) *agent {
@@ -67,27 +67,46 @@ func (a *agent) Configure() {
 	a.ui.Run()
 }
 
-func Run(ctx context.Context, client hass.MQTTClient) {
-	var appsToRun []hass.MQTTDevice
+func Run(ctx context.Context) {
+	var appsToRun []mqtt.Device
 	for _, app := range AppList {
 		appsToRun = append(appsToRun, app)
 	}
-	if err := hass.Register(client, appsToRun...); err != nil {
-		log.Error().Err(err).Msg("Could not register.")
+
+	prefs, err := preferences.LoadPreferences()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Could not load preferences.")
 	}
+
+	client, err := mqtt.NewClient(ctx, prefs, appsToRun...)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Could not connect to broker.")
+	}
+
 	runApps(ctx, client, AppList)
 }
 
-func ClearApps(ctx context.Context, client hass.MQTTClient) {
+func ClearApps(ctx context.Context) {
+	prefs, err := preferences.LoadPreferences()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Could not load preferences.")
+	}
+
+	client, err := mqtt.NewClient(ctx, prefs)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Could not connect to broker.")
+	}
+
 	for _, app := range AppList {
-		if err := hass.UnRegister(client, app); err != nil {
-			log.Error().Err(err).Str("app", app.Name()).Msg("Could not unregister app.")
+		log.Debug().Str("app", app.Name()).Msg("Removing configuration for app.")
+		if err := client.Unpublish(app.Configuration()...); err != nil {
+			log.Error().Err(err).Str("app", app.Name()).Msg("Could not remove configuration for app.")
 			continue
 		}
 	}
 }
 
-func runApps(ctx context.Context, client hass.MQTTClient, apps []App) {
+func runApps(ctx context.Context, client *mqtt.Client, apps []App) {
 	var wg sync.WaitGroup
 	for _, app := range apps {
 		log.Debug().Str("app", app.Name()).Msg("Running app.")
@@ -100,5 +119,4 @@ func runApps(ctx context.Context, client hass.MQTTClient, apps []App) {
 		}(app)
 	}
 	wg.Wait()
-	log.Debug().Msg("here")
 }

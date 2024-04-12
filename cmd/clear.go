@@ -13,13 +13,9 @@ package cmd
 import (
 	"context"
 
-	"github.com/rs/zerolog/log"
-
 	"github.com/spf13/cobra"
 
-	"github.com/joshuar/go-hass-anything/v6/internal/agent"
-	"github.com/joshuar/go-hass-anything/v6/pkg/mqtt"
-	"github.com/joshuar/go-hass-anything/v6/pkg/preferences"
+	"github.com/joshuar/go-hass-anything/v7/internal/agent"
 )
 
 var clearCmd = &cobra.Command{
@@ -30,15 +26,6 @@ var clearCmd = &cobra.Command{
 		ctx, cancelFunc := context.WithCancel(context.TODO())
 		defer cancelFunc()
 
-		prefs, err := preferences.LoadPreferences()
-		if err != nil {
-			log.Fatal().Err(err).Msg("Could not load preferences.")
-		}
-
-		mqtt, err := mqtt.NewMQTTClient(ctx, prefs)
-		if err != nil {
-			log.Fatal().Err(err).Msg("Could not connect to broker.")
-		}
-		agent.ClearApps(ctx, mqtt)
+		agent.ClearApps(ctx)
 	},
 }

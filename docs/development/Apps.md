@@ -26,12 +26,11 @@ Their operation is roughly:
 2. Send state messages/payloads (as required).
 
 For an app using Go Hass Anything, that means the app satisfies the
-`hass.MQTTDevice` and `Agent.App` interfaces. These share common methods so it
-is easy to satisfy both. 
+`mqtt.Device` and `Agent.App` interfaces. These share common methods, so it is
+easy to satisfy both. 
 
 If the app is self-contained and not running through the agent framework, it
-should satisfy `hass.MQTTDEvice` and will need to supply a `hass.MQTTClient` to
-the `hass.*` functions it will use directly.
+should satisfy `mqtt.Device`.
 
 ## Example App running under the Agent
 
@@ -79,7 +78,7 @@ any stored preferences as a key-value map.
 ### Code Requirements
 
 To develop an app to be run by the agent, create a concrete type that satisfies
-the `hass.MQTTDevice` and `agent.App`. Effectively, the type should have the
+the `mqtt.Device` and `agent.App`. Effectively, the type should have the
 following methods:
 
 ```go
@@ -91,7 +90,7 @@ following methods:
 ```
 
 You don't need to worry about setting up a connection to MQTT (satisfying
-`hass.MQTTClient`), the agent will do that for you.
+`mqtt.Client`), the agent will do that for you.
 
 The `Run` function should respect context cancellation and act appropriately on
 this signal.
@@ -132,11 +131,13 @@ single subscription topic for which the app wants to listen on. Each of these
 subscriptions should have a callback function that is run when a message is
 received on the topic.
 
-#### Run(ctx context.Context, client hass.MQTTClient) error
+#### Run(ctx context.Context, client *mqtt.Client) error
 
 This function should, on some kind of interval or event/feedback loop, run
-`hass.PublishState(hass.MQTTDevice, hass.MQTTClient)` to send state payloads to
-Home Assistant. It can also set up any subscriptions directly.
+`client.Publish(msgs ...*mqtt.Msg)` to send state payloads to Home Assistant. It
+can also set up any subscriptions directly. If you concrete type for the app
+satisfies the `mqtt.Device` interface, then this call would be
+`client.Publish(yourType.States()...)`.
 
 ### Adding to the agent
 
