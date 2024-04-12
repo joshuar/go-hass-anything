@@ -1,5 +1,21 @@
 # Changelog
 
+## [7.0.0](https://github.com/joshuar/go-hass-anything/compare/v6.0.0...v7.0.0) (2024-04-12)
+
+
+### ⚠ BREAKING CHANGES
+
+* this change updates the method for publishing app states and thus existing apps will need to make adjustments. See the docs for details.
+
+### Features
+
+* connection resilience ([0ca4ea6](https://github.com/joshuar/go-hass-anything/commit/0ca4ea654049c2318aabba2cda52891953d6eab2))
+
+
+### Bug Fixes
+
+* **examples:** :bug: correct client argument ([e63f8d7](https://github.com/joshuar/go-hass-anything/commit/e63f8d729c9d0ba49fc27b43c43babac51092384))
+
 ## [6.0.0](https://github.com/joshuar/go-hass-anything/compare/v5.0.1...v6.0.0) (2024-03-11)
 
 
