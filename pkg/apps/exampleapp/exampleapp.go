@@ -275,7 +275,7 @@ func (a *exampleApp) Subscriptions() []*mqtt.Subscription {
 // Run is the function that the agent calls to start our app. In it, we create
 // our app struct, register our app (if needed), listen for our button press,
 // then set up a loop to send our sensor data.
-func (a *exampleApp) Run(ctx context.Context, client mqtt.Client) error {
+func (a *exampleApp) Run(ctx context.Context, client *mqtt.Client) error {
 	log.Info().Str("appName", appName).Msg("Starting app.")
 
 	// add our button subscription
