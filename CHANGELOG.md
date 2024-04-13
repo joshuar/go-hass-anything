@@ -1,5 +1,12 @@
 # Changelog
 
+## [7.1.0](https://github.com/joshuar/go-hass-anything/compare/v7.0.0...v7.1.0) (2024-04-13)
+
+
+### Features
+
+* **mqtt:** :zap: use github.com/sourcegraph/conc/pool for sending messages to MQTT ([ee5da5c](https://github.com/joshuar/go-hass-anything/commit/ee5da5c8a7231e47661463f4dedaa4def9f919d2))
+
 ## [7.0.0](https://github.com/joshuar/go-hass-anything/compare/v6.0.0...v7.0.0) (2024-04-12)
 
 
