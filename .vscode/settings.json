@@ -14,6 +14,7 @@
         "examples",
         "devcontainer",
         "container",
-        "vscode"
+        "vscode",
+        "mqtt"
     ],
 }

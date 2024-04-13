@@ -8,6 +8,7 @@ package mqtt
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"strconv"
 	"time"
@@ -15,7 +16,7 @@ import (
 	"github.com/cenkalti/backoff/v4"
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"github.com/rs/zerolog/log"
-	"golang.org/x/sync/errgroup"
+	"github.com/sourcegraph/conc/pool"
 )
 
 type prefs interface {
@@ -50,67 +51,22 @@ type Client struct {
 // Publish will send the list of messages it is passed to the broker that the
 // client is connected to. Any errors in publihsing will be returned.
 func (c *Client) Publish(msgs ...*Msg) error {
-	g, _ := errgroup.WithContext(context.TODO())
-	msgCh := make(chan *Msg, len(msgs))
-
-	for i := 0; i < len(msgs); i++ {
-		msgCh <- msgs[i]
-	}
-
-	g.Go(func() error {
-		var i int
-		for msg := range msgCh {
-			log.Trace().Str("topic", msg.Topic).Bool("retain", msg.Retained).Msg("Publishing message.")
-			if c.conn.IsConnected() {
-				if token := c.conn.Publish(msg.Topic, msg.QOS, msg.Retained, []byte(msg.Message)); token.Wait() && token.Error() != nil {
-					return token.Error()
-				}
-				i++
-			} else {
-				log.Debug().Msg("Not connected.")
-			}
-		}
-		log.Trace().Int("msgCount", i).Msg("Finished publishing messages.")
-		return nil
-	})
-
-	close(msgCh)
-	return g.Wait()
+	return publish(c.conn, msgs...)
 }
 
 // Subscribe will parse the list of subscriptions and listen on their topics,
 // passing any received messages to their callback functions. Any error in
 // setting up a subscription will be returned.
 func (c *Client) Subscribe(subs ...*Subscription) error {
-	g, _ := errgroup.WithContext(context.TODO())
-	msgCh := make(chan *Subscription, len(subs))
-
-	for i := 0; i < len(subs); i++ {
-		msgCh <- subs[i]
-	}
-
-	g.Go(func() error {
-		for sub := range msgCh {
-			log.Trace().Str("topic", sub.Topic).Bool("retain", sub.Retained).Msg("Subscribing to topic.")
-			if token := c.conn.Subscribe(sub.Topic, sub.QOS, sub.Callback); token.Wait() && token.Error() != nil {
-				return token.Error()
-			}
-		}
-		return nil
-	})
-
-	close(msgCh)
-	return g.Wait()
+	return subscribe(c.conn, subs...)
 }
 
 func (c *Client) Unpublish(msgs ...*Msg) error {
+	var newMsgs []*Msg
 	for _, msg := range msgs {
-		msgs = append(msgs, NewMsg(msg.Topic, []byte(``)))
+		newMsgs = append(newMsgs, NewMsg(msg.Topic, []byte(``)))
 	}
-	if err := c.Publish(msgs...); err != nil {
-		return err
-	}
-	return nil
+	return publish(c.conn, newMsgs...)
 }
 
 // Connect will establish a new connection to the MQTT service with a generated configuration
@@ -181,10 +137,20 @@ func genOnConnectHandler(statustopic string, devices ...Device) MQTT.OnConnectHa
 			switch msg := string(m.Payload()); msg {
 			case "online":
 				log.Debug().Msg("Home Assistant Online.")
+				p := pool.New().WithErrors()
 				for _, device := range devices {
-					publish(c, device.Configuration()...)
-					publish(c, device.States()...)
-					subscribe(c, device.Subscriptions()...)
+					p.Go(func() error {
+						return publish(c, device.Configuration()...)
+					})
+					p.Go(func() error {
+						return publish(c, device.States()...)
+					})
+					p.Go(func() error {
+						return subscribe(c, device.Subscriptions()...)
+					})
+				}
+				if err := p.Wait(); err != nil {
+					log.Error().Err(err).Msg("Failed to re-register app with Home Assistant.")
 				}
 			case "offline":
 				log.Debug().Msg("Home Assistant Offline.")
@@ -193,28 +159,47 @@ func genOnConnectHandler(statustopic string, devices ...Device) MQTT.OnConnectHa
 	}
 	subscriptions = append(subscriptions, HAStatusSub)
 	redoFunc := func(c MQTT.Client) {
-		publish(c, configs...)
-		subscribe(c, subscriptions...)
+		p := pool.New().WithErrors()
+		p.Go(func() error {
+			return publish(c, configs...)
+
+		})
+		p.Go(func() error {
+			return subscribe(c, subscriptions...)
+		})
+		if err := p.Wait(); err != nil {
+			log.Error().Err(err).Msg("Failed to re-send config/subscriptions after restart.")
+		}
 	}
 	return redoFunc
 }
 
-func publish(c MQTT.Client, msgs ...*Msg) {
+func publish(c MQTT.Client, msgs ...*Msg) error {
+	p := pool.New().WithErrors()
 	for _, msg := range msgs {
 		log.Trace().Str("topic", msg.Topic).Bool("retain", msg.Retained).Msg("Publishing message.")
-		if token := c.Publish(msg.Topic, msg.QOS, msg.Retained, []byte(msg.Message)); token.Wait() && token.Error() != nil {
-			log.Error().Err(token.Error()).Str("topic", msg.Topic).Msg("Failed to publish message.")
-		}
+		p.Go(func() error {
+			if token := c.Publish(msg.Topic, msg.QOS, msg.Retained, []byte(msg.Message)); token.Wait() && token.Error() != nil {
+				return fmt.Errorf("failed to pusblish message to topic %s: %v", msg.Topic, token.Error())
+			}
+			return nil
+		})
 	}
+	return p.Wait()
 }
 
-func subscribe(c MQTT.Client, subs ...*Subscription) {
+func subscribe(c MQTT.Client, subs ...*Subscription) error {
+	p := pool.New().WithErrors()
 	for _, sub := range subs {
 		log.Trace().Str("topic", sub.Topic).Bool("retain", sub.Retained).Msg("Subscribing to topic.")
-		if token := c.Subscribe(sub.Topic, sub.QOS, sub.Callback); token.Wait() && token.Error() != nil {
-			log.Error().Err(token.Error()).Str("topic", sub.Topic).Msg("Failed to subscribe to topic.")
-		}
+		p.Go(func() error {
+			if token := c.Subscribe(sub.Topic, sub.QOS, sub.Callback); token.Wait() && token.Error() != nil {
+				return fmt.Errorf("failed to subscribe to topic %s: %v", sub.Topic, token.Error())
+			}
+			return nil
+		})
 	}
+	return p.Wait()
 }
 
 // Msg represents a message that can be sent or received on the MQTT bus.
