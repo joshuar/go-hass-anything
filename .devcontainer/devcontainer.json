@@ -8,7 +8,9 @@
         "TZ": "${localEnv:TZ:Australia/Brisbane}"
     },
     "features": {
-        "ghcr.io/devcontainers/features/go:1": {}
+        "ghcr.io/devcontainers/features/go:1": {},
+        "ghcr.io/devcontainers/features/github-cli:1": {},
+        "ghcr.io/devcontainers-contrib/features/fish-apt-get:1": {}
     },
     "postCreateCommand": ".devcontainer/postCreate.sh",
     "customizations": {
@@ -48,13 +50,13 @@
                     "editor.codeActionsOnSave": {
                         "source.organizeImports": "always",
                         "source.fixAll": "always"
-                    },
+                    }
                 },
                 "[go.mod]": {
                     "editor.formatOnSave": true,
                     "editor.codeActionsOnSave": {
                         "source.organizeImports": "always"
-                    },
+                    }
                 },
                 "ltex.language": "en-AU"    
             }
