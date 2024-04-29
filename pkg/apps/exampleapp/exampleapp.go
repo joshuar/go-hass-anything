@@ -7,6 +7,7 @@ package exampleapp
 
 import (
 	"context"
+	_ "embed"
 	"encoding/json"
 	"os"
 	"os/exec"
@@ -27,6 +28,7 @@ import (
 
 const (
 	appName        = "exampleApp"
+	appURL         = "https//github.com/joshuar/go-hass-anything"
 	weatherURL     = "http://wttr.in/?format=j1"
 	weatherURLpref = "weatherURL"
 )
@@ -35,10 +37,19 @@ var defaultPrefs = map[string]any{
 	"weatherURL": weatherURL,
 }
 
+//go:generate sh -c "printf %s $(git tag | tail -1) > VERSION"
+//go:embed VERSION
+var appVersion string
+
 type exampleApp struct {
-	loadData    *load.AvgStat
-	config      *preferences.AppPreferences
-	weatherData []byte
+	loadData              *load.AvgStat
+	config                *preferences.AppPreferences
+	weatherData           []byte
+	weatherTopics         *hass.Topics
+	buttonTopics          *hass.Topics
+	number                float64
+	numberCommandCallback func(_ MQTT.Client, msg MQTT.Message)
+	numberTopics          *hass.Topics
 }
 
 // New sets up our example app. We make use of the preference loading/saving in
@@ -157,8 +168,8 @@ func (a *exampleApp) Configuration() []*mqtt.Msg {
 	// Anything.
 	originInfo := &hass.Origin{
 		Name:    appName,
-		Version: "1.0.0",
-		URL:     "https://github.com/joshuar/go-hass-anything",
+		Version: appVersion,
+		URL:     appURL,
 	}
 
 	// for each of our sensors, we use the builder functions in the hass package
@@ -170,15 +181,16 @@ func (a *exampleApp) Configuration() []*mqtt.Msg {
 	// ValueTemplate to extract out the value we are interested in. We could
 	// create more sensors and extract other values out of this response if
 	// desired.
-	entities = append(entities,
-		hass.NewEntityByName("ExampleApp Weather Temp", appName, topicPrefix).
-			AsSensor().
-			WithDeviceInfo(deviceInfo).
-			WithOriginInfo(originInfo).
-			WithStateClassMeasurement().
-			WithDeviceClass("temperature").
-			WithUnits("°C").
-			WithValueTemplate("{{ value_json.current_condition[0].temp_C }}"))
+	weatherEntity := hass.NewEntityByName("ExampleApp Weather Temp", appName, topicPrefix).
+		AsSensor().
+		WithDeviceInfo(deviceInfo).
+		WithOriginInfo(originInfo).
+		WithStateClassMeasurement().
+		WithDeviceClass("temperature").
+		WithUnits("°C").
+		WithValueTemplate("{{ value_json.current_condition[0].temp_C }}")
+	a.weatherTopics = weatherEntity.GetTopics()
+	entities = append(entities, weatherEntity)
 
 	// we have three sensors for the loadavgs
 	for _, l := range []string{"1", "5", "15"} {
@@ -192,13 +204,41 @@ func (a *exampleApp) Configuration() []*mqtt.Msg {
 	}
 
 	// we also have a button that when pressed in Home Assistant, will perform
-	// an action
-	entities = append(entities,
-		hass.NewEntityByID("example_app_button", appName, topicPrefix).
-			AsButton().
-			WithCommandCallback(buttonCallback))
+	// an action.
+	buttonEntity := hass.NewEntityByID("example_app_button", appName, topicPrefix).
+		AsButton().
+		WithCommandCallback(buttonCallback)
+	a.buttonTopics = buttonEntity.GetTopics()
+	entities = append(entities, buttonEntity)
 
-	// we marshal our configs into an mqtt.MQTTMsg
+	// and we have a number slider entity. we need to track the state of the
+	// slider entity, and we set a default value.
+	a.number = 50
+	// we define a command callback for when a request to change the value is
+	// received on MQTT, we set our state internally and publish back on the
+	// state topic for any listeners.
+	a.numberCommandCallback = func(client MQTT.Client, msg MQTT.Message) {
+		if newValue, err := strconv.ParseFloat(string(msg.Payload()), 64); err != nil {
+			log.Warn().Err(err).Msg("Could not parse new value for number.")
+		} else {
+			log.Info().Str("value", string(msg.Payload())).Msg("Number slider has changed.")
+			a.number = newValue
+			if token := client.Publish(a.numberTopics.State, 0, false, []byte(`{ "value": `+string(msg.Payload())+` }`)); token.Wait() && token.Error() != nil {
+				log.Warn().Err(token.Error()).Msg("Failed to publish new state to MQTT.")
+			}
+		}
+	}
+	// create our number entity.
+	numberEntity := hass.NewEntityByID("example_app_number", appName, topicPrefix).
+		AsNumber(1, 0, 100, hass.NumberSlider).
+		WithCommandCallback(a.numberCommandCallback).
+		WithValueTemplate("{{ value_json.value }}")
+	// we retrieve the topics for the number entity and store them for re-use.
+	a.numberTopics = numberEntity.GetTopics()
+
+	entities = append(entities, numberEntity)
+
+	// we marshal our configs into an array of mqtt.Msg
 	for _, e := range entities {
 		if msg, err := hass.MarshalConfig(e); err != nil {
 			log.Error().Err(err).Str("entity", e.Entity.Name).Msg("Could not marshal config for entity.")
@@ -207,6 +247,7 @@ func (a *exampleApp) Configuration() []*mqtt.Msg {
 		}
 	}
 
+	// return the array of config messages, letting the receiver handle publishing.
 	return msgs
 }
 
@@ -226,7 +267,7 @@ func (a *exampleApp) States() []*mqtt.Msg {
 
 	// we retrieve the weather data and send that as the weather sensor state
 	msgs = append(msgs,
-		mqtt.NewMsg(topicPrefix+"/sensor/"+appName+"/example_app_weather_temp/state", a.weatherData))
+		mqtt.NewMsg(a.weatherTopics.State, a.weatherData))
 
 	// we retrieve our load avgs
 	for _, loads := range []string{"1", "5", "15"} {
@@ -246,6 +287,11 @@ func (a *exampleApp) States() []*mqtt.Msg {
 				json.RawMessage(strconv.FormatFloat(l, 'f', -1, 64))))
 	}
 
+	r := strconv.FormatFloat(a.number, 'f', 2, 64)
+
+	msgs = append(msgs,
+		mqtt.NewMsg(a.numberTopics.State, json.RawMessage(`{ "value": `+r+` }`)))
+
 	return msgs
 }
 
@@ -254,20 +300,14 @@ func (a *exampleApp) States() []*mqtt.Msg {
 func (a *exampleApp) Subscriptions() []*mqtt.Subscription {
 	var msgs []*mqtt.Subscription
 
-	// Fetch the topic prefix from the agent preferences. Usually, this will
-	// default to "homeassistant".
-	var topicPrefix string
-	appPrefs, err := preferences.LoadPreferences()
-	if err != nil {
-		log.Warn().Err(err).Msg("Could not load app preferences.")
-
-	}
-	topicPrefix = appPrefs.GetTopicPrefix()
-
 	// we add our callback for our button
 	msgs = append(msgs, &mqtt.Subscription{
-		Topic:    topicPrefix + "/button/" + appName + "/example_app_button/toggle",
+		Topic:    a.buttonTopics.Command,
 		Callback: buttonCallback,
+	})
+	msgs = append(msgs, &mqtt.Subscription{
+		Topic:    a.numberTopics.Command,
+		Callback: a.numberCommandCallback,
 	})
 	return msgs
 }
@@ -311,7 +351,8 @@ func (a *exampleApp) Run(ctx context.Context, client *mqtt.Client) error {
 // once and/or react based on the response data we got (the MQTT.Message
 // parameter).
 func buttonCallback(_ MQTT.Client, _ MQTT.Message) {
+	log.Info().Msg("Button pressed.")
 	if err := exec.Command("xdg-open", "https://home-assistant.io").Run(); err != nil {
-		log.Error().Err(err).Msg("Could not execute xdg-open.")
+		log.Warn().Err(err).Msg("Could not execute xdg-open.")
 	}
 }
