@@ -1,5 +1,13 @@
 # Changelog
 
+## [7.2.0](https://github.com/joshuar/go-hass-anything/compare/v7.1.0...v7.2.0) (2024-04-29)
+
+
+### Features
+
+* **examples:** :sparkles: update example app to demonstrate a number entity ([5f5a30b](https://github.com/joshuar/go-hass-anything/commit/5f5a30b7cdb17c5d049e3bb3627e9fe7809e9ade))
+* **hass:** :sparkles: add support for number entities ([042681d](https://github.com/joshuar/go-hass-anything/commit/042681dd2b4de8a736f75e1f80ad02e2929112ef))
+
 ## [7.1.0](https://github.com/joshuar/go-hass-anything/compare/v7.0.0...v7.1.0) (2024-04-13)
 
 
