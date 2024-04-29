@@ -4,7 +4,7 @@ go 1.22.0
 
 require (
 	github.com/charmbracelet/lipgloss v0.10.0
-	github.com/pelletier/go-toml/v2 v2.2.0
+	github.com/pelletier/go-toml/v2 v2.2.1
 	github.com/rs/zerolog v1.32.0
 	github.com/spf13/cobra v1.8.0
 )
