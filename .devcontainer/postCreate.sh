@@ -8,8 +8,6 @@
 # Stop on errors
 set -e
 
-cd /workspaces/go-hass-anything && go mod tidy
-
 # Install additional go build packages
 go install golang.org/x/tools/cmd/stringer@latest
 go install golang.org/x/text/cmd/gotext@latest
