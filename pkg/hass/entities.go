@@ -18,16 +18,20 @@ import (
 	"github.com/joshuar/go-hass-anything/v7/pkg/mqtt"
 )
 
+// EntityConfig is a type used by apps to represent a Home Assistant entity and
+// some additional fields for manipulating that entity in the app.
 type EntityConfig struct {
 	Entity             *Entity
 	App                string
 	CommandCallback    func(MQTT.Client, MQTT.Message)
-	StateCallback      func() (json.RawMessage, error)
+	StateCallback      func(args ...any) (json.RawMessage, error)
 	AttributesCallback func() (json.RawMessage, error)
 	ConfigTopic        string
 	topicPrefix        string
 }
 
+// Entity represents a generic entity in Home Assistant. The fields are common
+// across any specific entity.
 type Entity struct {
 	Origin             *Origin `json:"origin,omitempty"`
 	Device             *Device `json:"device,omitempty"`
@@ -43,8 +47,20 @@ type Entity struct {
 	Icon               string  `json:"icon,omitempty"`
 	AttributesTopic    string  `json:"json_attributes_topic,omitempty"`
 	AttributesTemplate string  `json:"json_attributes_template,omitempty"`
+	NumberEntity
 }
 
+// NumberEntity represents the fields specifically for number entities in Home
+// Assistant.
+type NumberEntity struct {
+	Min  float64 `json:"min,omitempty"`
+	Max  float64 `json:"max,omitempty"`
+	Mode string  `json:"mode,omitempty"`
+	Step float64 `json:"step,omitempty"`
+}
+
+// Device contains information about the device an entity is a part of to tie it
+// into the device registry in Home Assistant.
 type Device struct {
 	Name          string   `json:"name"`
 	Manufacturer  string   `json:"manufacturer,omitempty"`
@@ -57,14 +73,27 @@ type Device struct {
 	Connections   []string `json:"connections,omitempty"`
 }
 
+// Origin contains information about the app that is responsible for the entity.
+// It is used by Home Assistant for logging and display purposes.
 type Origin struct {
 	Name    string `json:"name,omitempty"`
 	Version string `json:"sw_version,omitempty"`
 	URL     string `json:"support_url,omitempty"`
 }
 
-// MarshalConfig will marshal a config message and payload from the given
-// EntityConfig.
+// Topics is a helper struct that is returned when an EntityConfig is created
+// containing the names of important topics on the MQTT bus related to the
+// entity. Apps can store these topics for later retrieval and usage (for
+// example, to update state topics or listen to command topics).
+type Topics struct {
+	Config     string
+	Command    string
+	State      string
+	Attributes string
+}
+
+// MarshalConfig will generate an *mqtt.Msg for a given entity, that can be used
+// to publish the required config for the entity to the MQTT bus.
 func MarshalConfig(e *EntityConfig) (*mqtt.Msg, error) {
 	var msg *mqtt.Msg
 	if jsonConfig, err := json.Marshal(e.Entity); err != nil {
@@ -75,9 +104,8 @@ func MarshalConfig(e *EntityConfig) (*mqtt.Msg, error) {
 	return msg, nil
 }
 
-// MarshalState will marshal a state message and payload from the given
-// EntityConfig and state value. Where an entity state is combined with other
-// entities, it might be better to manually create a state message.
+// MarshalState will generate an *mqtt.Msg for a given entity, that can be used
+// to publish the entity's state to the MQTT bus.
 func MarshalState(e *EntityConfig) (*mqtt.Msg, error) {
 	if e.StateCallback == nil {
 		return nil, errors.New("entity does not have a state callback function")
@@ -90,7 +118,9 @@ func MarshalState(e *EntityConfig) (*mqtt.Msg, error) {
 	}
 }
 
-// MarshalState will marshal a subscription from the given EntityConfig.
+// MarshallSubscription will generate an *mqtt.Subscription for a given entity,
+// which can be used to subscribe to an entity's command topic and execute a
+// callback on messages.
 func MarshalSubscription(e *EntityConfig) (*mqtt.Subscription, error) {
 	if e.CommandCallback == nil {
 		return nil, errors.New("entity does not have a command callback function")
@@ -158,6 +188,21 @@ func (e *EntityConfig) AsButton() *EntityConfig {
 	return e
 }
 
+// AsNumber will configure appropriate MQTT topics to represent a Home Assistant
+// number. See also https://www.home-assistant.io/integrations/number.mqtt/
+func (e *EntityConfig) AsNumber(step float64, min float64, max float64, mode NumberMode) *EntityConfig {
+	prefix := strings.Join([]string{e.topicPrefix, "number", e.App, e.Entity.UniqueID}, "/")
+	e.ConfigTopic = prefix + "/config"
+	e.Entity.CommandTopic = prefix + "/set"
+	e.Entity.StateTopic = prefix + "/state"
+	e.Entity.AttributesTopic = prefix + "/attributes"
+	e.Entity.Step = step
+	e.Entity.Min = min
+	e.Entity.Max = max
+	e.Entity.Mode = mode.String()
+	return e
+}
+
 // WithAttributesTemplate configures the passed in template to be used to extract the
 // value of the attributes in Home Assistant.
 func (e *EntityConfig) WithAttributesTemplate(t string) *EntityConfig {
@@ -189,7 +234,7 @@ func (e *EntityConfig) WithCommandCallback(c func(MQTT.Client, MQTT.Message)) *E
 // be useful to use this where you have a single state that represents many
 // entities. In such cases, it would be better to manually send the state in
 // your own code.
-func (e *EntityConfig) WithStateCallback(c func() (json.RawMessage, error)) *EntityConfig {
+func (e *EntityConfig) WithStateCallback(c func(args ...any) (json.RawMessage, error)) *EntityConfig {
 	e.StateCallback = c
 	return e
 }
@@ -257,6 +302,18 @@ func (e *EntityConfig) WithUnits(u string) *EntityConfig {
 func (e *EntityConfig) WithIcon(i string) *EntityConfig {
 	e.Entity.Icon = i
 	return e
+}
+
+// GetTopics returns a Topic struct containing the topics configured for this
+// entity. If an entity does not have a particular topic (due to not having some
+// functionality), the topic value will be an empty string.
+func (e *EntityConfig) GetTopics() *Topics {
+	return &Topics{
+		Config:     e.ConfigTopic,
+		Command:    e.Entity.CommandTopic,
+		State:      e.Entity.StateTopic,
+		Attributes: e.Entity.AttributesTopic,
+	}
 }
 
 // FormatName will take a string s and format it with appropriate spacing
