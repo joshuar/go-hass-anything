@@ -15,6 +15,7 @@
         "devcontainer",
         "container",
         "vscode",
-        "mqtt"
+        "mqtt",
+        "github"
     ],
 }

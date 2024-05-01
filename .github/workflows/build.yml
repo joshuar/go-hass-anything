@@ -3,7 +3,7 @@
 # This software is released under the MIT License.
 # https://opensource.org/licenses/MIT
 
-name: build-container
+name: build
 
 env:
   REGISTRY: ghcr.io
@@ -23,17 +23,34 @@ permissions:
   packages: write
 
 jobs:
+  check_release:
+    runs-on: ubuntu-20.04
+    outputs:
+      release_created: ${{ steps.release_please.outputs.release_created }}
+      release_tag: ${{ steps.release_please.outputs.tag_name }}
+    steps:
+      - name: Run release please
+        id: release_please
+        uses: google-github-actions/release-please-action@v4
+        with:
+          release-type: go
+          token: ${{ secrets.GITHUB_TOKEN }}
   build-push-image:
+    needs: check_release
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-
+      - name: Set up environment
+        run: | 
+          echo "APPVERSION=$(git describe --tags --abbrev=0)-$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+      - name: Set app version for release
+        if: ${{ needs.check_release.outputs.release_created }}
+        run: echo "APPVERSION=${{ needs.check_release.outputs.release_tag }}" >> $GITHUB_ENV
       - name: Install/Cache dependencies
-        uses: awalsh128/cache-apt-pkgs-action@latest
-        with:
-          packages: qemu-user-static
-
+        run: |
+          sudo apt-get update > ${RUNNER_TEMP}/apt-update.log &&  
+          sudo apt-get -y install qemu-user-static >  ${RUNNER_TEMP}/apt-install.log
       - name: Get Docker metadata
         id: docker_metadata
         uses: docker/metadata-action@v5
@@ -50,14 +67,6 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v0.') }}
-
-      - uses: cardinalby/git-get-release-action@v1
-        id: release_metadata
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          latest: true                
-
       - name: Build container image
         id: build_image
         uses: redhat-actions/buildah-build@v2
@@ -65,12 +74,11 @@ jobs:
           archs: amd64
           # context: build/package
           image: ${{ env.IMAGE }}
-          tags: ${{ steps.docker_metadata.outputs.tags }} ${{ env.REGISTRY }}/${{ env.IMAGE }}:${{ steps.release_metadata.outputs.name }}
+          tags: ${{ steps.docker_metadata.outputs.tags }} ${{ env.REGISTRY }}/${{ env.IMAGE }}:${{ env.APPVERSION }}
           labels: ${{ steps.docker_metadata.outputs.labels }}
           containerfiles: Dockerfile
           layers: false
           oci: true
-
       - name: Push to Container Registry
         id: push_image
         uses: redhat-actions/push-to-registry@v2
@@ -83,7 +91,6 @@ jobs:
           tags: ${{ steps.build_image.outputs.tags }}
           extra-args: |
             --disable-content-trust
-      
       - name: Login to Container Registry
         uses: redhat-actions/podman-login@v1
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -91,18 +98,16 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ env.REGISTRY_USER }}
           password: ${{ env.REGISTRY_PASSWORD }}
-
       - name: Check and install cosign
         uses: sigstore/cosign-installer@v3.5.0
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
           cosign-release: 'v2.2.2'
-
       - name: Sign image with a key
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           DIGEST: ${{ steps.push_image.outputs.digest }}
-          TAGS: ${{ steps.docker_metadata.outputs.tags }} ${{ env.REGISTRY }}/${{ env.IMAGE }}:${{ steps.release_metadata.outputs.name }}
+          TAGS: ${{ steps.docker_metadata.outputs.tags }} ${{ env.REGISTRY }}/${{ env.IMAGE }}:${{ env.APPVERSION }}
           COSIGN_PASSWORD: ${{ secrets.COSIGN_PWD }}
         run: |
           images=""
