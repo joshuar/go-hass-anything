@@ -11,9 +11,9 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	ui "github.com/joshuar/go-hass-anything/v7/internal/agent/ui/bubbletea"
-	"github.com/joshuar/go-hass-anything/v7/pkg/mqtt"
-	"github.com/joshuar/go-hass-anything/v7/pkg/preferences"
+	ui "github.com/joshuar/go-hass-anything/v8/internal/agent/ui/bubbletea"
+	"github.com/joshuar/go-hass-anything/v8/pkg/mqtt"
+	"github.com/joshuar/go-hass-anything/v8/pkg/preferences"
 )
 
 //go:generate go run ../../tools/appgenerator/run.go arg1
