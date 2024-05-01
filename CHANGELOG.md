@@ -1,5 +1,13 @@
 # Changelog
 
+## [7.2.1](https://github.com/joshuar/go-hass-anything/compare/v7.2.0...v7.2.1) (2024-05-01)
+
+
+### Miscellaneous Chores
+
+* release 7.2.1 ([4045e43](https://github.com/joshuar/go-hass-anything/commit/4045e437cce3cd408bdf4f4ef2cfe145113c5640))
+* release 7.2.1 ([8ea2fa4](https://github.com/joshuar/go-hass-anything/commit/8ea2fa4b55c3cb259f1993f064b1583174eeadfd))
+
 ## [7.2.0](https://github.com/joshuar/go-hass-anything/compare/v7.1.0...v7.2.0) (2024-04-29)
 
 
