@@ -42,6 +42,7 @@ jobs:
         languages: ${{ matrix.language }}
     - name: Build agent
       run: |
+        mkdir apps && cp -a pkg/apps/exampleapp apps
         go generate -v ./...
         go build -v
     - name: Perform CodeQL Analysis
