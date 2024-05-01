@@ -12,8 +12,6 @@ env:
   IMAGE: ${{ github.repository }}
 
 on:
-  release:
-    types: [ created ]
   push:
     branches:
       - main
@@ -23,7 +21,7 @@ permissions:
   pull-requests: write
   packages: write
 
-  jobs:
+jobs:
   check_release:
     runs-on: ubuntu-20.04
     outputs:
