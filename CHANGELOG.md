@@ -1,5 +1,16 @@
 # Changelog
 
+## [8.0.0](https://github.com/joshuar/go-hass-anything/compare/v7.2.1...v8.0.0) (2024-05-01)
+
+
+### ⚠ BREAKING CHANGES
+
+* use generics for entities
+
+### Features
+
+* use generics for entities ([c632384](https://github.com/joshuar/go-hass-anything/commit/c6323845f65ec2f42b80d3a1c6435fad5b3f354b))
+
 ## [7.2.1](https://github.com/joshuar/go-hass-anything/compare/v7.2.0...v7.2.1) (2024-05-01)
 
 
