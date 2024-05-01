@@ -4,7 +4,7 @@
 # https://opensource.org/licenses/MIT
 
 FROM docker.io/library/golang:1.22
-ARG APPDIR
+ARG APPDIR=pkg/apps
 
 WORKDIR /usr/src/go-hass-anything
 
@@ -14,12 +14,12 @@ RUN go mod download && go mod verify
 COPY . .
 
 # copy the user-specified APPDIR to a location that will be picked up during build
-RUN test -L apps && rm apps || exit 0
+RUN rm -fr apps || exit 0
 COPY $APPDIR apps/
 
 RUN go install github.com/matryer/moq@latest
 RUN go install golang.org/x/tools/cmd/stringer@latest
-RUN go generate ./...
+RUN go generate -v ./...
 RUN go build -v -o /go/bin/go-hass-anything
 
 RUN useradd -ms /bin/bash gouser

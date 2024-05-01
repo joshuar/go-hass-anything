@@ -30,10 +30,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("Unable to match apps with %s (%s). Exiting.", appPathMatch, err.Error())
 	}
-	if len(a) == 0 {
-		log.Printf("no apps")
-		a = append(a, "../../pkg/apps/exampleapp")
-	}
 
 	for _, v := range a {
 		fs, err := os.Stat(v)
