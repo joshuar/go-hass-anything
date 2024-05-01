@@ -19,10 +19,11 @@ on:
       - main
 
 permissions:
-  contents: read
+  contents: write
+  pull-requests: write
   packages: write
 
-jobs:
+  jobs:
   check_release:
     runs-on: ubuntu-20.04
     outputs:
