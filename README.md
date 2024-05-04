@@ -16,53 +16,38 @@
 **Send anything to Home Assistant, through MQTT, powered by Go.**
 
 Go Hass Anything is a framework for writing self-contained apps in Go that can
-send data and listen for controls to/from Home Assistant, over MQTT. 
-
-This can be useful for adding sensors or controls to Home Assistant that are not
+send data and listen for controls to/from Home Assistant, over MQTT.  This can
+be useful for adding sensors or controls to Home Assistant that are not
 available through an existing Home Assistant integration.
 
 The code is flexible to be imported as a package into your own Go code to
 provide this functionality, or it can be run as its own “agent” process that
-will manage any apps you write. See the docs for more details on both use-cases.
+will manage any apps you write. See the [example
+app](pkg/apps/exampleapp/exampleapp.go) or the [docs](docs/README.md) for more
+details on both use-cases.
 
 ## ⬇️ Installation
 
-## Packages
-
-Head over to the [releases](https://github.com/joshuar/go-hass-anything/releases)
-page and download the appropriate package for your operating system and/or
-distribution:
-
-- For **Fedora**, use the `.rpm`.
-- For **Ubuntu**, use the `.deb`.
-- For **Arch**, use the `.tar.zst`.
-
-Any other distributions not listed above, you can try the binary, or build it
-yourself from source (see [development docs](docs/development/README.md)).
+>[!NOTE] It's recommended to create your own container to run a Go Hass Anything
+>agent with your own apps. The pre-built container cannot be customised and the
+>agent will only run an example app to demonstrate functionality. Create your
+>own apps and add them to the agent by following the [development
+>docs](docs/development/Apps.md).
 
 ## Container
 
-A Dockerfile that you can use to build an image can be found [here](Dockerfile).
+Pre-built containers that can run a demo app can be found on the
+[packages](https://github.com/joshuar/go-hass-anything/pkgs/container/go-hass-anything)
+page on GitHub.
 
-To add your own apps to the container, copy them into a directory in the base of
-the repo (for example, `apps/`) and then specify the build arg `APPDIR` pointing
-to this location:
-
-```shell
-podman build --file ./Dockerfile --tag go-hass-anything --build-arg APPDIR=apps
-```
 
 ## 🖱️ Usage
 
+`podman` is the recommended container engine for running Go Hass Anything.
+
 ### Configuration
 
-To run the agent, you first need to configure the MQTT connection. For a package install, use the command:
-
-```shell
-go-hass-anything configure
-```
-
-For a container, use the following:
+To run the agent, you first need to configure the MQTT connection. Use the command:
 
 ```shell
 podman run --interactive --tty --rm \
@@ -75,13 +60,7 @@ details. You can navigate the fields via the keyboard.
 
 ### Running
 
-Once the agent is configured, you can run it. To do so, for package installs, use the command:
-
-```shell
-go-hass-anything run
-```
-
-For a container, run:
+Once the agent is configured, you can run it. Use the command:
 
 ```shell
 podman run --name my-go-hass-anything \
@@ -95,13 +74,6 @@ entities. After that, the app should start sending
 data to Home Assistant and should be visible under the [MQTT
 Integration](https://www.home-assistant.io/integrations/mqtt/).
 
-> [!NOTE]
-> By default, the agent only runs a single [example
-> app](internal/apps/exampleApp/exampleApp.go) that will fetch load averages from
-> the local system, current temperature from an online weather service and add a
-> button to open the Home Assistant homepage. Add your own apps by following the
-> [development docs](docs/development/README.md).
-
 ### Other Actions
 
 #### Reset/Remove app data from Home Assistant
@@ -110,9 +82,6 @@ If needed/desired, you can remove the app entities from Home Assistant by
 running the command:
 
 ```shell
-# for a package install
-go-hass-anything clear
-# for a container install
 podman exec my-go-hass-anything clear
 ```
 
@@ -122,9 +91,11 @@ command again.
 
 ## 🤖 Supported Home Assistant Entities
 
-- [Binary Sensor](https://developers.home-assistant.io/docs/core/entity/binary-sensor).
-- [Sensor](https://developers.home-assistant.io/docs/core/entity/sensor).
-- [Button](https://developers.home-assistant.io/docs/core/entity/button).
+- [Binary Sensor](https://www.home-assistant.io/integrations/binary_sensor.mqtt/).
+- [Sensor](https://www.home-assistant.io/integrations/sensor.mqtt/).
+- [Button](https://www.home-assistant.io/integrations/button.mqtt/).
+- [Number](https://www.home-assistant.io/integrations/number.mqtt/).
+- [Switch](https://www.home-assistant.io/integrations/switch.mqtt/).
 
 _More to come!_
 

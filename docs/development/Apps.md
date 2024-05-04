@@ -18,16 +18,7 @@ different places to Home Assistant, you'll likely want to develop apps that run
 under the agent as a single executable. Otherwise, you can embed the packages
 under `pkg/` into your own application.
 
-In either case, apps should satisfy [Home Assistant MQTT
-Discovery](https://www.home-assistant.io/integrations/mqtt/#mqtt-discovery).
-Their operation is roughly:
-
-1. Send discovery message/payload (once only).
-2. Send state messages/payloads (as required).
-
-For an app using Go Hass Anything, that means the app satisfies the
-`mqtt.Device` and `Agent.App` interfaces. These share common methods, so it is
-easy to satisfy both. 
+For an app using Go Hass Anything, the app satisfies the `agent.App` interface.
 
 If the app is self-contained and not running through the agent framework, it
 should satisfy `mqtt.Device`.
@@ -40,8 +31,7 @@ demonstrates:
 - How to get data from the system running Go Hass anything using an external Go
   package.
 - How to get data from the web using a helper function to issue web requests.
-- How to create a button in Home Assistant that when pressed, will execute an
-  app action.
+- How to create different types of controls in Home Assistant.
 
 The code has lots of comments for guidance. It can also be heavily optimised
 from its current state and so is a good starting point for practising Go as
@@ -56,7 +46,7 @@ well.
 > remain private. But it also means that if you desire version control of your
 > apps, you should set up your own repo for them.
 
-You can put your code in `apps`. You can create multiple
+You can put your code in `apps/`. You can create multiple
 directories for each app you develop.
 
 > [!NOTE]
@@ -78,21 +68,21 @@ any stored preferences as a key-value map.
 ### Code Requirements
 
 To develop an app to be run by the agent, create a concrete type that satisfies
-the `mqtt.Device` and `agent.App`. Effectively, the type should have the
+the `agent.App`. Effectively, the type should have the
 following methods:
 
 ```go
-	Name() string
-	Configuration() []*mqtt.Msg
-	States() []*mqtt.Msg
-	Subscriptions() []*mqtt.Subscription
-	Run(ctx context.Context, client hass.MQTTClient) error
+Name() string
+Configuration() []*mqtt.Msg
+States() []*mqtt.Msg
+Subscriptions() []*mqtt.Subscription
+Update(ctx context.Context) error
 ```
 
-You don't need to worry about setting up a connection to MQTT (satisfying
-`mqtt.Client`), the agent will do that for you.
+You don't need to worry about setting up a connection to MQTT, the agent will do
+that for you.
 
-The `Run` function should respect context cancellation and act appropriately on
+The `Update(ctx)` function should respect context cancellation and act appropriately on
 this signal.
 
 Create a function called `New` that is used to instantiate your app with the signature:
@@ -131,13 +121,38 @@ single subscription topic for which the app wants to listen on. Each of these
 subscriptions should have a callback function that is run when a message is
 received on the topic.
 
-#### Run(ctx context.Context, client *mqtt.Client) error
+#### Update(ctx context.Context) error
 
-This function should, on some kind of interval or event/feedback loop, run
-`client.Publish(msgs ...*mqtt.Msg)` to send state payloads to Home Assistant. It
-can also set up any subscriptions directly. If you concrete type for the app
-satisfies the `mqtt.Device` interface, then this call would be
-`client.Publish(yourType.States()...)`.
+This function will be called by the agent at least once. It can be used to
+update any app state before the agent publishes app state messages to MQTT. 
+
+### Poll based Apps
+
+If the app should be run on some kind of interval, updating its state each time,
+it should have the following method:
+
+```go
+PollConfig(interval, jitter time.Duration)
+```
+
+This function returns an interval on which the app should update and send
+publish messages, within a certain jitter of the interval, to avoid a
+“thundering herd” problem with lots of apps trying to do updates.
+
+
+### Event based Apps
+
+If the app has its own event loop, and requires states to be published when
+certain events occur, it should have the following method:
+
+```go
+MsgCh() chan *mqtt.Msg
+```
+
+In the app code (usually within `New()`), the app should create a `chan
+*mqtt.Msg`, returned by the method above. Any time a state update needs to be
+published, it can be sent through this channel and the agent will publish the
+message on MQTT. 
 
 ### Adding to the agent
 

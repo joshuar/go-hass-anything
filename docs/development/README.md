@@ -19,7 +19,7 @@ installation of Home Assistant and Mosquitto that can be used for testing. They 
 started automatically.
 
 - Home Assistant will be listening on [localhost:8123](http://localhost:8123).
-- Mosquitto will be listening on [localhost:1833](localhost:1833).
+- Mosquitto will be listening on [localhost:1883](localhost:1883).
 
 An example configuration for Mosquitto has been provided in
 `deployments/mosquitto/config/mosquitto.conf.example`.
@@ -42,20 +42,19 @@ to run.
 
 ## Packaging
 
-Go Hass Anything uses [Goreleaser](https://goreleaser.com/intro/) to create
-packages for Fedora, Arch, and Ubuntu.
+`podman` is the recommended container engine for building and deployment.
 
-To build a “local-only” package with Goreleaser:
+
+A [Dockerfile](../../Dockerfile) is available that you can use to build an image
+containing your own custom apps.
+
+To add your own apps to the container, copy them into a directory in the base of
+the repo (for example, `apps/`) and then specify the build arg `APPDIR` pointing
+to this location:
 
 ```shell
-goreleaser release --snapshot --clean
+podman build --file ./Dockerfile --tag go-hass-anything --build-arg APPDIR=apps
 ```
-
-Packages will be available under the `dist/` folder. These can be installed
-directly on your machine(s) using the typical package managers for your distribution.
-
-See the [Goreleaser docs](https://goreleaser.com/quick-start/) for more commands
-and information.
 
 ## Committing Code
 
