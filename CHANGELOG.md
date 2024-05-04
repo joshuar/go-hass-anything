@@ -1,5 +1,16 @@
 # Changelog
 
+## [9.0.0](https://github.com/joshuar/go-hass-anything/compare/v8.0.0...v9.0.0) (2024-05-04)
+
+
+### ⚠ BREAKING CHANGES
+
+* the app interface the agent expects has been completely overhauled. Apps now don't need to access the MQTT client to publish messages directly. They can instead specify whether they require polling on an interval or are app driven (or even run once-only) and the agent will set up the necessary functionality to provide it. Additionally, the underlying MQTT client in use has switched to a newer v5 based one that should be more performant and feature-ful for future functionality.
+
+### Features
+
+* major internal rewrite for app interface and switch MQTT client library ([7c5c888](https://github.com/joshuar/go-hass-anything/commit/7c5c888596be33d7f760bf8c1fdae43c589b889e))
+
 ## [8.0.0](https://github.com/joshuar/go-hass-anything/compare/v7.2.1...v8.0.0) (2024-05-01)
 
 
