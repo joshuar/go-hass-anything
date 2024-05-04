@@ -8,7 +8,6 @@ services:
       - /etc/localtime:/etc/localtime:ro,cached
     command: sleep infinity
     network_mode: host
-    userns_mode: keep-id
     user: vscode
   mosquitto:
     image: docker.io/eclipse-mosquitto:2.0.18
@@ -21,8 +20,6 @@ services:
       - 1883:1883
       - 8883:8883
     restart: on-failure
-    network_mode: host
-    userns_mode: keep-id
   home-assistant:
     image: ghcr.io/home-assistant/home-assistant:2024.4.4
     volumes:
@@ -32,5 +29,3 @@ services:
     environment:
       - "TZ=${TZ}"
     restart: on-failure
-    userns_mode: keep-id
-    network_mode: host

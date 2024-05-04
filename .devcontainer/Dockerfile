@@ -5,7 +5,7 @@
 
 FROM mcr.microsoft.com/devcontainers/base:ubuntu
 # Install the xz-utils package
-ENV DEBIAN_FRONTEND noninteractive
-RUN sudo apt -y update
-RUN sudo apt -y install mosquitto-clients micro fish
+ARG DEBIAN_FRONTEND noninteractive
+RUN sudo apt-get -y update
+RUN sudo apt-get -y install mosquitto-clients micro fish
 RUN sudo rm -rf /var/lib/apt/lists/* /var/cache/apt/*
