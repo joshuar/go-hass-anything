@@ -7,9 +7,9 @@ import (
 	"github.com/rs/zerolog/log"
 {{ range $app := . -}}
 {{ if (eq $app "exampleapp") }}
-"github.com/joshuar/go-hass-anything/v8/pkg/apps/{{$app}}"
+"github.com/joshuar/go-hass-anything/v9/pkg/apps/{{$app}}"
 {{ else }}
-"github.com/joshuar/go-hass-anything/v8/apps/{{$app}}"
+"github.com/joshuar/go-hass-anything/v9/apps/{{$app}}"
 {{ end }}
 {{ end -}}	
 )

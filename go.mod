@@ -1,4 +1,4 @@
-module github.com/joshuar/go-hass-anything/v8
+module github.com/joshuar/go-hass-anything/v9
 
 go 1.22.0
 
@@ -39,6 +39,7 @@ require (
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/charmbracelet/bubbles v0.18.0
 	github.com/charmbracelet/bubbletea v0.25.0
+	github.com/eclipse/paho.golang v0.21.0
 	github.com/eclipse/paho.mqtt.golang v1.4.3
 	github.com/iancoleman/strcase v0.3.0
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
@@ -49,6 +50,7 @@ require (
 	github.com/shirou/gopsutil/v3 v3.24.3
 	github.com/sourcegraph/conc v0.3.0
 	github.com/spf13/pflag v1.0.5 // indirect
+	golang.org/x/exp v0.0.0-20240416160154-fe59bbe5cc7f
 	golang.org/x/net v0.23.0 // indirect
 	golang.org/x/sys v0.18.0 // indirect
 	golang.org/x/text v0.14.0

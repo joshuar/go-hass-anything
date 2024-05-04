@@ -3,39 +3,39 @@
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
-package helpers
+package agent
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	"github.com/lthibault/jitterbug/v2"
+	"github.com/rs/zerolog/log"
 )
 
-// PollSensors is a helper function that will call the passed `updater()`
+// poll is a helper function that will call the passed `updater()`
 // function around each `interval` duration within the `stdev` duration window.
 // Effectively, `updater()` will get called sometime near `interval`, but not
 // exactly on it. This can help avoid a "thundering herd" problem of sensors all
 // trying to update at the same time.
-func PollSensors(ctx context.Context, updater func(), interval, stdev time.Duration) {
+func poll(ctx context.Context, updater func(), interval, jitter time.Duration) {
+	if interval <= 0 || jitter <= 0 {
+		log.Warn().Dur("interval", interval).Dur("jitter", jitter).Msg("Invalid interval and stdev for polling.")
+		return
+	}
 	updater()
 	ticker := jitterbug.New(
 		interval,
-		&jitterbug.Norm{Stdev: stdev},
+		&jitterbug.Norm{Stdev: jitter},
 	)
-	var wg sync.WaitGroup
-	wg.Add(1)
 	go func() {
 		for {
 			select {
 			case <-ctx.Done():
-				wg.Done()
 				return
 			case <-ticker.C:
 				updater()
 			}
 		}
 	}()
-	wg.Wait()
 }
