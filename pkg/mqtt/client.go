@@ -9,7 +9,6 @@ import (
 	"context"
 	"net/url"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/eclipse/paho.golang/autopaho"
@@ -40,15 +39,13 @@ type Subscription struct {
 
 // Client is the connection to the MQTT broker.
 type Client struct {
-	conn *autopaho.ConnectionManager
-	mu   sync.Mutex
+	conn     *autopaho.ConnectionManager
+	haStatus chan string
 }
 
 // Publish will send the list of messages it is passed to the broker that the
 // client is connected to. Any errors in publihsing will be returned.
 func (c *Client) Publish(msgs ...*Msg) error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
 	err := publish(c.conn, msgs...)
 	return err
 }
@@ -58,14 +55,15 @@ func (c *Client) Unpublish(msgs ...*Msg) error {
 	for _, msg := range msgs {
 		newMsgs = append(newMsgs, NewMsg(msg.Topic, []byte(``)))
 	}
-	c.mu.Lock()
-	defer c.mu.Unlock()
 	err := publish(c.conn, newMsgs...)
 	return err
 }
 
-func NewClient(ctx context.Context, prefs prefs, subscriptions []*Subscription) (*Client, error) {
+func NewClient(ctx context.Context, prefs prefs, subscriptions []*Subscription, configs []*Msg) (*Client, error) {
 	var subOpts []paho.SubscribeOptions
+	client := &Client{
+		haStatus: make(chan string),
+	}
 	router := paho.NewStandardRouter()
 
 	for _, s := range subscriptions {
@@ -76,12 +74,7 @@ func NewClient(ctx context.Context, prefs prefs, subscriptions []*Subscription) 
 	statusTopic := prefs.GetTopicPrefix() + "/status"
 	subOpts = append(subOpts, paho.SubscribeOptions{Topic: statusTopic, QoS: 1})
 	router.RegisterHandler(statusTopic, func(p *paho.Publish) {
-		switch msg := string(p.Payload); msg {
-		case "online":
-			log.Debug().Msg("Home Assistant online.")
-		case "offline":
-			log.Debug().Msg("Home Assistant offline.")
-		}
+		client.haStatus <- string(p.Payload)
 	})
 
 	// We will connect to the Eclipse test server (note that you may see messages that other users publish)
@@ -100,7 +93,11 @@ func NewClient(ctx context.Context, prefs prefs, subscriptions []*Subscription) 
 	if err := c.AwaitConnection(ctx); err != nil {
 		return nil, err
 	}
-	return &Client{conn: c}, nil
+	client.conn = c
+
+	client.monitorHAStatus(ctx, configs...)
+
+	return client, nil
 }
 
 func genConnOpts(ctx context.Context, server *url.URL, subOpts []paho.SubscribeOptions, router *paho.StandardRouter) autopaho.ClientConfig {
@@ -166,4 +163,26 @@ func publish(c *autopaho.ConnectionManager, msgs ...*Msg) error {
 		}
 	}
 	return errs
+}
+
+func (c *Client) monitorHAStatus(ctx context.Context, configs ...*Msg) {
+	go func() {
+		for {
+			select {
+			case status := <-c.haStatus:
+				switch status {
+				case "online":
+					log.Debug().Msg("Home Assistant online.")
+					if err := c.Publish(configs...); err != nil {
+						log.Warn().Err(err).Msg("Could not publish configs.")
+					}
+				case "offline":
+					log.Debug().Msg("Home Assistant offline.")
+				}
+			case <-ctx.Done():
+				close(c.haStatus)
+				return
+			}
+		}
+	}()
 }

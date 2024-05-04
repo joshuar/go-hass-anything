@@ -116,7 +116,7 @@ func Run(ctx context.Context) {
 		log.Fatal().Err(err).Msg("Could not load preferences.")
 	}
 
-	client, err := mqtt.NewClient(ctx, prefs, subscriptions)
+	client, err := mqtt.NewClient(ctx, prefs, subscriptions, configs)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Could not connect to broker.")
 	}
@@ -130,7 +130,7 @@ func ClearApps(ctx context.Context) {
 		log.Fatal().Err(err).Msg("Could not load preferences.")
 	}
 
-	client, err := mqtt.NewClient(ctx, prefs, nil)
+	client, err := mqtt.NewClient(ctx, prefs, nil, nil)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Could not connect to broker.")
 	}
