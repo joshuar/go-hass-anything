@@ -28,11 +28,12 @@ details on both use-cases.
 
 ## ⬇️ Installation
 
->[!NOTE] It's recommended to create your own container to run a Go Hass Anything
->agent with your own apps. The pre-built container cannot be customised and the
->agent will only run an example app to demonstrate functionality. Create your
->own apps and add them to the agent by following the [development
->docs](docs/development/Apps.md).
+> [!NOTE] 
+> It's recommended to create your own container to run a Go Hass Anything
+> agent with your own apps. The pre-built container cannot be customised and the
+> agent will only run an example app to demonstrate functionality. Create your
+> own apps and add them to the agent by following the [development
+> docs](docs/development/Apps.md).
 
 ## Container
 
