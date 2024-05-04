@@ -3,6 +3,9 @@
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
+// revive:disable:max-public-structs
+// revive:disable:unexported-return
+
 package hass
 
 import (
@@ -19,6 +22,9 @@ import (
 	mqttapi "github.com/joshuar/go-hass-anything/v9/pkg/mqtt"
 )
 
+// HomeAssistantTopic is the prefix applied to all entity topics by default.
+// Typically, this defaults to "homeassistant". It is exposed by this package
+// such that it can be overridden as necessary.
 var HomeAssistantTopic = "homeassistant"
 
 // entityConfig contains fields for defining the configuration of the entity.
@@ -67,6 +73,8 @@ func (e *entity) MarshalState(args ...any) (*mqttapi.Msg, error) {
 	return mqttapi.NewMsg(e.StateTopic, state), nil
 }
 
+// MarshalAttributes will generate an *mqtt.Msg for the attributes of an entity,
+// that can be used for updating the entity's attributes.
 func (e *entity) MarshalAttributes(args ...any) (*mqttapi.Msg, error) {
 	var state json.RawMessage
 	var err error
@@ -93,6 +101,8 @@ func (e *entity) MarshalSubscription() (*mqttapi.Subscription, error) {
 	return msg, nil
 }
 
+// SensorEntity represents an entity which has some kind of value. For more
+// details, see https://www.home-assistant.io/integrations/sensor.mqtt/
 type SensorEntity struct {
 	*entity
 }
@@ -106,6 +116,8 @@ func (e *SensorEntity) MarshalConfig() (*mqttapi.Msg, error) {
 	return mqttapi.NewMsg(e.ConfigTopic, cfg), nil
 }
 
+// BinarySensorEntity represents an entity which has a boolean state. For more
+// details, see https://www.home-assistant.io/integrations/binary_sensor.mqtt/
 type BinarySensorEntity struct {
 	*entity
 }
@@ -119,6 +131,9 @@ func (e *BinarySensorEntity) MarshalConfig() (*mqttapi.Msg, error) {
 	return mqttapi.NewMsg(e.ConfigTopic, cfg), nil
 }
 
+// ButtonEntity represents an entity which can perform some action or event in
+// response to being "pushed". For more details, see
+// https://www.home-assistant.io/integrations/button.mqtt/
 type ButtonEntity struct {
 	*entity
 }
@@ -132,6 +147,10 @@ func (e *ButtonEntity) MarshalConfig() (*mqttapi.Msg, error) {
 	return mqttapi.NewMsg(e.ConfigTopic, cfg), nil
 }
 
+// NumberEntity represents an entity that is a number that has a given range of
+// values and can be set to any value in that range, with a precision by the
+// given step. For more details, see
+// https://www.home-assistant.io/integrations/number.mqtt/
 type NumberEntity[T constraints.Ordered] struct {
 	*entity
 	Min  T      `json:"min,omitempty"`
@@ -149,6 +168,8 @@ func (e *NumberEntity[T]) MarshalConfig() (*mqttapi.Msg, error) {
 	return mqttapi.NewMsg(e.ConfigTopic, cfg), nil
 }
 
+// SwitchEntity represents an entity that can be turned on or off. For more
+// details see https://www.home-assistant.io/integrations/switch.mqtt/
 type SwitchEntity struct {
 	*entity
 	Optimistic bool `json:"optimistic,omitempty"`
@@ -189,8 +210,7 @@ type Origin struct {
 	URL     string `json:"support_url,omitempty"`
 }
 
-// Topics is a helper struct that is returned when an EntityConfig is created
-// containing the names of important topics on the MQTT bus related to the
+// Topics contains the names of important topics on the MQTT bus related to the
 // entity. Apps can store these topics for later retrieval and usage (for
 // example, to update state topics or listen to command topics).
 type Topics struct {
@@ -200,6 +220,9 @@ type Topics struct {
 	Attributes string
 }
 
+// NewEntity creates a minimal entity based on the given name and id and
+// associates it with the given app. Additional builder functions should be
+// chained to fill out functionality that the entity will provide.
 func NewEntity(app, name, id string) *entity {
 	name = FormatName(name)
 	if id != "" {
@@ -217,6 +240,8 @@ func NewEntity(app, name, id string) *entity {
 	}
 }
 
+// WithNodeID adds an additional section to the topics of the entity in MQTT. It
+// can be used to help structure various entities being provided.
 func (e *entity) WithNodeID(id string) *entity {
 	e.NodeID = FormatID(id)
 	return e
@@ -341,8 +366,17 @@ func (e *entity) WithIcon(i string) *entity {
 	return e
 }
 
+// WithStateExpiry defines the number of seconds after the sensor’s state
+// expires, if it’s not updated. After expiry, the sensor’s state becomes
+// "unavailable".
 func (e *entity) WithStateExpiry(i int) *entity {
 	e.StateExpiry = i
+	return e
+}
+
+// AsDiagnostic will mark this entity as a diagnostic entity in Home Assistant.
+func (e *entity) AsDiagnostic() *entity {
+	e.EntityCategory = "diagnostic"
 	return e
 }
 
@@ -358,6 +392,8 @@ func (e *entity) GetTopics() *Topics {
 	}
 }
 
+// AsSensor converts the given entity into a SensorEntity. Additional builders
+// can potentially be applied to customise it further.
 func AsSensor(e *entity) *SensorEntity {
 	e.setTopics(Sensor)
 	return &SensorEntity{
@@ -365,6 +401,8 @@ func AsSensor(e *entity) *SensorEntity {
 	}
 }
 
+// AsBinarySensor converts the given entity into a BinarySensorEntity.
+// Additional builders can potentially be applied to customise it further.
 func AsBinarySensor(e *entity) *BinarySensorEntity {
 	e.setTopics(BinarySensor)
 	return &BinarySensorEntity{
@@ -372,6 +410,8 @@ func AsBinarySensor(e *entity) *BinarySensorEntity {
 	}
 }
 
+// AsButton converts the given entity into a ButtonEntity. Additional builders
+// can potentially be applied to customise it further.
 func AsButton(e *entity) *ButtonEntity {
 	e.setTopics(Button)
 	return &ButtonEntity{
@@ -379,6 +419,8 @@ func AsButton(e *entity) *ButtonEntity {
 	}
 }
 
+// AsNumber converts the given entity into a NumberEntity. Additional builders
+// can potentially be applied to customise it further.
 func AsNumber[T constraints.Ordered](e *entity, step, min, max T, mode NumberMode) *NumberEntity[T] {
 	e.setTopics(Number)
 	return &NumberEntity[T]{
@@ -390,6 +432,8 @@ func AsNumber[T constraints.Ordered](e *entity, step, min, max T, mode NumberMod
 	}
 }
 
+// AsSwitch converts the given entity into a SwitchEntity. Additional builders
+// can potentially be applied to customise it further.
 func AsSwitch(e *entity, optimistic bool) *SwitchEntity {
 	e.setTopics(Switch)
 	return &SwitchEntity{
@@ -398,11 +442,15 @@ func AsSwitch(e *entity, optimistic bool) *SwitchEntity {
 	}
 }
 
+// AsTypeSwitch sets the SwitchEntity device class as a "switch". This primarily
+// affects how it will be displayed in Home Assistant.
 func (e *SwitchEntity) AsTypeSwitch() *SwitchEntity {
 	e.DeviceClass = "switch"
 	return e
 }
 
+// AsTypeSwitch sets the SwitchEntity device class as an "outlet". This
+// primarily affects how it will be displayed in Home Assistant.
 func (e *SwitchEntity) AsTypeOutlet() *SwitchEntity {
 	e.DeviceClass = "outlet"
 	return e
