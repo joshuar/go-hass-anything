@@ -1,5 +1,12 @@
 # Changelog
 
+## [9.1.0](https://github.com/joshuar/go-hass-anything/compare/v9.0.0...v9.1.0) (2024-05-04)
+
+
+### Features
+
+* **mqtt:** :sparkles: Republish app configs after Home Assistant restarts ([2bce61a](https://github.com/joshuar/go-hass-anything/commit/2bce61ad280d007db70e53172f5934c5d1dada2d))
+
 ## [9.0.0](https://github.com/joshuar/go-hass-anything/compare/v8.0.0...v9.0.0) (2024-05-04)
 
 
