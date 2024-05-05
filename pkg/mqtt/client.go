@@ -95,6 +95,11 @@ func NewClient(ctx context.Context, prefs prefs, subscriptions []*Subscription, 
 	}
 	client.conn = c
 
+	if err := client.Publish(configs...); err != nil {
+		log.Error().Err(err).Msg("Failed to publish configuration messages.")
+	}
+	log.Debug().Msg("Entity configs published.")
+
 	client.monitorHAStatus(ctx, configs...)
 
 	return client, nil

@@ -151,7 +151,6 @@ func runApps(ctx context.Context, client *mqtt.Client, apps []App) {
 		wg.Add(1)
 		go func(a App) {
 			defer wg.Done()
-			publishAppConfigs(a, client)
 			if app, ok := a.(PollingApp); ok {
 				interval, jitter := app.PollConfig()
 				log.Info().Dur("interval", interval).Str("app", a.Name()).Msg("Running loop to poll app updates.")
@@ -203,12 +202,5 @@ func publishAppStates(app App, client *mqtt.Client) {
 	log.Debug().Str("app", app.Name()).Msg("Publishing states.")
 	if err := client.Publish(app.States()...); err != nil {
 		log.Error().Err(err).Str("app", app.Name()).Msg("Failed to publish state messages.")
-	}
-}
-
-func publishAppConfigs(app App, client *mqtt.Client) {
-	log.Debug().Str("app", app.Name()).Msg("Publishing configs.")
-	if err := client.Publish(app.Configuration()...); err != nil {
-		log.Error().Err(err).Str("app", app.Name()).Msg("Failed to publish configuration messages.")
 	}
 }
