@@ -10,18 +10,22 @@ on:
   workflow_dispatch:
 
 permissions:
-  security-events: write
   actions: read
   contents: read
 
 jobs:
   analyze:
+    permissions:
+      security-events: write
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         language: [ 'go' ]
     steps:
+    - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+      with:
+        config: ${{ vars.PERMISSIONS_CONFIG }}
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
