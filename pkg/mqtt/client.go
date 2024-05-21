@@ -7,6 +7,7 @@ package mqtt
 
 import (
 	"context"
+	"errors"
 	"net/url"
 	"strconv"
 	"time"
@@ -15,6 +16,8 @@ import (
 	"github.com/eclipse/paho.golang/paho"
 	"github.com/rs/zerolog/log"
 )
+
+var ErrNoConnection = errors.New("no MQTT connection")
 
 type prefs interface {
 	GetMQTTServer() string
@@ -46,11 +49,17 @@ type Client struct {
 // Publish will send the list of messages it is passed to the broker that the
 // client is connected to. Any errors in publihsing will be returned.
 func (c *Client) Publish(msgs ...*Msg) error {
+	if c.conn == nil {
+		return ErrNoConnection
+	}
 	err := publish(c.conn, msgs...)
 	return err
 }
 
 func (c *Client) Unpublish(msgs ...*Msg) error {
+	if c.conn == nil {
+		return ErrNoConnection
+	}
 	var newMsgs []*Msg
 	for _, msg := range msgs {
 		newMsgs = append(newMsgs, NewMsg(msg.Topic, []byte(``)))
@@ -60,6 +69,10 @@ func (c *Client) Unpublish(msgs ...*Msg) error {
 }
 
 func NewClient(ctx context.Context, prefs prefs, subscriptions []*Subscription, configs []*Msg) (*Client, error) {
+	if prefs == nil {
+		return nil, errors.New("no preferences provided")
+	}
+
 	var subOpts []paho.SubscribeOptions
 	client := &Client{
 		haStatus: make(chan string),
