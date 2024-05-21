@@ -77,13 +77,7 @@ func NewClient(ctx context.Context, prefs prefs, subscriptions []*Subscription, 
 		client.haStatus <- string(p.Payload)
 	})
 
-	// We will connect to the Eclipse test server (note that you may see messages that other users publish)
-	u, err := url.Parse(prefs.GetMQTTServer())
-	if err != nil {
-		panic(err)
-	}
-
-	connOpts := genConnOpts(ctx, u, subOpts, router)
+	connOpts := genConnOpts(ctx, prefs, subOpts, router)
 
 	c, err := autopaho.NewConnection(ctx, connOpts) // starts process; will reconnect until context cancelled
 	if err != nil {
@@ -105,11 +99,18 @@ func NewClient(ctx context.Context, prefs prefs, subscriptions []*Subscription, 
 	return client, nil
 }
 
-func genConnOpts(ctx context.Context, server *url.URL, subOpts []paho.SubscribeOptions, router *paho.StandardRouter) autopaho.ClientConfig {
+func genConnOpts(ctx context.Context, prefs prefs, subOpts []paho.SubscribeOptions, router *paho.StandardRouter) autopaho.ClientConfig {
+	// Set a client ID for this connection.
 	clientID := "go_hass_anything_" + strconv.Itoa(time.Now().Second())
 
+	// Get the server from the preferences and convert to a URL.
+	serverURL, err := url.Parse(prefs.GetMQTTServer())
+	if err != nil {
+		panic(err)
+	}
+
 	connOpts := autopaho.ClientConfig{
-		ServerUrls: []*url.URL{server},
+		ServerUrls: []*url.URL{serverURL},
 		KeepAlive:  20, // Keepalive message should be sent every 20 seconds
 		// CleanStartOnInitialConnection defaults to false. Setting this to true will clear the session on the first connection.
 		CleanStartOnInitialConnection: false,
@@ -151,6 +152,13 @@ func genConnOpts(ctx context.Context, server *url.URL, subOpts []paho.SubscribeO
 			},
 		},
 	}
+
+	// If a username/password is set, add those to the connection options.
+	if prefs.GetMQTTUser() != "" && prefs.GetMQTTPassword() != "" {
+		connOpts.ConnectUsername = prefs.GetMQTTUser()
+		connOpts.ConnectPassword = []byte(prefs.GetMQTTPassword())
+	}
+
 	return connOpts
 }
 
