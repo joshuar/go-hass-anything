@@ -22,7 +22,6 @@
                 "aaron-bond.better-comments",
                 "valentjn.vscode-ltex",
                 "tamasfe.even-better-toml",
-                "eamodio.gitlens",
                 "ms-azuretools.vscode-docker",
                 "github.vscode-github-actions"
             ],
