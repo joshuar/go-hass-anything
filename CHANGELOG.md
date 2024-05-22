@@ -1,5 +1,18 @@
 # Changelog
 
+## [9.2.0](https://github.com/joshuar/go-hass-anything/compare/v9.1.0...v9.2.0) (2024-05-22)
+
+
+### Features
+
+* **mqtt:** :sparkles: publish app configs once MQTT connection is established ([74f59da](https://github.com/joshuar/go-hass-anything/commit/74f59da7f133c0a6298b25aa869bd01ae542d49b))
+
+
+### Bug Fixes
+
+* **mqtt:** :bug: re-add removed user/pass settings when connecting to MQTT ([c6097cd](https://github.com/joshuar/go-hass-anything/commit/c6097cd3955664e8c309f51fe335d36e7a6863e9))
+* **mqtt:** :safety_vest: protect against potential nil panics ([7e20c1f](https://github.com/joshuar/go-hass-anything/commit/7e20c1f452bbe4221c320c165e0c0f50e0d78df7))
+
 ## [9.1.0](https://github.com/joshuar/go-hass-anything/compare/v9.0.0...v9.1.0) (2024-05-04)
 
 
