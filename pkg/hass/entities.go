@@ -11,6 +11,7 @@ package hass
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/eclipse/paho.golang/paho"
@@ -265,6 +266,22 @@ func (e *entity) setTopics(t EntityType) {
 	e.EntityType = t
 }
 
+func (e *entity) validate() {
+	if e.Origin == nil {
+		slog.Warn("No origin set, using default origin for entity.", "entity", e.Name)
+		e.WithDefaultOriginInfo()
+	}
+	if e.Device == nil {
+		slog.Warn("No device set, using default device for entity.", "entity", e.Name)
+		e.WithDeviceInfo(&Device{
+			Name:         "Go Hass Anything Default Device",
+			Identifiers:  []string{"DefaultDevice"},
+			URL:          "https://github.com/joshuar/go-hass-anything",
+			Manufacturer: "go-hass-anything",
+		})
+	}
+}
+
 // WithAttributesTemplate configures the passed in template to be used to extract the
 // value of the attributes in Home Assistant.
 func (e *entity) WithAttributesTemplate(t string) *entity {
@@ -396,6 +413,7 @@ func (e *entity) GetTopics() *Topics {
 // can potentially be applied to customise it further.
 func AsSensor(e *entity) *SensorEntity {
 	e.setTopics(Sensor)
+	e.validate()
 	return &SensorEntity{
 		entity: e,
 	}
@@ -405,6 +423,7 @@ func AsSensor(e *entity) *SensorEntity {
 // Additional builders can potentially be applied to customise it further.
 func AsBinarySensor(e *entity) *BinarySensorEntity {
 	e.setTopics(BinarySensor)
+	e.validate()
 	return &BinarySensorEntity{
 		entity: e,
 	}
@@ -414,6 +433,7 @@ func AsBinarySensor(e *entity) *BinarySensorEntity {
 // can potentially be applied to customise it further.
 func AsButton(e *entity) *ButtonEntity {
 	e.setTopics(Button)
+	e.validate()
 	return &ButtonEntity{
 		entity: e,
 	}
@@ -423,6 +443,7 @@ func AsButton(e *entity) *ButtonEntity {
 // can potentially be applied to customise it further.
 func AsNumber[T constraints.Ordered](e *entity, step, min, max T, mode NumberMode) *NumberEntity[T] {
 	e.setTopics(Number)
+	e.validate()
 	return &NumberEntity[T]{
 		entity: e,
 		Step:   step,
@@ -436,6 +457,7 @@ func AsNumber[T constraints.Ordered](e *entity, step, min, max T, mode NumberMod
 // can potentially be applied to customise it further.
 func AsSwitch(e *entity, optimistic bool) *SwitchEntity {
 	e.setTopics(Switch)
+	e.validate()
 	return &SwitchEntity{
 		entity:     e,
 		Optimistic: optimistic,
