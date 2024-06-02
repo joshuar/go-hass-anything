@@ -10,31 +10,38 @@ on:
   workflow_dispatch:
 
 permissions:
-  actions: read
   contents: read
+
+env:
+  GO_VERSION: 1.22
 
 jobs:
   analyze:
     permissions:
+      packages: read
+      actions: read
       security-events: write
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        language: [ 'go' ]
+        include:
+        - language: go
+          build-mode: manual        
     steps:
-    - uses: GitHubSecurityLab/actions-permissions/monitor@v1
+    - name: Harden Runner
+      uses: step-security/harden-runner@f086349bfa2bd1361f7909c78558e816508cdc10 # v1
       with:
-        config: ${{ vars.PERMISSIONS_CONFIG }}
+        egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs      
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4
       with:
         fetch-depth: 0
     - name: Setup Go
       id: setup_go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # v5
       with:
-        go-version: '^1.22'
+        go-version: ${{ env.GO_VERSION }}
     - name: Install Go dependencies
       id: install_go_deps
       run: |
@@ -44,6 +51,8 @@ jobs:
       uses: github/codeql-action/init@v3
       with:
         languages: ${{ matrix.language }}
+        build-mode: ${{ matrix.build-mode }}
+        packs: githubsecuritylab/codeql-${{ matrix.language }}-queries        
     - name: Build agent
       run: |
         mkdir apps && cp -a pkg/apps/exampleapp apps
@@ -51,3 +60,5 @@ jobs:
         go build -v
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:${{matrix.language}}"
