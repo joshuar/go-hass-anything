@@ -26,6 +26,11 @@ var (
 	defaultTopicPrefix = "homeassistant"
 )
 
+var (
+	gitVersion, gitCommit, gitTreeState, buildDate string
+	AppVersion                                     = gitVersion
+)
+
 // Preferences is a struct containing the general preferences for either the
 // agent or for any code that imports go-hass-anything as a package. Currently,
 // these preferences are for MQTT connectivity selection.

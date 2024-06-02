@@ -16,6 +16,7 @@
         "container",
         "vscode",
         "mqtt",
-        "github"
+        "github",
+        "mage"
     ],
 }
