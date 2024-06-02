@@ -1,5 +1,12 @@
 # Changelog
 
+## [9.2.1](https://github.com/joshuar/go-hass-anything/compare/v9.2.0...v9.2.1) (2024-06-02)
+
+
+### Bug Fixes
+
+* **hass:** :children_crossing: set a default origin/device if none specified on entities ([708acc2](https://github.com/joshuar/go-hass-anything/commit/708acc243ac531936c189e1bec1cc0486839854d))
+
 ## [9.2.0](https://github.com/joshuar/go-hass-anything/compare/v9.1.0...v9.2.0) (2024-05-22)
 
 
