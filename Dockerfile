@@ -3,7 +3,8 @@
 # This software is released under the MIT License.
 # https://opensource.org/licenses/MIT
 
-FROM docker.io/library/golang:1.22
+FROM golang:1.22 AS builder
+
 ARG APPDIR=pkg/apps
 
 WORKDIR /usr/src/go-hass-anything
@@ -22,9 +23,8 @@ RUN go install golang.org/x/tools/cmd/stringer@latest
 RUN go generate -v ./...
 RUN go build -v -o /go/bin/go-hass-anything
 
-RUN useradd -ms /bin/bash gouser
-USER gouser
-WORKDIR /home/gouser
+FROM ubuntu
+COPY --from=builder /go/bin/go-hass-anything /usr/bin/go-hass-anything
 
 ENTRYPOINT ["go-hass-anything"]
 CMD ["run"]
