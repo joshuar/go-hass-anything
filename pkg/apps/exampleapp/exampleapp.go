@@ -14,7 +14,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/carlmjohnson/requests"
 	"github.com/eclipse/paho.golang/paho"
 	"github.com/rs/zerolog/log"
 	"github.com/shirou/gopsutil/v3/load"
@@ -45,7 +44,7 @@ type exampleApp struct {
 	switchEntity  *mqtthass.SwitchEntity
 	msgCh         chan *mqttapi.Msg
 	loadEntities  []*mqtthass.SensorEntity
-	weatherData   []byte
+	weatherData   map[string]any
 	numberState   int
 	switchState   bool
 }
@@ -73,52 +72,28 @@ func New(_ context.Context) (*exampleApp, error) {
 	return app, nil
 }
 
-// getWeather sends a request for the weather, using the web.ExecuteRequest
-// function. ExecuteRequest returns a chan web.Response which we can wait on for
-// the web request to complete. Once it does, the web.Response has some methods
-// to extract the response headers and body and any error that might have been
-// returned. In our case, we don't care about the headers, just the body (and we
-// check/handle any errors). We could do some processing of the response body in
-// this function if needed, but in this case, it is just a JSON blob and we can
-// pass that directly to MQTT and let Home Assistant extract values from it.
-func (a *exampleApp) getWeather(ctx context.Context) error {
-	// we make our web request using web.ExecuteRequest and wait for the
-	// response, handling any error returned.
-	r := <-web.ExecuteRequest(ctx, a)
-	if r.Error() != nil {
-		return r.Error()
-	}
-
-	// we save the raw JSON response as a []byte, which we can pass directly to MQTT
-	// and have Home Assistant extract out the values we want.
-	a.weatherData = r.Body().Bytes()
-	return nil
-}
-
-// In order to use web.ExecuteRequest, we need to pass it a type that satisfies
-// the web.Request interface, which has a Builder() method. Builder returns a
-// *requests.Builder used to execute the actual web request. We can make our
-// exampleApp struct satisfy web.Request by giving it a Builder function. In our
-// case, we just need to build a request with a URL. But we could do more fancy
-// requests if needed.
-func (a *exampleApp) Builder() *requests.Builder {
+// In order to use the web.ExecuteRequest helper to fetch the weather, we need
+// to pass it a type that satisfies the web.Request interface. We can do this by
+// adding a URL() method that returns the URL to our weather provider, to our
+// app struct.
+func (a *exampleApp) URL() string {
 	// we get the weather service URL from our app config. If we can't get the
 	// config value, we can't continue, so we exit with an error message.
 	var serviceURL string
 	var ok bool
 	if serviceURL, ok = a.config.Prefs[weatherURLpref].(string); !ok {
 		log.Error().Msg("Could not retrieve weather service URL from config.")
-		return nil
+		return ""
 	}
 
-	return requests.URL(serviceURL)
+	return serviceURL
 }
 
-// web.Request also has a Timeout() method, which we can use to specify a
-// timeout after which our web request will be cancelled. In our case, we will
-// wait 15 seconds.
-func (a *exampleApp) Timeout() time.Duration {
-	return 15 * time.Second
+// We also need a way to save the response of the web request, and we can do
+// this by satisfying the web.Response interface through adding a UnmarshalJSON
+// that will take the raw response JSON and save it into our app struct.
+func (a *exampleApp) UnmarshalJSON(data []byte) error {
+	return json.Unmarshal(data, a.weatherData)
 }
 
 // getLoadAvgs fetches the load averages for the system running
@@ -333,8 +308,10 @@ func (a *exampleApp) Subscriptions() []*mqttapi.Subscription {
 // then set up a loop to send our sensor data.
 func (a *exampleApp) Update(ctx context.Context) error {
 	var errs error
-	// get the weather
-	if err := a.getWeather(ctx); err != nil {
+	// We fetch the weather using the web.ExecuteRequest helper. As our app
+	// struct satisfies both the request and response interfaces this helper
+	// requires, we can pass it in.
+	if err := web.ExecuteRequest(ctx, a, a); err != nil {
 		errs = errors.Join(errs, errors.New("could not get weather data"))
 	}
 	// get the load averages
@@ -353,7 +330,7 @@ func (a *exampleApp) MsgCh() chan *mqttapi.Msg {
 }
 
 func (a *exampleApp) weatherStateCallback(_ ...any) (json.RawMessage, error) {
-	return a.weatherData, nil
+	return json.Marshal(a.weatherData)
 }
 
 func (a *exampleApp) loadStateCallback(args ...any) (json.RawMessage, error) {

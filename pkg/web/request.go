@@ -6,63 +6,119 @@
 package web
 
 import (
-	"bytes"
 	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
-	"github.com/carlmjohnson/requests"
-	"github.com/philippta/trip"
+	"github.com/go-resty/resty/v2"
 )
 
-type Request interface {
-	Builder() *requests.Builder
-	Timeout() time.Duration
-}
+type contextKey string
 
-type genericResponse struct {
-	err     error
-	headers map[string][]string
-	body    *bytes.Buffer
-}
+const clientContextKey contextKey = "client"
 
-func (r *genericResponse) Body() *bytes.Buffer {
-	return r.body
-}
-
-func (r *genericResponse) Headers() map[string][]string {
-	return r.headers
-}
-
-func (r *genericResponse) Error() error {
-	return r.err
-}
-
-func ExecuteRequest(ctx context.Context, request Request) chan Response {
-	var (
-		attempts = 3
-		delay    = 150 * time.Millisecond
-	)
-	t := trip.Default(
-		trip.Retry(attempts, delay, trip.RetryableStatusCodes...),
-	)
-	client := &http.Client{Transport: t}
-	resp := &genericResponse{
-		headers: make(map[string][]string),
-		body:    &bytes.Buffer{},
+var ErrResponseMalformed = errors.New("malformed response")
+var (
+	defaultTimeout = 30 * time.Second
+	defaultRetry   = func(r *resty.Response, _ error) bool {
+		return r.StatusCode() == http.StatusTooManyRequests
 	}
-	responseCh := make(chan Response)
-	requestCtx, cancel := context.WithTimeout(ctx, request.Timeout())
-	go func() {
-		defer close(responseCh)
-		defer cancel()
-		resp.err = request.Builder().
-			ToBytesBuffer(resp.body).
-			CopyHeaders(resp.headers).
-			CheckStatus(http.StatusOK).
-			Client(client).
-			Fetch(requestCtx)
-		responseCh <- resp
-	}()
-	return responseCh
+)
+
+// GetRequest is a HTTP GET request.
+type GetRequest interface {
+	URL() string
+}
+
+// PostRequest is a HTTP POST request with the request body provided by Body().
+type PostRequest interface {
+	GetRequest
+	RequestBody() json.RawMessage
+}
+
+type JSONResponse interface {
+	json.Unmarshaler
+}
+
+type GenericResponse interface {
+	Unmarshal(data []byte) error
+}
+
+func ExecuteRequest(ctx context.Context, request, response any) error {
+	var resp *resty.Response
+
+	var err error
+
+	var client *resty.Client
+
+	var found bool
+
+	client, found = ContextGetClient(ctx)
+	if !found {
+		client = NewAPIClient()
+	}
+
+	webRequest := client.R().
+		SetContext(ctx)
+
+	switch req := request.(type) {
+	case PostRequest:
+		slog.Debug("api request", "method", "POST", "body", req.RequestBody(), "sent_at", time.Now())
+
+		resp, err = webRequest.SetBody(req.RequestBody()).Post(req.URL())
+	case GetRequest:
+		slog.Debug("api request", "method", "GET", "sent_at", time.Now())
+
+		resp, err = webRequest.Get(req.URL())
+	}
+
+	if err != nil {
+		return fmt.Errorf("could not send request: %w", err)
+	}
+
+	slog.Debug("api response",
+		"statuscode", resp.StatusCode(),
+		"status", resp.Status(),
+		"time", resp.Time(),
+		"received_at", resp.ReceivedAt(),
+		"body", resp.Body())
+
+	if resp.IsError() {
+		return fmt.Errorf("received error response: %w", err)
+	}
+
+	switch res := response.(type) {
+	case JSONResponse:
+		if err := res.UnmarshalJSON(resp.Body()); err != nil {
+			return errors.Join(ErrResponseMalformed, err)
+		}
+	case GenericResponse:
+		if err := res.Unmarshal(resp.Body()); err != nil {
+			return errors.Join(ErrResponseMalformed, err)
+		}
+	}
+
+	return nil
+}
+
+func NewAPIClient() *resty.Client {
+	return resty.New().
+		SetTimeout(defaultTimeout).
+		AddRetryCondition(defaultRetry)
+}
+
+func ContextSetClient(ctx context.Context, client *resty.Client) context.Context {
+	return context.WithValue(ctx, clientContextKey, client)
+}
+
+func ContextGetClient(ctx context.Context) (*resty.Client, bool) {
+	client, ok := ctx.Value(clientContextKey).(*resty.Client)
+	if !ok {
+		return nil, false
+	}
+	return client, true
 }
