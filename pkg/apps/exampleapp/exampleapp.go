@@ -3,12 +3,14 @@
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
+//revive:disable:unused-receiver
 package exampleapp
 
 import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"strconv"
@@ -31,20 +33,16 @@ const (
 	weatherURLpref = "weatherURL"
 )
 
-var defaultPrefs = map[string]any{
-	"weatherURL": weatherURL,
-}
-
-type exampleApp struct {
+type ExampleApp struct {
 	loadData      *load.AvgStat
-	config        *preferences.AppPreferences
+	config        map[string]any
 	weatherEntity *mqtthass.SensorEntity
 	buttonEntity  *mqtthass.ButtonEntity
 	numberEntity  *mqtthass.NumberEntity[int]
 	switchEntity  *mqtthass.SwitchEntity
 	msgCh         chan *mqttapi.Msg
-	loadEntities  []*mqtthass.SensorEntity
 	weatherData   map[string]any
+	loadEntities  []*mqtthass.SensorEntity
 	numberState   int
 	switchState   bool
 }
@@ -54,21 +52,34 @@ type exampleApp struct {
 // ~/.config/go-hass-anything/exampleApp-preferences.toml. We can store whatever
 // preferences our app needs in this file by providing a map[string]any that
 // maps preferences to values.
-func New(_ context.Context) (*exampleApp, error) {
-	app := &exampleApp{
+func New(_ context.Context) (*ExampleApp, error) {
+	app := &ExampleApp{
 		msgCh: make(chan *mqttapi.Msg),
 	}
-	// load our app config. if we don't have a config, set some defaults
-	p, err := preferences.LoadAppPreferences(app.Name())
-	if os.IsNotExist(err) {
-		log.Info().Msgf("Setting default weather service to %s", weatherURL)
-		p.Prefs = defaultPrefs
-		err := preferences.SaveAppPreferences(app.Name(), preferences.SetAppPreferences(p.Prefs))
-		if err != nil {
-			log.Warn().Err(err).Msg("Could not save app preferences.")
-		}
+
+	// Load the preferences from disk.
+	prefs, err := preferences.LoadAppPreferences(app)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return nil, fmt.Errorf("could not load %s preferences: %w", app.Name(), err)
 	}
-	app.config = p
+
+	// Initialise our preferences map if there are no existing preferences.
+	if prefs == nil {
+		prefs = make(map[string]any)
+	}
+
+	// If there isn't already a weather provider configured, set the default one.
+	if _, found := prefs[weatherURLpref]; !found {
+		log.Info().Str("app", app.Name()).Msgf("Setting default weather service to %s", weatherURL)
+		prefs[weatherURLpref] = weatherURL
+	}
+
+	// Save the preferences to disk.
+	if err := preferences.SaveAppPreferences(app, prefs); err != nil {
+		return nil, fmt.Errorf("could not save %s preferences: %w", app.Name(), err)
+	}
+
+	app.config = prefs
 	return app, nil
 }
 
@@ -76,12 +87,12 @@ func New(_ context.Context) (*exampleApp, error) {
 // to pass it a type that satisfies the web.Request interface. We can do this by
 // adding a URL() method that returns the URL to our weather provider, to our
 // app struct.
-func (a *exampleApp) URL() string {
+func (a *ExampleApp) URL() string {
 	// we get the weather service URL from our app config. If we can't get the
 	// config value, we can't continue, so we exit with an error message.
 	var serviceURL string
 	var ok bool
-	if serviceURL, ok = a.config.Prefs[weatherURLpref].(string); !ok {
+	if serviceURL, ok = a.config[weatherURLpref].(string); !ok {
 		log.Error().Msg("Could not retrieve weather service URL from config.")
 		return ""
 	}
@@ -92,13 +103,13 @@ func (a *exampleApp) URL() string {
 // We also need a way to save the response of the web request, and we can do
 // this by satisfying the web.Response interface through adding a UnmarshalJSON
 // that will take the raw response JSON and save it into our app struct.
-func (a *exampleApp) UnmarshalJSON(data []byte) error {
-	return json.Unmarshal(data, a.weatherData)
+func (a *ExampleApp) UnmarshalJSON(data []byte) error {
+	return json.Unmarshal(data, &a.weatherData)
 }
 
 // getLoadAvgs fetches the load averages for the system running
 // go-hass-anything, using the very handy gopsutil package.
-func (a *exampleApp) getLoadAvgs(ctx context.Context) error {
+func (a *ExampleApp) getLoadAvgs(ctx context.Context) error {
 	var l *load.AvgStat
 	var err error
 	if l, err = load.AvgWithContext(ctx); err != nil {
@@ -112,13 +123,16 @@ func (a *exampleApp) getLoadAvgs(ctx context.Context) error {
 // data through the agent. The following four methods achieve that.
 
 // Name simply returns the name of this app.
-func (a *exampleApp) Name() string {
+func (a *ExampleApp) Name() string {
 	return appName
 }
 
 // Configuration is called when our app is first registered in Home Assistant and
 // will return configuration messages for the data our app will send/receive.
-func (a *exampleApp) Configuration() []*mqttapi.Msg {
+//
+//nolint:funlen
+//revive:disable:function-length
+func (a *ExampleApp) Configuration() []*mqttapi.Msg {
 	var msgs []*mqttapi.Msg
 
 	// deviceInfo is used to associate each sensor to our example app device in Home Assistant
@@ -226,7 +240,7 @@ func (a *exampleApp) Configuration() []*mqttapi.Msg {
 }
 
 // States is called when we want to send our sensor data to Home Assistant.
-func (a *exampleApp) States() []*mqttapi.Msg {
+func (a *ExampleApp) States() []*mqttapi.Msg {
 	var msgs []*mqttapi.Msg
 
 	// we retrieve the weather data and create a message to publish it to its
@@ -271,7 +285,7 @@ func (a *exampleApp) States() []*mqttapi.Msg {
 
 // Subscriptions is called once to register the callbacks we will use when Home
 // Assistant sends back messages on any command topics.
-func (a *exampleApp) Subscriptions() []*mqttapi.Subscription {
+func (a *ExampleApp) Subscriptions() []*mqttapi.Subscription {
 	var msgs []*mqttapi.Subscription
 
 	// we add a subscription to watch for requests for changing the number
@@ -306,7 +320,7 @@ func (a *exampleApp) Subscriptions() []*mqttapi.Subscription {
 // Run is the function that the agent calls to start our app. In it, we create
 // our app struct, register our app (if needed), listen for our button press,
 // then set up a loop to send our sensor data.
-func (a *exampleApp) Update(ctx context.Context) error {
+func (a *ExampleApp) Update(ctx context.Context) error {
 	var errs error
 	// We fetch the weather using the web.ExecuteRequest helper. As our app
 	// struct satisfies both the request and response interfaces this helper
@@ -321,31 +335,37 @@ func (a *exampleApp) Update(ctx context.Context) error {
 	return errs
 }
 
-func (a *exampleApp) PollConfig() (interval, jitter time.Duration) {
+func (a *ExampleApp) PollConfig() (interval, jitter time.Duration) {
 	return time.Minute, time.Second * 5
 }
 
-func (a *exampleApp) MsgCh() chan *mqttapi.Msg {
+func (a *ExampleApp) MsgCh() chan *mqttapi.Msg {
 	return a.msgCh
 }
 
-func (a *exampleApp) weatherStateCallback(_ ...any) (json.RawMessage, error) {
+// weatherStateCallback is called on the polling interval when we need to publish
+// the weather.
+func (a *ExampleApp) weatherStateCallback(_ ...any) (json.RawMessage, error) {
 	return json.Marshal(a.weatherData)
 }
 
-func (a *exampleApp) loadStateCallback(args ...any) (json.RawMessage, error) {
+// loadStateCallback is called on the polling interval when we need to publish
+// the current load averages.
+func (a *ExampleApp) loadStateCallback(args ...any) (json.RawMessage, error) {
 	var value float64
-	if l, ok := args[0].(string); !ok {
+	var loadType string
+	var ok bool
+
+	if loadType, ok = args[0].(string); !ok {
 		return nil, errors.New("could not determine which load was requested")
-	} else {
-		switch l {
-		case "1":
-			value = a.loadData.Load1
-		case "5":
-			value = a.loadData.Load5
-		case "15":
-			value = a.loadData.Load15
-		}
+	}
+	switch loadType {
+	case "1":
+		value = a.loadData.Load1
+	case "5":
+		value = a.loadData.Load5
+	case "15":
+		value = a.loadData.Load15
 	}
 	return json.RawMessage(strconv.FormatFloat(value, 'f', -1, 64)), nil
 }
@@ -363,14 +383,16 @@ func buttonCommandCallback(_ *paho.Publish) {
 	}
 }
 
-func (a *exampleApp) numberStateCallback(_ ...any) (json.RawMessage, error) {
+// numberStateCallback is called on the polling interval when we need to publish
+// the current number state.
+func (a *ExampleApp) numberStateCallback(_ ...any) (json.RawMessage, error) {
 	return json.RawMessage(`{ "value": ` + strconv.Itoa(a.numberState) + ` }`), nil
 }
 
 // numberCommandCallback is our callback function for when a request to change the value is
 // received on MQTT, we set our state internally and publish back on the
 // state topic for any listeners.
-func (a *exampleApp) numberCommandCallback(p *paho.Publish) {
+func (a *ExampleApp) numberCommandCallback(p *paho.Publish) {
 	if newValue, err := strconv.Atoi(string(p.Payload)); err != nil {
 		log.Warn().Err(err).Msg("Could not parse new value for number.")
 	} else {
@@ -381,7 +403,7 @@ func (a *exampleApp) numberCommandCallback(p *paho.Publish) {
 
 // switchCallback is our callback function for when the switch entity is
 // manipulated in Home Assistant.
-func (a *exampleApp) switchStateCallback(_ ...any) (json.RawMessage, error) {
+func (a *ExampleApp) switchStateCallback(_ ...any) (json.RawMessage, error) {
 	switch a.switchState {
 	case true:
 		return json.RawMessage(`ON`), nil
@@ -392,7 +414,7 @@ func (a *exampleApp) switchStateCallback(_ ...any) (json.RawMessage, error) {
 
 // switchCommandCallback is our callback function for when the switch entity is
 // manipulated in Home Assistant.
-func (a *exampleApp) switchCommandCallback(p *paho.Publish) {
+func (a *ExampleApp) switchCommandCallback(p *paho.Publish) {
 	// Record the new state.
 	state := string(p.Payload)
 	switch state {

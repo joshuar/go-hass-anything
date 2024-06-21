@@ -17,13 +17,18 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+const (
+	PrefTopicPrefix = "topicprefix"
+	PrefServer      = "mqttserver"
+	PrefUser        = "mqttuser"
+	PrefPassword    = "mqttpassword"
+)
+
 var ErrNoConnection = errors.New("no MQTT connection")
 
 type prefs interface {
-	GetMQTTServer() string
-	GetMQTTUser() string
-	GetMQTTPassword() string
-	GetTopicPrefix() string
+	GetString(key string) string
+	GetInt(key string) int
 }
 
 type Device interface {
@@ -84,7 +89,7 @@ func NewClient(ctx context.Context, prefs prefs, subscriptions []*Subscription, 
 		subOpts = append(subOpts, paho.SubscribeOptions{Topic: s.Topic, QoS: 1})
 		router.RegisterHandler(s.Topic, s.Callback)
 	}
-	statusTopic := prefs.GetTopicPrefix() + "/status"
+	statusTopic := prefs.GetString(PrefTopicPrefix) + "/status"
 	subOpts = append(subOpts, paho.SubscribeOptions{Topic: statusTopic, QoS: 1})
 	router.RegisterHandler(statusTopic, func(p *paho.Publish) {
 		client.haStatus <- string(p.Payload)
@@ -117,7 +122,7 @@ func genConnOpts(ctx context.Context, prefs prefs, subOpts []paho.SubscribeOptio
 	clientID := "go_hass_anything_" + strconv.Itoa(time.Now().Second())
 
 	// Get the server from the preferences and convert to a URL.
-	serverURL, err := url.Parse(prefs.GetMQTTServer())
+	serverURL, err := url.Parse(prefs.GetString(PrefServer))
 	if err != nil {
 		panic(err)
 	}
@@ -167,9 +172,9 @@ func genConnOpts(ctx context.Context, prefs prefs, subOpts []paho.SubscribeOptio
 	}
 
 	// If a username/password is set, add those to the connection options.
-	if prefs.GetMQTTUser() != "" && prefs.GetMQTTPassword() != "" {
-		connOpts.ConnectUsername = prefs.GetMQTTUser()
-		connOpts.ConnectPassword = []byte(prefs.GetMQTTPassword())
+	if prefs.GetString(PrefUser) != "" && prefs.GetString(PrefPassword) != "" {
+		connOpts.ConnectUsername = prefs.GetString(PrefUser)
+		connOpts.ConnectPassword = []byte(prefs.GetString(PrefPassword))
 	}
 
 	return connOpts

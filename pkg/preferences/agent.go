@@ -6,11 +6,26 @@
 package preferences
 
 import (
+	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 
-	"github.com/pelletier/go-toml/v2"
-	"github.com/rs/zerolog/log"
+	"github.com/knadh/koanf/parsers/toml"
+	"github.com/knadh/koanf/providers/env"
+	"github.com/knadh/koanf/providers/file"
+	"github.com/knadh/koanf/v2"
+)
+
+// envPrefix is used to find preferences set in the environment.
+const envPrefix = "GOHASSANYTHING_"
+
+const (
+	PrefServer      = "mqttserver"
+	PrefUser        = "mqttuser"
+	PrefPassword    = "mqttpassword"
+	PrefTopicPrefix = "topicprefix"
 )
 
 var (
@@ -26,155 +41,74 @@ var (
 	defaultTopicPrefix = "homeassistant"
 )
 
+//nolint:unused // these are reserved for future use
 var (
 	gitVersion, gitCommit, gitTreeState, buildDate string
 	AppVersion                                     = gitVersion
 )
 
-// Preferences is a struct containing the general preferences for either the
-// agent or for any code that imports go-hass-anything as a package. Currently,
-// these preferences are for MQTT connectivity selection.
 type Preferences struct {
-	Server      string `toml:"mqttserver"`
-	User        string `toml:"mqttuser,omitempty"`
-	Password    string `toml:"mqttpassword,omitempty"`
-	TopicPrefix string `toml:"topicprefix"`
+	data *koanf.Koanf
 }
 
-// MQTTServer returns the current server set in the preferences.
-func (p *Preferences) GetMQTTServer() string {
-	return p.Server
+func findPreferences() string {
+	return filepath.Join(preferencesDir, preferencesFile)
 }
 
-// MQTTUser returns any username set in the preferences.
-func (p *Preferences) GetMQTTUser() string {
-	return p.User
+func (p *Preferences) GetString(key string) string {
+	return p.data.String(key)
 }
 
-// MQTTPassword returns any password set in the preferences.
-func (p *Preferences) GetMQTTPassword() string {
-	return p.Password
+func (p *Preferences) GetInt(key string) int {
+	return p.data.Int(key)
 }
 
-// TopicPrefix returns the topic prefix set in the preferences.
-func (p *Preferences) GetTopicPrefix() string {
-	return p.TopicPrefix
+func (p *Preferences) Set(key string, value any) error {
+	return p.data.Set(key, value)
 }
 
-// Pref is a functional type for applying a value to a particular preference.
-type Pref func(*Preferences)
-
-// SetMQTTServer is the functional preference that sets the MQTT server preference
-// to the specified value.
-func SetMQTTServer(server string) Pref {
-	return func(args *Preferences) {
-		args.Server = server
-	}
-}
-
-// SetMQTTUser is the functional preference that sets the MQTT user preference
-// to the specified value.
-func SetMQTTUser(user string) Pref {
-	return func(args *Preferences) {
-		args.User = user
-	}
-}
-
-// SetMQTTPassword is the functional preference that sets the MQTT password preference
-// to the specified value.
-func SetMQTTPassword(password string) Pref {
-	return func(args *Preferences) {
-		args.Password = password
-	}
-}
-
-// SetTopicPrefix is the functional preference that sets the topic prefix preference
-// to the specified value.
-func SetTopicPrefix(prefix string) Pref {
-	return func(args *Preferences) {
-		args.TopicPrefix = prefix
-	}
-}
-
-// SavePreferences writes the given preferences to disk under the specified
-// path. If the path is "", the preferences are saved to the file specified
-// by PreferencesFile under the location specified by ConfigBasePath.
-func SavePreferences(setters ...Pref) error {
-	file := filepath.Join(preferencesDir, preferencesFile)
-	if err := checkPath(preferencesDir); err != nil {
-		return err
-	}
-
-	prefs, err := LoadPreferences()
-	if err != nil && !os.IsNotExist(err) {
-		return err
-	}
-	for _, setter := range setters {
-		setter(prefs)
-	}
-
-	return write(prefs, file)
-}
-
-// LoadPreferences retrives all Preferences from disk at the given path. If the
-// path is "", the preferences are loaded from the file specified by
-// PreferencesFile under the location specified by ConfigBasePath.
-func LoadPreferences() (*Preferences, error) {
-	file := filepath.Join(preferencesDir, preferencesFile)
-
-	p := defaultPreferences()
-	b, err := os.ReadFile(file)
+func (p *Preferences) Save() error {
+	data, err := p.data.Marshal(toml.Parser())
 	if err != nil {
-		return p, err
+		return fmt.Errorf("could not marshal config: %w", err)
 	}
-	err = toml.Unmarshal(b, &p)
-	if err != nil {
-		return p, err
-	}
-	return p, nil
-}
 
-// SetPath will set the path to the preferences file to the given path. This
-// function is optional and a default path is used when calling Load/Save if it
-// is not called.
-func SetPath(path string) {
-	preferencesDir = path
-}
-
-// SetFile will set the filename of the preferences file to the given name. This
-// function is optional and a default filename is used when calling Load/Save if
-// it is not called.
-func SetFile(file string) {
-	preferencesFile = file
-}
-
-func defaultPreferences() *Preferences {
-	return &Preferences{
-		Server:      defaultServer,
-		User:        "",
-		Password:    "",
-		TopicPrefix: defaultTopicPrefix,
+	if err := os.WriteFile(findPreferences(), data, 0o600); err != nil {
+		return fmt.Errorf("could not write config file: %w", err)
 	}
-}
 
-func write(prefs any, file string) error {
-	b, err := toml.Marshal(prefs)
-	if err != nil {
-		return err
-	}
-	err = os.WriteFile(file, b, 0o600)
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
-func checkPath(path string) error {
-	_, err := os.Stat(path)
-	if os.IsNotExist(err) {
-		log.Debug().Str("preferencesPath", path).
-			Msg("Creating new preferences path.")
-		return os.MkdirAll(path, os.ModePerm)
+func Load() (*Preferences, error) {
+	k := koanf.New(".")
+	// Load config from file.
+	if err := k.Load(file.Provider(findPreferences()), toml.Parser()); err != nil {
+		return nil, fmt.Errorf("error loading config file: %w", err)
 	}
-	return nil
+
+	// Merge environment variables with config.
+	if err := k.Load(env.Provider(envPrefix, ".", func(s string) string {
+		return strings.Replace(strings.ToLower(
+			strings.TrimPrefix(s, envPrefix)), "_", ".", -1)
+	}), nil); err != nil {
+		return nil, fmt.Errorf("error merging file and environment: %w", err)
+	}
+
+	config := &Preferences{data: k}
+
+	// Set a default server if it is not set.
+	if config.GetString(PrefServer) == "" {
+		if err := config.Set(PrefServer, defaultServer); err != nil {
+			slog.Error("Could not set a default server", "error", err.Error())
+		}
+	}
+	// Set a default topic prefix if it is not set.
+	if config.GetString(PrefTopicPrefix) == "" {
+		if err := config.Set(PrefTopicPrefix, defaultTopicPrefix); err != nil {
+			slog.Error("Could not set a default topic prefix", "error", err.Error())
+		}
+	}
+
+	return config, nil
 }

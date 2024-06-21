@@ -6,71 +6,59 @@
 package preferences
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
-	"github.com/pelletier/go-toml/v2"
+	"github.com/iancoleman/strcase"
+	"github.com/knadh/koanf/parsers/toml"
+	"github.com/knadh/koanf/providers/confmap"
+	"github.com/knadh/koanf/providers/file"
+	"github.com/knadh/koanf/v2"
 )
 
-// AppPreferences holds a given app's preferences as a generic map[string]any.
-type AppPreferences struct {
-	Prefs map[string]any `toml:"preferences"`
+type App interface {
+	Name() string
 }
 
-// AppPref is a functional type for applying AppPreferences
-type AppPref func(*AppPreferences)
+func findAppPreferences(name string) string {
+	a := strcase.ToSnake(name)
 
-// SetAppPreferences will assign the given preferences map to the AppPreferences
-// struct.
-func SetAppPreferences(prefs map[string]any) AppPref {
-	return func(args *AppPreferences) {
-		args.Prefs = prefs
-	}
+	return filepath.Join(preferencesDir, a+"_preferences.toml")
 }
 
-// SaveAppPreferences will save the given preferences for the given app to a
-// file on disk. Any existing preferences will be preserved. If there are no
-// existing preferences, a new preferences file will be created.
-func SaveAppPreferences(app string, setters ...AppPref) error {
-	file := filepath.Join(preferencesDir, app+"-preferences.toml")
-	if err := checkPath(preferencesDir); err != nil {
-		return err
+func LoadAppPreferences(app App) (map[string]any, error) {
+	k := koanf.New(".")
+	// Load config from file.
+	if err := k.Load(file.Provider(findAppPreferences(app.Name())), toml.Parser()); err != nil {
+		return nil, fmt.Errorf("error loading config file: %w", err)
 	}
 
-	prefs, err := LoadAppPreferences(app)
+	prefs := make(map[string]any)
+
+	if err := k.Unmarshal(".", &prefs); err != nil {
+		return nil, fmt.Errorf("error parsing config: %w", err)
+	}
+
+	return prefs, nil
+}
+
+func SaveAppPreferences(app App, prefs map[string]any) error {
+	k := koanf.New(".")
+
+	err := k.Load(confmap.Provider(prefs, "."), nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not load given preferences: %w", err)
 	}
 
-	for _, setter := range setters {
-		setter(prefs)
-	}
-
-	return write(prefs, file)
-}
-
-// LoadAppPreferences will load the given app preferences from file. If there
-// are no existing preferences, it will return an os.IsNotExist error and a
-// default (empty) AppPreferences.
-func LoadAppPreferences(app string) (*AppPreferences, error) {
-	file := filepath.Join(preferencesDir, app+"-preferences.toml")
-
-	p := DefaultAppPreferences()
-	b, err := os.ReadFile(file)
+	data, err := k.Marshal(toml.Parser())
 	if err != nil {
-		return p, err
+		return fmt.Errorf("could not marshal config: %w", err)
 	}
-	err = toml.Unmarshal(b, &p)
-	if err != nil {
-		return p, err
-	}
-	return p, nil
-}
 
-// DefaultAppPreferences returns an empty AppPreferences struct ready for use by
-// apps.
-func DefaultAppPreferences() *AppPreferences {
-	return &AppPreferences{
-		Prefs: make(map[string]any),
+	if err := os.WriteFile(findAppPreferences(app.Name()), data, 0o600); err != nil {
+		return fmt.Errorf("could not write config file: %w", err)
 	}
+
+	return nil
 }
