@@ -35,7 +35,7 @@ const (
 
 type ExampleApp struct {
 	loadData      *load.AvgStat
-	config        map[string]any
+	config        *preferences.Preferences
 	weatherEntity *mqtthass.SensorEntity
 	buttonEntity  *mqtthass.ButtonEntity
 	numberEntity  *mqtthass.NumberEntity[int]
@@ -58,24 +58,21 @@ func New(_ context.Context) (*ExampleApp, error) {
 	}
 
 	// Load the preferences from disk.
-	prefs, err := preferences.LoadAppPreferences(app)
+	prefs, err := preferences.LoadApp(app.Name())
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return nil, fmt.Errorf("could not load %s preferences: %w", app.Name(), err)
 	}
 
-	// Initialise our preferences map if there are no existing preferences.
-	if prefs == nil {
-		prefs = make(map[string]any)
-	}
-
 	// If there isn't already a weather provider configured, set the default one.
-	if _, found := prefs[weatherURLpref]; !found {
-		log.Info().Str("app", app.Name()).Msgf("Setting default weather service to %s", weatherURL)
-		prefs[weatherURLpref] = weatherURL
+	if url := prefs.GetString(weatherURLpref); url == "" {
+		if err := prefs.Set(weatherURLpref, weatherURL); err != nil {
+			return nil, fmt.Errorf("could not set default weather url: %w", err)
+		}
+		log.Info().Str("app", app.Name()).Msgf("Set default weather service to %s", weatherURL)
 	}
 
 	// Save the preferences to disk.
-	if err := preferences.SaveAppPreferences(app, prefs); err != nil {
+	if err := prefs.SaveApp(app.Name()); err != nil {
 		return nil, fmt.Errorf("could not save %s preferences: %w", app.Name(), err)
 	}
 
@@ -91,10 +88,8 @@ func (a *ExampleApp) URL() string {
 	// we get the weather service URL from our app config. If we can't get the
 	// config value, we can't continue, so we exit with an error message.
 	var serviceURL string
-	var ok bool
-	if serviceURL, ok = a.config[weatherURLpref].(string); !ok {
-		log.Error().Msg("Could not retrieve weather service URL from config.")
-		return ""
+	if serviceURL = a.config.GetString(weatherURLpref); serviceURL == "" {
+		log.Warn().Msg("Could not retrieve weather service URL from config.")
 	}
 
 	return serviceURL
@@ -341,6 +336,14 @@ func (a *ExampleApp) PollConfig() (interval, jitter time.Duration) {
 
 func (a *ExampleApp) MsgCh() chan *mqttapi.Msg {
 	return a.msgCh
+}
+
+func (a *ExampleApp) GetPreferences() *preferences.Preferences {
+	return a.config
+}
+
+func (a *ExampleApp) SetPreferences(prefs *preferences.Preferences) error {
+	return prefs.SaveApp(a.Name())
 }
 
 // weatherStateCallback is called on the polling interval when we need to publish
