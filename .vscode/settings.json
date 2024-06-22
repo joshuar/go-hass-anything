@@ -17,6 +17,7 @@
         "vscode",
         "mqtt",
         "github",
-        "mage"
+        "mage",
+        "preferences"
     ],
 }

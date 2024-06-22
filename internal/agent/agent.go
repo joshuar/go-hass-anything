@@ -12,7 +12,6 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	ui "github.com/joshuar/go-hass-anything/v9/internal/agent/ui/bubbletea"
 	"github.com/joshuar/go-hass-anything/v9/pkg/mqtt"
 	"github.com/joshuar/go-hass-anything/v9/pkg/preferences"
 )
@@ -23,8 +22,8 @@ var (
 )
 
 type agent struct {
-	ui      AgentUI
 	done    chan struct{}
+	prefs   *preferences.Preferences
 	id      string
 	name    string
 	version string
@@ -78,7 +77,13 @@ func NewAgent(id, name string) *agent {
 		id:   id,
 		name: name,
 	}
-	a.ui = ui.NewBubbleTeaUI()
+
+	prefs, err := preferences.Load()
+	if err != nil {
+		log.Warn().Err(err).Msg("Could not fetch agent preferences.")
+	}
+	a.prefs = prefs
+
 	return a
 }
 
@@ -98,9 +103,38 @@ func (a *agent) Stop() {
 	close(a.done)
 }
 
+func (a *agent) Name() string {
+	return a.name
+}
+
+// GetPreferences returns the agent preferences.
+func (a *agent) GetPreferences() *preferences.Preferences {
+	return a.prefs
+}
+
+// SetPreferences sets the agent preferences to the given preferences. If the
+// preferences cannot be saved, a non-nil error is returned.
+func (a *agent) SetPreferences(prefs *preferences.Preferences) error {
+	a.prefs = prefs
+	return a.prefs.Save()
+}
+
+// Configure will start a terminal UI to adjust agent preferences and likewise for any
+// apps that have user-configurable preferences.
 func (a *agent) Configure() {
-	a.ui.ShowConfiguration()
-	a.ui.Run()
+	// Show a terminal UI to configure the agent preferences.
+	if err := ShowPreferences(a); err != nil {
+		log.Warn().Err(err).Msg("Problem occurred configuring agent.")
+	}
+	// For any apps that satisfy the Preferences interface, meaning they have
+	// configurable preferences, show a terminal UI to configure them.
+	for _, app := range AppList {
+		if prefs, ok := app.(Preferences); ok {
+			if err := ShowPreferences(prefs); err != nil {
+				log.Warn().Err(err).Str("app", prefs.Name()).Msg("Problem occurred configuring app.")
+			}
+		}
+	}
 }
 
 func Run(ctx context.Context) {
@@ -111,7 +145,7 @@ func Run(ctx context.Context) {
 		subscriptions = append(subscriptions, app.Subscriptions()...)
 	}
 
-	prefs, err := preferences.LoadPreferences()
+	prefs, err := preferences.Load()
 	if err != nil {
 		log.Fatal().Err(err).Msg("Could not load preferences.")
 	}
@@ -125,7 +159,7 @@ func Run(ctx context.Context) {
 }
 
 func ClearApps(ctx context.Context) {
-	prefs, err := preferences.LoadPreferences()
+	prefs, err := preferences.Load()
 	if err != nil {
 		log.Fatal().Err(err).Msg("Could not load preferences.")
 	}
