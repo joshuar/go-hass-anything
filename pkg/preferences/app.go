@@ -12,14 +12,9 @@ import (
 
 	"github.com/iancoleman/strcase"
 	"github.com/knadh/koanf/parsers/toml"
-	"github.com/knadh/koanf/providers/confmap"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
 )
-
-type App interface {
-	Name() string
-}
 
 func findAppPreferences(name string) string {
 	a := strcase.ToSnake(name)
@@ -27,38 +22,27 @@ func findAppPreferences(name string) string {
 	return filepath.Join(preferencesDir, a+"_preferences.toml")
 }
 
-func LoadAppPreferences(app App) (map[string]any, error) {
-	k := koanf.New(".")
-	// Load config from file.
-	if err := k.Load(file.Provider(findAppPreferences(app.Name())), toml.Parser()); err != nil {
-		return nil, fmt.Errorf("error loading config file: %w", err)
-	}
-
-	prefs := make(map[string]any)
-
-	if err := k.Unmarshal(".", &prefs); err != nil {
-		return nil, fmt.Errorf("error parsing config: %w", err)
-	}
-
-	return prefs, nil
-}
-
-func SaveAppPreferences(app App, prefs map[string]any) error {
-	k := koanf.New(".")
-
-	err := k.Load(confmap.Provider(prefs, "."), nil)
-	if err != nil {
-		return fmt.Errorf("could not load given preferences: %w", err)
-	}
-
-	data, err := k.Marshal(toml.Parser())
+func (p *Preferences) SaveApp(app string) error {
+	data, err := p.data.Marshal(toml.Parser())
 	if err != nil {
 		return fmt.Errorf("could not marshal config: %w", err)
 	}
 
-	if err := os.WriteFile(findAppPreferences(app.Name()), data, 0o600); err != nil {
+	if err := os.WriteFile(findAppPreferences(app), data, 0o600); err != nil {
 		return fmt.Errorf("could not write config file: %w", err)
 	}
 
 	return nil
+}
+
+func LoadApp(app string) (*Preferences, error) {
+	k := koanf.New(".")
+	// Load config from file.
+	if err := k.Load(file.Provider(findAppPreferences(app)), toml.Parser()); err != nil {
+		return nil, fmt.Errorf("error loading config file: %w", err)
+	}
+
+	prefs := &Preferences{data: k}
+
+	return prefs, nil
 }
