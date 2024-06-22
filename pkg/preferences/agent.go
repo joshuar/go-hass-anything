@@ -67,6 +67,10 @@ func (p *Preferences) Set(key string, value any) error {
 	return p.data.Set(key, value)
 }
 
+func (p *Preferences) Keys() []string {
+	return p.data.Keys()
+}
+
 func (p *Preferences) Save() error {
 	data, err := p.data.Marshal(toml.Parser())
 	if err != nil {
@@ -95,20 +99,20 @@ func Load() (*Preferences, error) {
 		return nil, fmt.Errorf("error merging file and environment: %w", err)
 	}
 
-	config := &Preferences{data: k}
+	prefs := &Preferences{data: k}
 
 	// Set a default server if it is not set.
-	if config.GetString(PrefServer) == "" {
-		if err := config.Set(PrefServer, defaultServer); err != nil {
+	if prefs.GetString(PrefServer) == "" {
+		if err := prefs.Set(PrefServer, defaultServer); err != nil {
 			slog.Error("Could not set a default server", "error", err.Error())
 		}
 	}
 	// Set a default topic prefix if it is not set.
-	if config.GetString(PrefTopicPrefix) == "" {
-		if err := config.Set(PrefTopicPrefix, defaultTopicPrefix); err != nil {
+	if prefs.GetString(PrefTopicPrefix) == "" {
+		if err := prefs.Set(PrefTopicPrefix, defaultTopicPrefix); err != nil {
 			slog.Error("Could not set a default topic prefix", "error", err.Error())
 		}
 	}
 
-	return config, nil
+	return prefs, nil
 }
