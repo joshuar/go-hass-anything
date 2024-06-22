@@ -4,7 +4,6 @@ go 1.22.0
 
 require (
 	github.com/charmbracelet/lipgloss v0.11.0
-	github.com/pelletier/go-toml/v2 v2.2.2
 	github.com/rs/zerolog v1.33.0
 	github.com/spf13/cobra v1.8.0
 )
@@ -49,7 +48,6 @@ require (
 	github.com/iancoleman/strcase v0.3.0
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/knadh/koanf/parsers/toml v0.1.0
-	github.com/knadh/koanf/providers/confmap v0.1.0
 	github.com/knadh/koanf/providers/env v0.1.0
 	github.com/knadh/koanf/providers/file v0.1.0
 	github.com/knadh/koanf/v2 v2.1.1
