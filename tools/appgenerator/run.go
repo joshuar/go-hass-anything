@@ -24,6 +24,7 @@ var appTmpl string
 
 func main() {
 	var apps []string
+
 	var err error
 
 	a, err := filepath.Glob(appPathMatch)
@@ -31,30 +32,33 @@ func main() {
 		log.Fatalf("Unable to match apps with %s (%s). Exiting.", appPathMatch, err.Error())
 	}
 
-	for _, v := range a {
-		fs, err := os.Stat(v)
+	for _, appDir := range a {
+		fs, err := os.Stat(appDir)
 		if err != nil {
 			log.Printf("error: %v", err)
+
 			break
 		}
+
 		if fs.IsDir() {
-			app := filepath.Base(v)
-			log.Printf("checking %s...", filepath.Join(v, app+".go"))
-			if _, err = os.Stat(filepath.Join(v, app+".go")); !os.IsNotExist(err) {
+			app := filepath.Base(appDir)
+			log.Printf("checking %s...", filepath.Join(appDir, app+".go"))
+
+			if _, err = os.Stat(filepath.Join(appDir, app+".go")); !os.IsNotExist(err) {
 				log.Printf("Found app %s.", app)
 				apps = append(apps, app)
 			}
 		}
 	}
 
-	t := template.Must(template.New("tmpl").Parse(appTmpl))
+	tmpl := template.Must(template.New("tmpl").Parse(appTmpl))
 
 	f, err := os.Create(appFile)
 	if err != nil {
 		log.Fatalf("Unable to create file %s (%s). Exiting.", appFile, err.Error())
 	}
 
-	if err := t.Execute(f, apps); err != nil {
+	if err := tmpl.Execute(f, apps); err != nil {
 		log.Fatalf("Unable to write out template to %s (%s). Exiting.", appFile, err.Error())
 	}
 
