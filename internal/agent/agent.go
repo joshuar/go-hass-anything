@@ -21,7 +21,7 @@ var (
 	AppList []App
 )
 
-type agent struct {
+type Agent struct {
 	done    chan struct{}
 	prefs   *preferences.Preferences
 	id      string
@@ -72,8 +72,9 @@ type EventsApp interface {
 	MsgCh() chan *mqtt.Msg
 }
 
-func NewAgent(id, name string) *agent {
-	a := &agent{
+//nolint:exhaustruct
+func NewAgent(id, name string) *Agent {
+	agent := &Agent{
 		id:   id,
 		name: name,
 	}
@@ -82,46 +83,48 @@ func NewAgent(id, name string) *agent {
 	if err != nil {
 		log.Warn().Err(err).Msg("Could not fetch agent preferences.")
 	}
-	a.prefs = prefs
 
-	return a
+	agent.prefs = prefs
+
+	return agent
 }
 
-func (a *agent) AppName() string {
+func (a *Agent) AppName() string {
 	return a.name
 }
 
-func (a *agent) AppID() string {
+func (a *Agent) AppID() string {
 	return a.id
 }
 
-func (a *agent) AppVersion() string {
+func (a *Agent) AppVersion() string {
 	return a.version
 }
 
-func (a *agent) Stop() {
+func (a *Agent) Stop() {
 	close(a.done)
 }
 
-func (a *agent) Name() string {
+func (a *Agent) Name() string {
 	return a.name
 }
 
 // GetPreferences returns the agent preferences.
-func (a *agent) GetPreferences() *preferences.Preferences {
+func (a *Agent) GetPreferences() *preferences.Preferences {
 	return a.prefs
 }
 
 // SetPreferences sets the agent preferences to the given preferences. If the
 // preferences cannot be saved, a non-nil error is returned.
-func (a *agent) SetPreferences(prefs *preferences.Preferences) error {
+func (a *Agent) SetPreferences(prefs *preferences.Preferences) error {
 	a.prefs = prefs
+
 	return a.prefs.Save()
 }
 
 // Configure will start a terminal UI to adjust agent preferences and likewise for any
 // apps that have user-configurable preferences.
-func (a *agent) Configure() {
+func (a *Agent) Configure() {
 	// Show a terminal UI to configure the agent preferences.
 	if err := ShowPreferences(a); err != nil {
 		log.Warn().Err(err).Msg("Problem occurred configuring agent.")
@@ -139,7 +142,9 @@ func (a *agent) Configure() {
 
 func Run(ctx context.Context) {
 	var subscriptions []*mqtt.Subscription
+
 	var configs []*mqtt.Msg
+
 	for _, app := range AppList {
 		configs = append(configs, app.Configuration()...)
 		subscriptions = append(subscriptions, app.Subscriptions()...)
@@ -173,6 +178,7 @@ func ClearApps(ctx context.Context) {
 		log.Debug().Str("app", app.Name()).Msg("Removing configuration for app.")
 		if err := client.Unpublish(app.Configuration()...); err != nil {
 			log.Error().Err(err).Str("app", app.Name()).Msg("Could not remove configuration for app.")
+
 			continue
 		}
 	}
@@ -180,15 +186,18 @@ func ClearApps(ctx context.Context) {
 
 func runApps(ctx context.Context, client *mqtt.Client, apps []App) {
 	var wg sync.WaitGroup
+
 	for _, app := range apps {
 		log.Debug().Str("app", app.Name()).Msg("Running app.")
 		wg.Add(1)
 		go func(a App) {
 			defer wg.Done()
+
 			if app, ok := a.(PollingApp); ok {
 				interval, jitter := app.PollConfig()
 				log.Info().Dur("interval", interval).Str("app", a.Name()).Msg("Running loop to poll app updates.")
 				wg.Add(1)
+
 				go func() {
 					defer wg.Wait()
 					poll(
@@ -202,12 +211,15 @@ func runApps(ctx context.Context, client *mqtt.Client, apps []App) {
 					)
 				}()
 			}
+
 			if app, ok := a.(EventsApp); ok {
 				updateApp(ctx, a)
 				wg.Add(1)
+
 				go func() {
 					defer wg.Done()
 					log.Info().Str("app", a.Name()).Msg("Listening for message events from app to publish.")
+
 					for {
 						select {
 						case msg := <-app.MsgCh():
@@ -222,11 +234,13 @@ func runApps(ctx context.Context, client *mqtt.Client, apps []App) {
 			}
 		}(app)
 	}
+
 	wg.Wait()
 }
 
 func updateApp(ctx context.Context, app App) {
 	log.Debug().Str("app", app.Name()).Msg("Updating.")
+
 	if err := app.Update(ctx); err != nil {
 		log.Warn().Err(err).Str("app", app.Name()).Msg("App failed to update.")
 	}
@@ -234,6 +248,7 @@ func updateApp(ctx context.Context, app App) {
 
 func publishAppStates(app App, client *mqtt.Client) {
 	log.Debug().Str("app", app.Name()).Msg("Publishing states.")
+
 	if err := client.Publish(app.States()...); err != nil {
 		log.Error().Err(err).Str("app", app.Name()).Msg("Failed to publish state messages.")
 	}

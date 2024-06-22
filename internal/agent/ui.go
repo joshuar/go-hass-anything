@@ -3,6 +3,8 @@
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
+//nolint:misspell
+//revive:disable:unused-receiver
 package agent
 
 import (
@@ -53,6 +55,8 @@ func (m model) Init() tea.Cmd {
 	return textinput.Blink
 }
 
+//nolint:cyclop
+//revive:disable:modifies-value-receiver
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -66,24 +70,27 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.cursorMode > cursor.CursorHide {
 				m.cursorMode = cursor.CursorBlink
 			}
+
 			cmds := make([]tea.Cmd, len(m.inputs))
+
 			for i := range m.inputs {
 				cmds[i] = m.inputs[i].Cursor.SetMode(m.cursorMode)
 			}
+
 			return m, tea.Batch(cmds...)
 
 		// Set focus to next input
 		case "tab", "shift+tab", "enter", "up", "down":
-			s := msg.String()
+			keyPress := msg.String()
 
 			// Did the user press enter while the submit button was focused?
 			// If so, exit.
-			if s == "enter" && m.focusIndex == len(m.inputs) {
+			if keyPress == "enter" && m.focusIndex == len(m.inputs) {
 				return m, tea.Quit
 			}
 
 			// Cycle indexes
-			if s == "up" || s == "shift+tab" {
+			if keyPress == "up" || keyPress == "shift+tab" {
 				m.focusIndex--
 			} else {
 				m.focusIndex++
@@ -96,16 +103,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			cmds := make([]tea.Cmd, len(m.inputs))
-			for i := 0; i <= len(m.inputs)-1; i++ {
-				if i == m.focusIndex {
-					cmds[i] = m.inputs[i].Focus()
-					m.inputs[i].PromptStyle = focusedStyle
-					m.inputs[i].TextStyle = focusedStyle
+
+			for idx := 0; idx <= len(m.inputs)-1; idx++ {
+				if idx == m.focusIndex {
+					cmds[idx] = m.inputs[idx].Focus()
+					m.inputs[idx].PromptStyle = focusedStyle
+					m.inputs[idx].TextStyle = focusedStyle
+
 					continue
 				}
-				m.inputs[i].Blur()
-				m.inputs[i].PromptStyle = noStyle
-				m.inputs[i].TextStyle = noStyle
+
+				m.inputs[idx].Blur()
+				m.inputs[idx].PromptStyle = noStyle
+				m.inputs[idx].TextStyle = noStyle
 			}
 
 			return m, tea.Batch(cmds...)
@@ -131,17 +141,17 @@ func (m *model) updateInputs(msg tea.Msg) tea.Cmd {
 }
 
 func (m model) View() string {
-	var b strings.Builder
+	var formOutput strings.Builder
 
-	b.WriteRune('\n')
-	b.WriteString(fmt.Sprintf("Set preferences for %s:\n", m.title))
-	b.WriteRune('\n')
-	b.WriteRune('\n')
+	formOutput.WriteRune('\n')
+	formOutput.WriteString(fmt.Sprintf("Set preferences for %s:\n", m.title))
+	formOutput.WriteRune('\n')
+	formOutput.WriteRune('\n')
 
 	for i := range m.inputs {
-		b.WriteString(m.inputs[i].View())
+		formOutput.WriteString(m.inputs[i].View())
 		if i < len(m.inputs)-1 {
-			b.WriteRune('\n')
+			formOutput.WriteRune('\n')
 		}
 	}
 
@@ -149,29 +159,31 @@ func (m model) View() string {
 	if m.focusIndex == len(m.inputs) {
 		button = &focusedButton
 	}
-	fmt.Fprintf(&b, "\n\n%s\n\n", *button)
 
-	b.WriteString(helpStyle.Render("cursor mode is "))
-	b.WriteString(cursorModeHelpStyle.Render(m.cursorMode.String()))
-	b.WriteString(helpStyle.Render(" (ctrl+r to change style)"))
+	fmt.Fprintf(&formOutput, "\n\n%s\n\n", *button)
 
-	return b.String()
+	formOutput.WriteString(helpStyle.Render("cursor mode is "))
+	formOutput.WriteString(cursorModeHelpStyle.Render(m.cursorMode.String()))
+	formOutput.WriteString(helpStyle.Render(" (ctrl+r to change style)"))
+
+	return formOutput.String()
 }
 
+//nolint:exhaustruct
 func newPreferencesForm(title string, prefs *preferences.Preferences) *model {
 	model := &model{title: title, keys: prefs.Keys()}
 
 	model.inputs = make([]textinput.Model, len(model.keys))
 
-	for i := range model.inputs {
-		t := textinput.New()
-		t.Cursor.Style = cursorStyle
-		t.CharLimit = 32
-		t.Placeholder = prefs.GetString(model.keys[i])
-		t.PromptStyle = focusedStyle
-		t.Prompt = model.keys[i] + " > "
-		t.TextStyle = focusedStyle
-		model.inputs[i] = t
+	for idx := range model.inputs {
+		text := textinput.New()
+		text.Cursor.Style = cursorStyle
+		text.CharLimit = 32
+		text.Placeholder = prefs.GetString(model.keys[idx])
+		text.PromptStyle = focusedStyle
+		text.Prompt = model.keys[idx] + " > "
+		text.TextStyle = focusedStyle
+		model.inputs[idx] = text
 	}
 
 	return model
