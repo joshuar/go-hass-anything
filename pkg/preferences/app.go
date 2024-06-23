@@ -37,12 +37,11 @@ func (p *Preferences) SaveApp(app string) error {
 
 func LoadApp(app string) (*Preferences, error) {
 	k := koanf.New(".")
+	prefs := &Preferences{data: k}
 	// Load config from file.
 	if err := k.Load(file.Provider(findAppPreferences(app)), toml.Parser()); err != nil {
-		return nil, fmt.Errorf("error loading config file: %w", err)
+		return prefs, fmt.Errorf("error loading config file: %w", err)
 	}
-
-	prefs := &Preferences{data: k}
 
 	return prefs, nil
 }

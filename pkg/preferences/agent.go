@@ -6,6 +6,7 @@
 package preferences
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -85,9 +86,12 @@ func (p *Preferences) Save() error {
 }
 
 func Load() (*Preferences, error) {
+	if err := checkPath(preferencesDir); err != nil {
+		return nil, fmt.Errorf("could not create new preferences directory: %w", err)
+	}
 	k := koanf.New(".")
 	// Load config from file.
-	if err := k.Load(file.Provider(findPreferences()), toml.Parser()); err != nil {
+	if err := k.Load(file.Provider(findPreferences()), toml.Parser()); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return nil, fmt.Errorf("error loading config file: %w", err)
 	}
 
@@ -113,6 +117,30 @@ func Load() (*Preferences, error) {
 			slog.Error("Could not set a default topic prefix", "error", err.Error())
 		}
 	}
+	// Create user preference.
+	if prefs.GetString(PrefUser) == "" {
+		if err := prefs.Set(PrefUser, ""); err != nil {
+			slog.Error("Could not create user preference", "error", err.Error())
+		}
+	}
+	// Create password preference.
+	if prefs.GetString(PrefPassword) == "" {
+		if err := prefs.Set(PrefPassword, ""); err != nil {
+			slog.Error("Could not create password preference", "error", err.Error())
+		}
+	}
 
 	return prefs, nil
+}
+
+func checkPath(path string) error {
+	_, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		err := os.MkdirAll(path, os.ModePerm)
+		if err != nil {
+			return fmt.Errorf("unable to create new directory: %w", err)
+		}
+	}
+
+	return nil
 }

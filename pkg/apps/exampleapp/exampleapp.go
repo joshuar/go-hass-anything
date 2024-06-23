@@ -63,20 +63,8 @@ func New(_ context.Context) (*ExampleApp, error) {
 		return nil, fmt.Errorf("could not load %s preferences: %w", app.Name(), err)
 	}
 
-	// If there isn't already a weather provider configured, set the default one.
-	if url := prefs.GetString(weatherURLpref); url == "" {
-		if err := prefs.Set(weatherURLpref, weatherURL); err != nil {
-			return nil, fmt.Errorf("could not set default weather url: %w", err)
-		}
-		log.Info().Str("app", app.Name()).Msgf("Set default weather service to %s", weatherURL)
-	}
-
-	// Save the preferences to disk.
-	if err := prefs.SaveApp(app.Name()); err != nil {
-		return nil, fmt.Errorf("could not save %s preferences: %w", app.Name(), err)
-	}
-
 	app.config = prefs
+
 	return app, nil
 }
 
@@ -339,6 +327,18 @@ func (a *ExampleApp) MsgCh() chan *mqttapi.Msg {
 }
 
 func (a *ExampleApp) GetPreferences() *preferences.Preferences {
+	// If there isn't already a weather provider configured, set the default one.
+	if a.config.GetString(weatherURLpref) == "" {
+		if err := a.config.Set(weatherURLpref, weatherURL); err != nil {
+			log.Warn().Err(err).Msg("Could not set default weather url.")
+		}
+	}
+
+	// Save the preferences to disk.
+	if err := a.config.SaveApp(a.Name()); err != nil {
+		log.Warn().Err(err).Msg("Could not save default preferences.")
+	}
+
 	return a.config
 }
 
