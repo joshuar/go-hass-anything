@@ -19,12 +19,16 @@ type Msg struct {
 // retained on the MQTT bus when sent.
 func (m *Msg) Retain() *Msg {
 	m.Retained = true
+
 	return m
 }
 
 // NewMsg is a convenience function to create a new Msg with a given topic and
 // message body. The returned Msg can be further customised directly for
-// specifying retention and QoS parameters.
+// specifying retention and QoS parameters, which are not set through this
+// function and assumed to be left as their default values.
+//
+//nolint:exhaustruct
 func NewMsg(topic string, msg json.RawMessage) *Msg {
 	return &Msg{
 		Topic:   topic,
