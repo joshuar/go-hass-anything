@@ -120,5 +120,6 @@ func ContextGetClient(ctx context.Context) (*resty.Client, bool) {
 	if !ok {
 		return nil, false
 	}
+
 	return client, true
 }
