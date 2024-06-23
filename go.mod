@@ -6,7 +6,7 @@ require (
 	github.com/charmbracelet/lipgloss v0.11.0
 	github.com/pelletier/go-toml v1.9.5
 	github.com/rs/zerolog v1.33.0
-	github.com/spf13/cobra v1.8.0
+	github.com/spf13/cobra v1.8.1
 )
 
 require (
@@ -48,7 +48,6 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/shirou/gopsutil/v3 v3.24.4
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/yassinebenaid/godump v0.8.0
 	golang.org/x/exp v0.0.0-20240416160154-fe59bbe5cc7f
 	golang.org/x/net v0.25.0 // indirect
 	golang.org/x/sys v0.20.0 // indirect
