@@ -59,17 +59,17 @@ type Client struct {
 
 // Publish will send the list of messages it is passed to the broker that the
 // client is connected to. Any errors in publihsing will be returned.
-func (c *Client) Publish(msgs ...*Msg) error {
+func (c *Client) Publish(ctx context.Context, msgs ...*Msg) error {
 	if c.conn == nil {
 		return ErrNoConnection
 	}
 
-	err := publish(c.conn, msgs...)
+	err := publish(ctx, c.conn, msgs...)
 
 	return err
 }
 
-func (c *Client) Unpublish(msgs ...*Msg) error {
+func (c *Client) Unpublish(ctx context.Context, msgs ...*Msg) error {
 	if c.conn == nil {
 		return ErrNoConnection
 	}
@@ -80,7 +80,7 @@ func (c *Client) Unpublish(msgs ...*Msg) error {
 		newMsgs = append(newMsgs, NewMsg(msg.Topic, []byte(``)))
 	}
 
-	err := publish(c.conn, newMsgs...)
+	err := publish(ctx, c.conn, newMsgs...)
 
 	return err
 }
@@ -127,7 +127,7 @@ func NewClient(ctx context.Context, prefs MQTTPrefs, subscriptions []*Subscripti
 
 	client.conn = conn
 
-	if err := client.Publish(configs...); err != nil {
+	if err := client.Publish(ctx, configs...); err != nil {
 		log.Error().Err(err).Msg("Failed to publish configuration messages.")
 	}
 
@@ -204,13 +204,13 @@ func genConnOpts(ctx context.Context, prefs MQTTPrefs, subOpts []paho.SubscribeO
 }
 
 //nolint:exhaustruct
-func publish(conn *autopaho.ConnectionManager, msgs ...*Msg) error {
+func publish(ctx context.Context, conn *autopaho.ConnectionManager, msgs ...*Msg) error {
 	var errs error
 
 	for _, msg := range msgs {
 		log.Trace().Str("topic", msg.Topic).Bool("retain", msg.Retained).RawJSON("payload", msg.Message).Msg("Publishing message.")
 		// Publish a test message (use PublishViaQueue if you don't want to wait for a response)
-		if _, err := conn.Publish(context.TODO(), &paho.Publish{
+		if _, err := conn.Publish(ctx, &paho.Publish{
 			QoS:     1,
 			Topic:   msg.Topic,
 			Payload: []byte(msg.Message),
@@ -230,7 +230,8 @@ func (c *Client) monitorHAStatus(ctx context.Context, configs ...*Msg) {
 				switch status {
 				case "online":
 					log.Debug().Msg("Home Assistant online.")
-					if err := c.Publish(configs...); err != nil {
+
+					if err := c.Publish(ctx, configs...); err != nil {
 						log.Warn().Err(err).Msg("Could not publish configs.")
 					}
 				case "offline":

@@ -192,7 +192,8 @@ func ClearApps(ctx context.Context) {
 
 	for _, app := range AppList {
 		log.Debug().Str("app", app.Name()).Msg("Removing configuration for app.")
-		if err := client.Unpublish(app.Configuration()...); err != nil {
+
+		if err := client.Unpublish(ctx, app.Configuration()...); err != nil {
 			log.Error().Err(err).Str("app", app.Name()).Msg("Could not remove configuration for app.")
 
 			continue
@@ -206,12 +207,13 @@ func runApps(ctx context.Context, client *mqtt.Client, apps []App) {
 	for _, app := range apps {
 		log.Debug().Str("app", app.Name()).Msg("Running app.")
 		wg.Add(1)
-		go func(a App) {
+
+		go func(runningApp App) {
 			defer wg.Done()
 
-			if app, ok := a.(PollingApp); ok {
+			if app, ok := runningApp.(PollingApp); ok {
 				interval, jitter := app.PollConfig()
-				log.Info().Dur("interval", interval).Str("app", a.Name()).Msg("Running loop to poll app updates.")
+				log.Info().Dur("interval", interval).Str("app", runningApp.Name()).Msg("Running loop to poll app updates.")
 				wg.Add(1)
 
 				go func() {
@@ -219,8 +221,8 @@ func runApps(ctx context.Context, client *mqtt.Client, apps []App) {
 					poll(
 						ctx,
 						func() {
-							updateApp(ctx, a)
-							publishAppStates(a, client)
+							updateApp(ctx, runningApp)
+							publishAppStates(ctx, runningApp, client)
 						},
 						interval,
 						jitter,
@@ -228,19 +230,19 @@ func runApps(ctx context.Context, client *mqtt.Client, apps []App) {
 				}()
 			}
 
-			if app, ok := a.(EventsApp); ok {
-				updateApp(ctx, a)
+			if app, ok := runningApp.(EventsApp); ok {
+				updateApp(ctx, runningApp)
 				wg.Add(1)
 
 				go func() {
 					defer wg.Done()
-					log.Info().Str("app", a.Name()).Msg("Listening for message events from app to publish.")
+					log.Info().Str("app", runningApp.Name()).Msg("Listening for message events from app to publish.")
 
 					for {
 						select {
 						case msg := <-app.MsgCh():
-							if err := client.Publish(msg); err != nil {
-								log.Error().Err(err).Str("app", a.Name()).Msg("Failed to publish state messages.")
+							if err := client.Publish(ctx, msg); err != nil {
+								log.Error().Err(err).Str("app", runningApp.Name()).Msg("Failed to publish state messages.")
 							}
 						case <-ctx.Done():
 							return
@@ -262,10 +264,10 @@ func updateApp(ctx context.Context, app App) {
 	}
 }
 
-func publishAppStates(app App, client *mqtt.Client) {
+func publishAppStates(ctx context.Context, app App, client *mqtt.Client) {
 	log.Debug().Str("app", app.Name()).Msg("Publishing states.")
 
-	if err := client.Publish(app.States()...); err != nil {
+	if err := client.Publish(ctx, app.States()...); err != nil {
 		log.Error().Err(err).Str("app", app.Name()).Msg("Failed to publish state messages.")
 	}
 }
