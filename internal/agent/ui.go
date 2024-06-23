@@ -8,6 +8,7 @@
 package agent
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -32,15 +33,15 @@ var (
 	blurredButton = fmt.Sprintf("[ %s ]", blurredStyle.Render("Submit"))
 )
 
+var ErrInvalidPrefs = errors.New("invalid preferences")
+
 // Preferences represents preferences the user will need to set.
 type Preferences interface {
-	// Name is a name for this group of preferences. It could be an app name.
-	Name() string
-	// Preferences returns the current preferences of the app as a map[string]any
-	GetPreferences() *preferences.Preferences
-	// SetPreferences will set the given preferences for the app. It returns a
-	// non-nil error if there was a problem setting any preferences.
-	SetPreferences(prefs *preferences.Preferences) error
+	GetValue(key string) (any, bool)
+	SetValue(key string, value any) error
+	GetDescription(key string) string
+	IsSecret(key string) bool
+	Keys() []string
 }
 
 type model struct {
@@ -170,16 +171,29 @@ func (m model) View() string {
 }
 
 //nolint:exhaustruct
-func newPreferencesForm(title string, prefs *preferences.Preferences) *model {
-	model := &model{title: title, keys: prefs.Keys()}
+func newPreferencesForm(name string, prefs Preferences) *model {
+	model := &model{title: name, keys: prefs.Keys()}
 
 	model.inputs = make([]textinput.Model, len(model.keys))
 
 	for idx := range model.inputs {
 		text := textinput.New()
+		rawValue, found := prefs.GetValue(model.keys[idx])
+
+		if found {
+			switch value := rawValue.(type) {
+			case string:
+				text.SetValue(value)
+			case *preferences.Preference:
+				pref, ok := value.Value.(string)
+				if ok {
+					text.SetValue(pref)
+				}
+			}
+		}
+
 		text.Cursor.Style = cursorStyle
 		text.CharLimit = 32
-		text.Placeholder = prefs.GetString(model.keys[idx])
 		text.PromptStyle = focusedStyle
 		text.Prompt = model.keys[idx] + " > "
 		text.TextStyle = focusedStyle
@@ -189,21 +203,18 @@ func newPreferencesForm(title string, prefs *preferences.Preferences) *model {
 	return model
 }
 
-func ShowPreferences(app Preferences) error {
-	appPrefs := app.GetPreferences()
-	appModel := newPreferencesForm(app.Name(), appPrefs)
+func ShowPreferences(name string, prefs Preferences) error {
+	// fmt.Fprintln(os.Stdout, "data: %T", data)
+
+	appModel := newPreferencesForm(name, prefs)
 
 	if _, err := tea.NewProgram(appModel).Run(); err != nil {
 		return fmt.Errorf("could not load preferences: %w", err)
 	}
 
 	for i := 0; i <= len(appModel.inputs)-1; i++ {
-		if err := appPrefs.Set(appModel.keys[i], appModel.inputs[i].Value()); err != nil {
-			log.Warn().Err(err).Str("app", app.Name()).Str("preference", appModel.keys[i]).Msg("Could not save app preference.")
-		}
-
-		if err := app.SetPreferences(appPrefs); err != nil {
-			return fmt.Errorf("could not save preferences: %w", err)
+		if err := prefs.SetValue(appModel.keys[i], appModel.inputs[i].Value()); err != nil {
+			log.Warn().Err(err).Str("app", name).Str("preference", appModel.keys[i]).Msg("Could not save app preference.")
 		}
 	}
 

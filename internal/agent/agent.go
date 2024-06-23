@@ -21,9 +21,9 @@ var (
 	AppList []App
 )
 
+// Agent is a structure holding the internal agent data.
 type Agent struct {
 	done    chan struct{}
-	prefs   *preferences.Preferences
 	id      string
 	name    string
 	version string
@@ -49,6 +49,17 @@ type App interface {
 	// It may be run multiple times, if the app is also considered a polling
 	// app. See the definition for PollingApp for details.
 	Update(ctx context.Context) error
+}
+
+// AppWithPreferences represents an app that has preferences that can be
+// configured by the user.
+type AppWithPreferences interface {
+	App
+	// Preferences returns the AppPreferences map of preferences for the app.
+	// This is passed to the UI code to facilitate generating a form to enter
+	// the preferences when the agent runs its configure command. If the
+	// preferences cannot be returned, a non-nil error will be returned.
+	Preferences() (preferences.AppPreferences, error)
 }
 
 // PollingApp represents an app that should be polled for updates on some
@@ -79,13 +90,6 @@ func NewAgent(id, name string) *Agent {
 		name: name,
 	}
 
-	prefs, err := preferences.Load()
-	if err != nil {
-		log.Warn().Err(err).Msg("Could not fetch agent preferences.")
-	}
-
-	agent.prefs = prefs
-
 	return agent
 }
 
@@ -109,33 +113,45 @@ func (a *Agent) Name() string {
 	return a.name
 }
 
-// GetPreferences returns the agent preferences.
-func (a *Agent) GetPreferences() *preferences.Preferences {
-	return a.prefs
-}
-
-// SetPreferences sets the agent preferences to the given preferences. If the
-// preferences cannot be saved, a non-nil error is returned.
-func (a *Agent) SetPreferences(prefs *preferences.Preferences) error {
-	a.prefs = prefs
-
-	return a.prefs.Save()
-}
-
 // Configure will start a terminal UI to adjust agent preferences and likewise for any
 // apps that have user-configurable preferences.
 func (a *Agent) Configure() {
+	// Get the agent preferences.
+	prefs, err := preferences.Load()
+	if err != nil {
+		log.Warn().Err(err).Msg("Could not load agent preferences.")
+	}
 	// Show a terminal UI to configure the agent preferences.
-	if err := ShowPreferences(a); err != nil {
-		log.Warn().Err(err).Msg("Problem occurred configuring agent.")
+	if err := ShowPreferences(a.AppName(), prefs); err != nil {
+		log.Warn().Err(err).Msg("Could not display agent preferences.")
+	}
+	// Save agent preferences.
+	if err := preferences.Save(prefs); err != nil {
+		log.Warn().Err(err).Msg("Could not save agent preferences.")
 	}
 	// For any apps that satisfy the Preferences interface, meaning they have
 	// configurable preferences, show a terminal UI to configure them.
-	for _, app := range AppList {
-		if prefs, ok := app.(Preferences); ok {
-			if err := ShowPreferences(prefs); err != nil {
-				log.Warn().Err(err).Str("app", prefs.Name()).Msg("Problem occurred configuring app.")
-			}
+	for _, a := range AppList {
+		log.Debug().Str("app", a.Name()).Msg("Checking and configuring app preferences.")
+
+		app, ok := a.(AppWithPreferences)
+		if !ok {
+			continue
+		}
+
+		appPrefs, err := preferences.LoadApp(app.Name())
+		if err != nil {
+			log.Warn().Err(err).Str("app", app.Name()).Msg("Could not configure app.")
+
+			continue
+		}
+
+		if err := ShowPreferences(app.Name(), appPrefs); err != nil {
+			log.Warn().Err(err).Str("app", app.Name()).Msg("Problem occurred configuring app.")
+		}
+
+		if err := preferences.SaveApp(app.Name(), appPrefs); err != nil {
+			log.Warn().Err(err).Str("app", app.Name()).Msg("Could not save app preferences.")
 		}
 	}
 }
@@ -145,14 +161,14 @@ func Run(ctx context.Context) {
 
 	var configs []*mqtt.Msg
 
-	for _, app := range AppList {
-		configs = append(configs, app.Configuration()...)
-		subscriptions = append(subscriptions, app.Subscriptions()...)
-	}
-
 	prefs, err := preferences.Load()
 	if err != nil {
 		log.Fatal().Err(err).Msg("Could not load preferences.")
+	}
+
+	for _, app := range AppList {
+		configs = append(configs, app.Configuration()...)
+		subscriptions = append(subscriptions, app.Subscriptions()...)
 	}
 
 	client, err := mqtt.NewClient(ctx, prefs, subscriptions, configs)

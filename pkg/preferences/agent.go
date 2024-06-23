@@ -3,30 +3,22 @@
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
+//revive:disable:unused-receiver
 package preferences
 
 import (
-	"errors"
 	"fmt"
-	"log/slog"
 	"os"
 	"path/filepath"
-	"strings"
 
-	"github.com/knadh/koanf/parsers/toml"
-	"github.com/knadh/koanf/providers/env"
-	"github.com/knadh/koanf/providers/file"
-	"github.com/knadh/koanf/v2"
+	"github.com/pelletier/go-toml"
 )
 
-// envPrefix is used to find preferences set in the environment.
-const envPrefix = "GOHASSANYTHING_"
-
 const (
-	PrefServer      = "mqttserver"
-	PrefUser        = "mqttuser"
-	PrefPassword    = "mqttpassword"
-	PrefTopicPrefix = "topicprefix"
+	PrefServer      = "mqtt.server"
+	PrefUser        = "mqtt.user"
+	PrefPassword    = "mqtt.password"
+	PrefTopicPrefix = "mqtt.topicprefix"
 )
 
 var (
@@ -42,105 +34,157 @@ var (
 	defaultTopicPrefix = "homeassistant"
 )
 
-//nolint:unused // these are reserved for future use
-var (
-	gitVersion, gitCommit, gitTreeState, buildDate string
-	AppVersion                                     = gitVersion
-)
-
-type Preferences struct {
-	data *koanf.Koanf
+type AgentPreferences struct {
+	MQTTServer      *Preference `toml:"mqtt.server"`
+	MQTTUser        *Preference `toml:"mqtt.user,omitempty"`
+	MQTTPassword    *Preference `toml:"mqtt.password,omitempty"`
+	MQTTTopicPrefix *Preference `toml:"mqtt.topicprefix"`
 }
 
-func findPreferences() string {
+func (p *AgentPreferences) TopicPrefix() string {
+	if pref, ok := p.MQTTTopicPrefix.Value.(string); ok {
+		return pref
+	}
+
+	return ""
+}
+
+func (p *AgentPreferences) Server() string {
+	if pref, ok := p.MQTTServer.Value.(string); ok {
+		return pref
+	}
+
+	return ""
+}
+
+func (p *AgentPreferences) User() string {
+	if pref, ok := p.MQTTUser.Value.(string); ok {
+		return pref
+	}
+
+	return ""
+}
+
+func (p *AgentPreferences) Password() string {
+	if pref, ok := p.MQTTPassword.Value.(string); ok {
+		return pref
+	}
+
+	return ""
+}
+
+// findAgentPreferences returns the file path to the file for the agent
+// preferences.
+func findAgentPreferences() string {
 	return filepath.Join(preferencesDir, preferencesFile)
 }
 
-func (p *Preferences) GetString(key string) string {
-	return p.data.String(key)
+func (p *AgentPreferences) Keys() []string {
+	return []string{PrefServer, PrefUser, PrefPassword, PrefTopicPrefix}
 }
 
-func (p *Preferences) GetInt(key string) int {
-	return p.data.Int(key)
+func (p *AgentPreferences) GetValue(key string) (value any, found bool) {
+	pref := p.getPref(key)
+	if pref == nil {
+		return nil, false
+	}
+
+	return p.getPref(key).Value, true
 }
 
-func (p *Preferences) Set(key string, value any) error {
-	return p.data.Set(key, value)
+func (p *AgentPreferences) GetDescription(key string) string {
+	return p.getPref(key).Description
 }
 
-func (p *Preferences) Keys() []string {
-	return p.data.Keys()
+func (p *AgentPreferences) IsSecret(key string) bool {
+	return p.getPref(key).Secret
 }
 
-func (p *Preferences) Save() error {
-	data, err := p.data.Marshal(toml.Parser())
+func (p *AgentPreferences) SetValue(key string, value any) error {
+	switch key {
+	case PrefServer:
+		p.MQTTServer.Value = value
+	case PrefUser:
+		p.MQTTUser.Value = value
+	case PrefPassword:
+		p.MQTTPassword.Value = value
+	case PrefTopicPrefix:
+		p.MQTTTopicPrefix.Value = value
+	default:
+		return ErrUnknownPref
+	}
+
+	return nil
+}
+
+//nolint:mnd
+func Save(prefs any) error {
+	data, err := toml.Marshal(prefs)
 	if err != nil {
 		return fmt.Errorf("could not marshal config: %w", err)
 	}
 
-	if err := os.WriteFile(findPreferences(), data, 0o600); err != nil {
+	if err := os.WriteFile(findAgentPreferences(), data, 0o600); err != nil {
 		return fmt.Errorf("could not write config file: %w", err)
 	}
 
 	return nil
 }
 
-func Load() (*Preferences, error) {
+//nolint:exhaustruct
+func Load() (*AgentPreferences, error) {
 	if err := checkPath(preferencesDir); err != nil {
 		return nil, fmt.Errorf("could not create new preferences directory: %w", err)
 	}
-	k := koanf.New(".")
-	// Load config from file.
-	if err := k.Load(file.Provider(findPreferences()), toml.Parser()); err != nil && !errors.Is(err, os.ErrNotExist) {
-		return nil, fmt.Errorf("error loading config file: %w", err)
+
+	data, err := os.ReadFile(findAgentPreferences())
+	if err != nil {
+		return defaultAgentPrefs(), fmt.Errorf("could not read agent preferences file: %w, using defaults", err)
 	}
 
-	// Merge environment variables with config.
-	if err := k.Load(env.Provider(envPrefix, ".", func(s string) string {
-		return strings.Replace(strings.ToLower(
-			strings.TrimPrefix(s, envPrefix)), "_", ".", -1)
-	}), nil); err != nil {
-		return nil, fmt.Errorf("error merging file and environment: %w", err)
-	}
+	prefs := &AgentPreferences{}
 
-	prefs := &Preferences{data: k}
-
-	// Set a default server if it is not set.
-	if prefs.GetString(PrefServer) == "" {
-		if err := prefs.Set(PrefServer, defaultServer); err != nil {
-			slog.Error("Could not set a default server", "error", err.Error())
-		}
-	}
-	// Set a default topic prefix if it is not set.
-	if prefs.GetString(PrefTopicPrefix) == "" {
-		if err := prefs.Set(PrefTopicPrefix, defaultTopicPrefix); err != nil {
-			slog.Error("Could not set a default topic prefix", "error", err.Error())
-		}
-	}
-	// Create user preference.
-	if prefs.GetString(PrefUser) == "" {
-		if err := prefs.Set(PrefUser, ""); err != nil {
-			slog.Error("Could not create user preference", "error", err.Error())
-		}
-	}
-	// Create password preference.
-	if prefs.GetString(PrefPassword) == "" {
-		if err := prefs.Set(PrefPassword, ""); err != nil {
-			slog.Error("Could not create password preference", "error", err.Error())
-		}
+	if err := toml.Unmarshal(data, prefs); err != nil {
+		return defaultAgentPrefs(), fmt.Errorf("could not parse agent preferences file: %w, using defaults", err)
 	}
 
 	return prefs, nil
 }
 
-func checkPath(path string) error {
-	_, err := os.Stat(path)
-	if os.IsNotExist(err) {
-		err := os.MkdirAll(path, os.ModePerm)
-		if err != nil {
-			return fmt.Errorf("unable to create new directory: %w", err)
-		}
+func (p *AgentPreferences) getPref(key string) *Preference {
+	switch key {
+	case PrefServer:
+		return p.MQTTServer
+	case PrefUser:
+		return p.MQTTUser
+	case PrefPassword:
+		return p.MQTTPassword
+	case PrefTopicPrefix:
+		return p.MQTTTopicPrefix
+	default:
+		return nil
 	}
+}
 
-	return nil
+//nolint:exhaustruct
+func defaultAgentPrefs() *AgentPreferences {
+	return &AgentPreferences{
+		MQTTServer: &Preference{
+			Value:       defaultServer,
+			Description: "The MQTT server (in tcp://some.host:port format).",
+		},
+		MQTTTopicPrefix: &Preference{
+			Value:       defaultTopicPrefix,
+			Description: "The MQTT topic prefix.",
+		},
+		MQTTUser: &Preference{
+			Value:       "",
+			Description: "The username required to authenticate with the MQTT server.",
+		},
+		MQTTPassword: &Preference{
+			Value:       "",
+			Description: "The password required to authenticate with the MQTT server.",
+			Secret:      true,
+		},
+	}
 }

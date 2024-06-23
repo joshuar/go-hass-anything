@@ -31,11 +31,30 @@ const (
 	appID          = "example_app"
 	weatherURL     = "http://wttr.in/?format=j1"
 	weatherURLpref = "weatherURL"
+	pollInterval   = time.Minute
+	pollJitter     = 5 * time.Second
 )
+
+var (
+	ErrUnknownRequest     = errors.New("did not understand request")
+	ErrFetchWeatherFailed = errors.New("could not get weather data")
+	ErrFetchLoadFailed    = errors.New("could not get load averages")
+)
+
+func defaultPreferences() preferences.AppPreferences {
+	prefs := make(preferences.AppPreferences)
+	prefs[weatherURLpref] = &preferences.Preference{
+		Value:       weatherURL,
+		Description: "The URL for the weather service to use for fetching the weather.",
+		Secret:      false,
+	}
+
+	return prefs
+}
 
 type ExampleApp struct {
 	loadData      *load.AvgStat
-	config        *preferences.Preferences
+	prefs         preferences.AppPreferences
 	weatherEntity *mqtthass.SensorEntity
 	buttonEntity  *mqtthass.ButtonEntity
 	numberEntity  *mqtthass.NumberEntity[int]
@@ -48,24 +67,49 @@ type ExampleApp struct {
 }
 
 // New sets up our example app. We make use of the preference loading/saving in
-// the agent to provide a file for our app preferences at
-// ~/.config/go-hass-anything/exampleApp-preferences.toml. We can store whatever
-// preferences our app needs in this file by providing a map[string]any that
-// maps preferences to values.
+// the agent to handle our preferences.
+//
+//nolint:exhaustruct
 func New(_ context.Context) (*ExampleApp, error) {
 	app := &ExampleApp{
 		msgCh: make(chan *mqttapi.Msg),
 	}
 
-	// Load the preferences from disk.
-	prefs, err := preferences.LoadApp(app.Name())
-	if err != nil && !errors.Is(err, os.ErrNotExist) {
-		return nil, fmt.Errorf("could not load %s preferences: %w", app.Name(), err)
+	prefs, err := app.Preferences()
+	if err != nil {
+		return nil, fmt.Errorf("could not load preferences: %w", err)
 	}
 
-	app.config = prefs
+	app.prefs = prefs
 
 	return app, nil
+}
+
+// Preferences sets up and returns our app preferences. This will load our
+// preferences from disk. If no preferences file exists, default preferences
+// will be set (as would be the case on first run).
+func (a *ExampleApp) Preferences() (preferences.AppPreferences, error) {
+	// Load the preferences from disk.
+	prefs, err := preferences.LoadApp(a.Name())
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return nil, fmt.Errorf("could not load %s preferences: %w", a.Name(), err)
+	}
+
+	// If the preferences file does not exists, set up default preferences.
+	if errors.Is(err, os.ErrNotExist) {
+		// Save the newly created preferences to disk.
+		if err := preferences.SaveApp(a.Name(), defaultPreferences()); err != nil {
+			return nil, fmt.Errorf("could not save default preferences: %w", err)
+		}
+
+		return defaultPreferences(), nil
+	}
+
+	if len(prefs) == 0 {
+		return defaultPreferences(), nil
+	}
+
+	return prefs, nil
 }
 
 // In order to use the web.ExecuteRequest helper to fetch the weather, we need
@@ -73,32 +117,41 @@ func New(_ context.Context) (*ExampleApp, error) {
 // adding a URL() method that returns the URL to our weather provider, to our
 // app struct.
 func (a *ExampleApp) URL() string {
-	// we get the weather service URL from our app config. If we can't get the
-	// config value, we can't continue, so we exit with an error message.
-	var serviceURL string
-	if serviceURL = a.config.GetString(weatherURLpref); serviceURL == "" {
-		log.Warn().Msg("Could not retrieve weather service URL from config.")
+	// We get the weather service URL from our app preferences.
+	if serviceURL, ok := a.prefs[weatherURLpref].Value.(string); ok {
+		return serviceURL
 	}
+	// If we can't get the config value, log a warning and fall back to the
+	// default weather URL.
+	log.Warn().Msg("Could not retrieve weather service URL from preferences.")
 
-	return serviceURL
+	return weatherURL
 }
 
 // We also need a way to save the response of the web request, and we can do
 // this by satisfying the web.Response interface through adding a UnmarshalJSON
 // that will take the raw response JSON and save it into our app struct.
 func (a *ExampleApp) UnmarshalJSON(data []byte) error {
-	return json.Unmarshal(data, &a.weatherData)
+	if err := json.Unmarshal(data, &a.weatherData); err != nil {
+		return fmt.Errorf("could not parse web response: %w", err)
+	}
+
+	return nil
 }
 
 // getLoadAvgs fetches the load averages for the system running
 // go-hass-anything, using the very handy gopsutil package.
 func (a *ExampleApp) getLoadAvgs(ctx context.Context) error {
-	var l *load.AvgStat
+	var loadAvgStats *load.AvgStat
+
 	var err error
-	if l, err = load.AvgWithContext(ctx); err != nil {
-		return err
+
+	if loadAvgStats, err = load.AvgWithContext(ctx); err != nil {
+		return fmt.Errorf("unable to retrieve load averages: %w", err)
 	}
-	a.loadData = l
+
+	a.loadData = loadAvgStats
+
 	return nil
 }
 
@@ -113,7 +166,7 @@ func (a *ExampleApp) Name() string {
 // Configuration is called when our app is first registered in Home Assistant and
 // will return configuration messages for the data our app will send/receive.
 //
-//nolint:funlen
+//nolint:exhaustruct,funlen,mnd
 //revive:disable:function-length
 func (a *ExampleApp) Configuration() []*mqttapi.Msg {
 	var msgs []*mqttapi.Msg
@@ -171,6 +224,7 @@ func (a *ExampleApp) Configuration() []*mqttapi.Msg {
 		} else {
 			msgs = append(msgs, msg)
 		}
+
 		a.loadEntities = append(a.loadEntities, loadEntity)
 	}
 
@@ -237,8 +291,10 @@ func (a *ExampleApp) States() []*mqttapi.Msg {
 
 	// we retrieve our load avgs and reate msgs to publish to each of their
 	// state topics.
+	var loadState *mqttapi.Msg
+
 	for i, l := range []string{"1", "5", "15"} {
-		loadState, err := a.loadEntities[i].MarshalState(l)
+		loadState, err = a.loadEntities[i].MarshalState(l)
 		if err != nil {
 			log.Warn().Err(err).Msg("Unable to marshal load state to MQTT message.")
 		} else {
@@ -309,59 +365,52 @@ func (a *ExampleApp) Update(ctx context.Context) error {
 	// struct satisfies both the request and response interfaces this helper
 	// requires, we can pass it in.
 	if err := web.ExecuteRequest(ctx, a, a); err != nil {
-		errs = errors.Join(errs, errors.New("could not get weather data"))
+		errs = errors.Join(errs, ErrFetchWeatherFailed)
 	}
 	// get the load averages
 	if err := a.getLoadAvgs(ctx); err != nil {
-		errs = errors.Join(errs, errors.New("could not get load averages"))
+		errs = errors.Join(errs, ErrFetchLoadFailed)
 	}
+
 	return errs
 }
 
+// PollConfig defines our polling interval and jitter and instructs the agent to
+// fetch our state values on these.
 func (a *ExampleApp) PollConfig() (interval, jitter time.Duration) {
-	return time.Minute, time.Second * 5
+	return pollInterval, pollJitter
 }
 
+// MsgCh returns a channel through which we could pass any message to MQTT on
+// any kind of custom event trigger or other non time-based polling.
 func (a *ExampleApp) MsgCh() chan *mqttapi.Msg {
 	return a.msgCh
-}
-
-func (a *ExampleApp) GetPreferences() *preferences.Preferences {
-	// If there isn't already a weather provider configured, set the default one.
-	if a.config.GetString(weatherURLpref) == "" {
-		if err := a.config.Set(weatherURLpref, weatherURL); err != nil {
-			log.Warn().Err(err).Msg("Could not set default weather url.")
-		}
-	}
-
-	// Save the preferences to disk.
-	if err := a.config.SaveApp(a.Name()); err != nil {
-		log.Warn().Err(err).Msg("Could not save default preferences.")
-	}
-
-	return a.config
-}
-
-func (a *ExampleApp) SetPreferences(prefs *preferences.Preferences) error {
-	return prefs.SaveApp(a.Name())
 }
 
 // weatherStateCallback is called on the polling interval when we need to publish
 // the weather.
 func (a *ExampleApp) weatherStateCallback(_ ...any) (json.RawMessage, error) {
-	return json.Marshal(a.weatherData)
+	payload, err := json.Marshal(a.weatherData)
+	if err != nil {
+		return nil, fmt.Errorf("could not marshal weather data to state payload: %w", err)
+	}
+
+	return payload, nil
 }
 
 // loadStateCallback is called on the polling interval when we need to publish
 // the current load averages.
 func (a *ExampleApp) loadStateCallback(args ...any) (json.RawMessage, error) {
 	var value float64
+
 	var loadType string
+
 	var ok bool
 
 	if loadType, ok = args[0].(string); !ok {
-		return nil, errors.New("could not determine which load was requested")
+		return nil, ErrUnknownRequest
 	}
+
 	switch loadType {
 	case "1":
 		value = a.loadData.Load1
@@ -370,6 +419,7 @@ func (a *ExampleApp) loadStateCallback(args ...any) (json.RawMessage, error) {
 	case "15":
 		value = a.loadData.Load15
 	}
+
 	return json.RawMessage(strconv.FormatFloat(value, 'f', -1, 64)), nil
 }
 
@@ -379,8 +429,8 @@ func (a *ExampleApp) loadStateCallback(args ...any) (json.RawMessage, error) {
 // once and/or react based on the response data we got (the MQTT.Message
 // parameter).
 func buttonCommandCallback(_ *paho.Publish) {
-	log.Info().Msg("Button was pressed.")
-	log.Info().Msg("Opening Home Assistant homepage.")
+	log.Info().Msg("Button was pressed. Opening the Home Assistant homepage.")
+
 	if err := exec.Command("xdg-open", "https://home-assistant.io").Run(); err != nil {
 		log.Warn().Err(err).Msg("Could not execute xdg-open.")
 	}
@@ -423,9 +473,11 @@ func (a *ExampleApp) switchCommandCallback(p *paho.Publish) {
 	switch state {
 	case "ON":
 		log.Info().Msg("Switch was turned on.")
+
 		a.switchState = true
 	case "OFF":
 		log.Info().Msg("Switch was turned off.")
+
 		a.switchState = false
 	}
 	// Publish a message with the new state.
