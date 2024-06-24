@@ -39,7 +39,6 @@
 
 <br />
 
-<!-- Table of Contents -->
 # 📓 Table of Contents
 
 - [📓 Table of Contents](#-table-of-contents)
@@ -56,7 +55,16 @@
       - [🔧 Configuration](#-configuration)
       - [👀 Usage](#-usage)
       - [♻️ Reset](#️-reset)
+  - [💻 Development](#-development)
+    - [💽 Building Apps](#-building-apps)
+      - [Code Location](#code-location)
+    - [App Requirements](#app-requirements)
+    - [Poll based Apps](#poll-based-apps)
+    - [Event based Apps](#event-based-apps)
+    - [(Optional) App Configuration](#optional-app-configuration)
+    - [Adding to the agent](#adding-to-the-agent)
   - [👋 Contributing](#-contributing)
+    - [🏁 Committing Code](#-committing-code)
     - [📜 Code of Conduct](#-code-of-conduct)
   - [⚠️ License](#️-license)
   - [🤝 Contact](#-contact)
@@ -93,7 +101,6 @@ will manage any apps you write.
   </ul>
 </details>
 
-<!-- Features -->
 ### 🎯 Features
 
 - Write self-contained “apps” in Go that are run by the agent.
@@ -145,12 +152,18 @@ testing. They should be started automatically.
 - Home Assistant will be listening on <http://localhost:8123>.
 - Mosquitto will be listening on <http://localhost:1833>.
 
+An example configuration for Mosquitto has been provided in
+`deployments/mosquitto/config/mosquitto.conf.example`.
+
+The Mosquitto command-line utilities (`mosquitto_{pub,sub}`) are installed in
+the devcontainer.
+
 ### ⚙️ Building
 
 > [!NOTE]
 > If you have not yet created an app, Go Hass Anything will build with
-> an included example app. See the app creation instructions below for details
-> on creating and including your own apps.
+> an included example app. See the [app creation instructions](#-building-apps)
+> below for details on creating and including your own apps.
 
 Use the following mage invocation in the project root directory:
 
@@ -193,7 +206,6 @@ Pre-built containers that can run a demo app can be found on the
 [packages](https://github.com/joshuar/go-hass-anything/pkgs/container/go-hass-anything)
 page on GitHub.
 
-<!-- Run Locally -->
 ### 🏃 Running
 
 #### 🔧 Configuration
@@ -242,7 +254,199 @@ After this, there should be no devices (from Go Hass Anything) and associated
 entities in Home Assistant. If you want to re-add them, execute the run
 command again.
 
-<!-- Contributing -->
+## 💻 Development
+
+### 💽 Building Apps
+
+> [!NOTE]
+> Check out the [example app](./pkg/apps/exampleapp/) which demonstrates:
+>
+> - How to get data from the system running Go Hass anything using an external
+>   Go package.
+> - How to get data from the web using a helper function to issue web requests.
+> - How to create different types of controls in Home Assistant.
+>
+> The code has lots of comments for guidance. It can also be heavily optimised
+> from its current state and so is a good starting point for practising Go as
+> well.
+
+#### Code Location
+
+> [!IMPORTANT]
+> The app directory is not committed to version control. This allows your apps to
+> remain private. But it also means that if you desire version control of your
+> apps, you should set up your own repo for them.
+
+You can put your code in `apps/`. You can create multiple
+directories for each app you develop.
+
+> [!NOTE]
+> The filename is important. The generator to automatically add your app
+> to the agent needs a `.go` file named the same as the app directory to detect
+> your app. Make sure you at least have this file if you split your app code
+> into multiple files.
+
+### App Requirements
+
+To develop an app to be run by the agent, create a concrete type that satisfies
+the `agent.App` interface:
+
+```go
+// App represents an app that the agent can run. All apps have the following
+// methods, which define how the app should be configured, current states of its
+// entities and any subscriptions it wants to watch.
+type App interface {
+	// Name() is an identifier for the app, used for logging in the agent.
+	Name() string
+	// Configuration() returns the messages needed to tell Home Assistant how to
+	// configure the app and its entities.
+	Configuration() []*mqtt.Msg
+	// States() are the messages that reflect the app's current state of the
+	// entities of the app.
+	States() []*mqtt.Msg
+	// Subscriptions() are the topics on which the app wants to subscribe and
+	// execute a callback in response to a message on that topic.
+	Subscriptions() []*mqtt.Subscription
+	// Update() is a function that is run at least once by the agent and will
+	// usually contain the logic to update the states of all the apps entities.
+	// It may be run multiple times, if the app is also considered a polling
+	// app. See the definition for PollingApp for details.
+	Update(ctx context.Context) error
+}
+```
+
+- You don't need to worry about setting up a connection to MQTT, the agent will
+do that for you.
+- `Name()`: This should return the app name as a string. This is used for
+defining the app configuration file (if used) and in various places for display
+by the agent.
+- `Configuration() []*mqtt.Msg`: This function should return an array of
+`mqtt.Msg`, each message representing the configuration topics and details for
+the sensors provided by the app.
+- `States() []*mqtt.Msg`: This function should return an array of `mqtt.Msg`,
+each message representing a single state topic for a sensor provided by the app.
+- `Subscriptions []*mqtt.Subscription`: This function should return an array of
+`mqtt.Subscription`, each message representing a single subscription topic for
+which the app wants to listen on. Each of these subscriptions should have a
+callback function that is run when a message is received on the topic.
+- `Update(ctx context.Context) error`: This function will be called by the agent
+at least once. It can be used to update any app state before the agent publishes
+app state messages to MQTT. It should respect context cancellation and act
+appropriately on this signal.
+
+Create an exported function called `New` that is used to instantiate your app with the signature:
+
+```go
+func New(ctx context.Context) (*yourAppStruct, error)
+```
+
+This function should return your concrete type that satisfies the interface
+methods above, or an error if the app cannot be initialised. You can put
+whatever code you need in this function to set up your application (i.e.,
+reading from configs, setting up other connections, etc.). This will be called
+first by the agent to initialise your app.
+
+### Poll based Apps
+
+If the app should be run on some kind of interval, updating its state each time,
+it should have the following method:
+
+```go
+// PollingApp represents an app that should be polled for updates on some
+// interval. When an app satisfies this interface, the agent will configure a
+// goroutine to run the apps Update() function and publish its States().
+type PollingApp interface {
+	// PollConfig defines the interval on which the app should be polled and its
+	// states updated. A jitter should be defined, that is much less than the
+	// interval, to add a small variation to the interval to avoid any
+	// "thundering herd" problems.
+	PollConfig() (interval, jitter time.Duration)
+}
+```
+
+### Event based Apps
+
+If the app has its own event loop, and requires states to be published when
+certain events occur, it should have the following method:
+
+```go
+// EventsApp represents an app that will update its States() in response to some
+// event(s) it is monitoring. When an app satisfies this interface, the agent
+// will configure a goroutine to watch a channel of messages the app sends when
+// an event occurs, which will be published to MQTT.
+type EventsApp interface {
+	// MsgCh is a channel of messages that the app generates when some internal
+	// event occurs and a new message should be published to MQTT.
+	MsgCh() chan *mqtt.Msg
+}
+```
+
+In the app code (usually within `New()`), the app should create a `chan
+*mqtt.Msg`, returned by the method above. Any time a state update needs to be
+published, it can be sent through this channel and the agent will publish the
+message on MQTT.
+
+### (Optional) App Configuration
+
+If your app has user-facing configuration, the agent supports presenting these
+to the user when its configuration command is run. It will then create and
+utilise a per-app configuration stored in the users home directory
+(`~/.config/go-hass-anything/APPNAME-preferences.toml` on Linux).
+
+For your app to support this, make sure it satisfies the `AppWithPreferences`
+interface:
+
+```go
+// AppWithPreferences represents an app that has preferences that can be
+// configured by the user.
+type AppWithPreferences interface {
+	App
+	// Preferences returns the AppPreferences map of preferences for the app.
+	// This is passed to the UI code to facilitate generating a form to enter
+	// the preferences when the agent runs its configure command. If the
+	// preferences cannot be returned, a non-nil error will be returned.
+	Preferences() (preferences.AppPreferences, error)
+}
+```
+
+Each app preference can be represented as a `preference.Preference`:
+
+```go
+// Preference represents a single preference in a preferences file.
+type Preference struct {
+	// Value is the actual preference value.
+	Value any `toml:"value"`
+	// Description is a string that describes the preference, and may be used
+	// for display purposes.
+	Description string `toml:"description,omitempty"`
+	// Secret is a flag that indicates whether this preference represents a
+	// secret. The value has no effect on the preference encoding in the TOML,
+	// only on how to display the preference to the user (masked or plaintext).
+	Secret bool `toml:"-"`
+}
+```
+
+The agent takes care of loading and saving the configuration. Generally, your `Preferences()` function should:
+
+- Use `preferences.LoadApp()` to fetch your app configuration from disk and return.
+- If this is the first time the app is run, generate default preferences and use
+  `preferences.SaveApp()` to write them to disk.
+
+See the example app for a typical content of the function.
+
+### Adding to the agent
+
+If you have followed the requirements above for both location and code
+functions, you can run `go generate ./...` in the repo root to add your app(s)
+to the agent. A new `internal/agent/init.go` file should be generated, which
+will contain the necessary code to run your apps to the agent.
+
+> [!IMPORTANT]
+> The file `internal/agent/init.go` is not committed to version control. Like
+> your app code, this allows your apps to remain private.
+
+After building the agent, it should run all of your apps.
+
 ## 👋 Contributing
 
 <a href="https://github.com/joshuar/go-hass-anything/graphs/contributors">
@@ -252,6 +456,19 @@ command again.
 Contributions are always welcome!
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for ways to get started.
+
+### 🏁 Committing Code
+
+This repository is using [conventional commit
+messages](https://www.conventionalcommits.org/en/v1.0.0/#summary). This provides
+the ability to automatically include relevant notes in the
+[changelog](./CHANGELOG.md). The [TL;DR](https://en.wikipedia.org/wiki/TL;DR) is
+when writing commit messages, add a prefix:
+
+- `feat:` for a new feature, like a new sensor.
+- `fix:` when fixing an issue.
+- `refactor:` when making non-visible but useful code changes.
+- …and so on. See the link above or see the existing commit messages for examples.
 
 ### 📜 Code of Conduct
 
