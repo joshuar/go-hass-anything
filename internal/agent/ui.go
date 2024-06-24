@@ -193,7 +193,7 @@ func newPreferencesForm(name string, prefs Preferences) *model {
 		}
 
 		text.Cursor.Style = cursorStyle
-		text.CharLimit = 32
+		text.CharLimit = 256
 		text.PromptStyle = focusedStyle
 		text.Prompt = model.keys[idx] + " > "
 		text.TextStyle = focusedStyle
