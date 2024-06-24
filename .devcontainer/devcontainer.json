@@ -23,7 +23,11 @@
                 "valentjn.vscode-ltex",
                 "tamasfe.even-better-toml",
                 "ms-azuretools.vscode-docker",
-                "github.vscode-github-actions"
+                "github.vscode-github-actions",
+                "yzhang.markdown-all-in-one",
+                "DavidAnson.vscode-markdownlint",
+                "bierner.markdown-emoji",
+                "shd101wyy.markdown-preview-enhanced"
             ],
             "settings": {
                 "terminal.integrated.defaultProfile.linux": "fish",
