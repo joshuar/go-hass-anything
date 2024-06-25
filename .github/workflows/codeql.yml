@@ -42,11 +42,15 @@ jobs:
       uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # v5
       with:
         go-version: ${{ env.GO_VERSION }}
-    - name: Install Go dependencies
-      id: install_go_deps
+    - name: Install Mage
+      uses: magefile/mage-action@6a5dcb5fe61f43d7c08a98bc3cf9bc63c308c08e # v3
+      with:
+        install-only: true
+    - name: Copy over example app
       run: |
-        go install golang.org/x/tools/cmd/stringer@latest
-        go install github.com/matryer/moq@latest     
+        mkdir apps && cp -a pkg/apps/exampleapp apps
+    - name: Run generators
+      run: mage ${MAGEARGS} preps:generate        
     - name: Initialize CodeQL
       uses: github/codeql-action/init@8f1a6fed33af5212fab8a999d004627ae8901d1b # v3
       with:
@@ -55,8 +59,6 @@ jobs:
         packs: githubsecuritylab/codeql-${{ matrix.language }}-queries        
     - name: Build agent
       run: |
-        mkdir apps && cp -a pkg/apps/exampleapp apps
-        go generate -v ./...
         go build -v
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@8f1a6fed33af5212fab8a999d004627ae8901d1b # v3
