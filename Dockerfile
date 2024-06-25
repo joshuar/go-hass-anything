@@ -3,28 +3,32 @@
 # This software is released under the MIT License.
 # https://opensource.org/licenses/MIT
 
-FROM golang:1.22 AS builder
+FROM golang@sha256:a8498215385dd85856145845f3caf34923fe5fbb11f3c7c1489ae43c4f263b20 AS builder
 
 ARG APPDIR=pkg/apps
 
 WORKDIR /usr/src/go-hass-anything
 
-# pre-copy/cache go.mod for pre-downloading dependencies and only redownloading them in subsequent builds if they change
-COPY go.mod go.sum ./
-RUN go mod download && go mod verify
-COPY . .
+# copy the src to the workdir
+ADD . .
 
 # copy the user-specified APPDIR to a location that will be picked up during build
 RUN rm -fr apps || exit 0
 COPY $APPDIR apps/
 
-RUN go install github.com/matryer/moq@latest
-RUN go install golang.org/x/tools/cmd/stringer@latest
-RUN go generate -v ./...
-RUN go build -v -o /go/bin/go-hass-anything
+# install mage
+RUN go install github.com/magefile/mage@v1.15.0
 
-FROM ubuntu
-COPY --from=builder /go/bin/go-hass-anything /usr/bin/go-hass-anything
+# build the binary
+RUN mage -v -d build/magefiles -w . build:full
+
+FROM ubuntu@sha256:d11b1797008f48495a888a087b273f6581daef886da9d0bda9023557eff4f070
+
+# import TARGETARCH
+ARG TARGETARCH
+
+# copy binary over from builder stage
+COPY --from=builder /usr/src/go-hass-anything/dist/go-hass-anything-$TARGETARCH /usr/bin/go-hass-anything
 
 ENTRYPOINT ["go-hass-anything"]
 CMD ["run"]
