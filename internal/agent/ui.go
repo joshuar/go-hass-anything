@@ -18,7 +18,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/rs/zerolog/log"
 
-	"github.com/joshuar/go-hass-anything/v9/pkg/preferences"
+	"github.com/joshuar/go-hass-anything/v10/pkg/preferences"
 )
 
 var (

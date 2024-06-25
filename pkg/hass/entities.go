@@ -20,7 +20,7 @@ import (
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 
-	mqttapi "github.com/joshuar/go-hass-anything/v9/pkg/mqtt"
+	mqttapi "github.com/joshuar/go-hass-anything/v10/pkg/mqtt"
 )
 
 // HomeAssistantTopic is the prefix applied to all entity topics by default.
