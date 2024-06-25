@@ -18,6 +18,7 @@
 !*.go
 !go.sum
 !go.mod
+!*.json
 
 !README.md
 !LICENSE
