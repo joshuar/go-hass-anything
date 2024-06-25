@@ -5,6 +5,9 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    commit-message:
+      prefix: "build(go): ⬆️"
+
 
   # Maintain dependencies for build tools
   # - package-ecosystem: "gomod"
@@ -17,3 +20,5 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    commit-message:
+      prefix: "ci(github): ⬆️"
