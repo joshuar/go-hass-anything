@@ -1,6 +1,6 @@
 <div align="center">
 
-  <img src="assets/logo.png" alt="logo" width="200" height="auto" />
+  <!-- <img src="assets/logo.png" alt="logo" width="200" height="auto" /> -->
   <h1>Go Hass Anything</h1>
 
   <p>
@@ -8,24 +8,24 @@
   </p>
 
 <p>
-  <a href="https://github.com/joshuar/go-hass-anything/graphs/contributors">
-    <img src="https://img.shields.io/github/contributors/joshuar/go-hass-anything" alt="contributors" />
-  </a>
-  <a href="">
-    <img src="https://img.shields.io/github/last-commit/joshuar/go-hass-anything" alt="last update" />
-  </a>
-  <a href="https://github.com/joshuar/go-hass-anything/network/members">
-    <img src="https://img.shields.io/github/forks/joshuar/go-hass-anything" alt="forks" />
-  </a>
-  <a href="https://github.com/joshuar/go-hass-anything/stargazers">
-    <img src="https://img.shields.io/github/stars/joshuar/go-hass-anything" alt="stars" />
-  </a>
-  <a href="https://github.com/joshuar/go-hass-anything/issues/">
-    <img src="https://img.shields.io/github/issues/joshuar/go-hass-anything" alt="open issues" />
-  </a>
-  <a href="https://github.com/joshuar/go-hass-anything/blob/master/LICENSE">
-    <img src="https://img.shields.io/github/license/joshuar/go-hass-anything.svg" alt="license" />
-  </a>
+<picture>
+ <img alt="Contributors Shield" src="https://img.shields.io/github/contributors/joshuar/go-hass-anything">
+</picture>
+<picture>
+ <img alt="Last Update Shield" src="https://img.shields.io/github/last-commit/joshuar/go-hass-anything">
+</picture>
+<picture>
+ <img alt="Forks Shield" src="https://img.shields.io/github/forks/joshuar/go-hass-anything">
+</picture>
+<picture>
+ <img alt="Stars Shield" src="https://img.shields.io/github/stars/joshuar/go-hass-anything">
+</picture>
+<picture>
+ <img alt="Open Issues Shield" src="https://img.shields.io/github/issues/joshuar/go-hass-anything">
+</picture>
+<picture>
+ <img alt="License Shield" src="https://img.shields.io/github/license/joshuar/go-hass-anything">
+</picture>
 </p>
 
 <h4>
@@ -117,6 +117,8 @@ will manage any apps you write.
   - [Number](https://www.home-assistant.io/integrations/number.mqtt/)
   - _With more to come!_
 - Simple TOML based configuration.
+- Compile all apps into a single binary. Container builds supported.
+- Runs anywhere that Go runs.
 
 ### 🗒️ Versioning
 
@@ -187,6 +189,15 @@ To see all possible build commands, run:
 mage -d build/magefiles -w . -l
 ```
 
+Cross compilation should work as per normal for Go. To build for a particular
+architecture, set the `TARGETARCH` environment variable to the equivalent
+`GOARCH` value when running the mage build command above:
+
+```shell
+# Set TARGETARCH as appropriate, i.e., amd64 or arm64 or arm 
+TARGETARCH=arm64 mage -d build/magefiles -w . build:full
+```
+
 ### 🚩 Deployment
 
 While Go Hass Anything can be run as a single binary, using a container is recommended. `podman` is the container engine of choice for deployment.
@@ -200,6 +211,17 @@ to this location:
 
 ```shell
 podman build --file ./Dockerfile --tag go-hass-anything --build-arg APPDIR=apps
+```
+
+[Cross
+compilation](https://docs.docker.com/build/guide/multi-platform/#build-using-cross-compilation)
+is supported. For example, to build for multiple architectures:
+
+```shell
+podman build --file ./Dockerfile \
+  --tag go-hass-anything \
+  --build-arg APPDIR=apps \
+  --platform=linux/arm64,linux/armv7,linux/amd64
 ```
 
 Pre-built containers that can run a demo app can be found on the
@@ -296,22 +318,22 @@ the `agent.App` interface:
 // methods, which define how the app should be configured, current states of its
 // entities and any subscriptions it wants to watch.
 type App interface {
-	// Name() is an identifier for the app, used for logging in the agent.
-	Name() string
-	// Configuration() returns the messages needed to tell Home Assistant how to
-	// configure the app and its entities.
-	Configuration() []*mqtt.Msg
-	// States() are the messages that reflect the app's current state of the
-	// entities of the app.
-	States() []*mqtt.Msg
-	// Subscriptions() are the topics on which the app wants to subscribe and
-	// execute a callback in response to a message on that topic.
-	Subscriptions() []*mqtt.Subscription
-	// Update() is a function that is run at least once by the agent and will
-	// usually contain the logic to update the states of all the apps entities.
-	// It may be run multiple times, if the app is also considered a polling
-	// app. See the definition for PollingApp for details.
-	Update(ctx context.Context) error
+  // Name() is an identifier for the app, used for logging in the agent.
+  Name() string
+  // Configuration() returns the messages needed to tell Home Assistant how to
+  // configure the app and its entities.
+  Configuration() []*mqtt.Msg
+  // States() are the messages that reflect the app's current state of the
+  // entities of the app.
+  States() []*mqtt.Msg
+  // Subscriptions() are the topics on which the app wants to subscribe and
+  // execute a callback in response to a message on that topic.
+  Subscriptions() []*mqtt.Subscription
+  // Update() is a function that is run at least once by the agent and will
+  // usually contain the logic to update the states of all the apps entities.
+  // It may be run multiple times, if the app is also considered a polling
+  // app. See the definition for PollingApp for details.
+  Update(ctx context.Context) error
 }
 ```
 
@@ -356,11 +378,11 @@ it should have the following method:
 // interval. When an app satisfies this interface, the agent will configure a
 // goroutine to run the apps Update() function and publish its States().
 type PollingApp interface {
-	// PollConfig defines the interval on which the app should be polled and its
-	// states updated. A jitter should be defined, that is much less than the
-	// interval, to add a small variation to the interval to avoid any
-	// "thundering herd" problems.
-	PollConfig() (interval, jitter time.Duration)
+  // PollConfig defines the interval on which the app should be polled and its
+  // states updated. A jitter should be defined, that is much less than the
+  // interval, to add a small variation to the interval to avoid any
+  // "thundering herd" problems.
+  PollConfig() (interval, jitter time.Duration)
 }
 ```
 
@@ -375,9 +397,9 @@ certain events occur, it should have the following method:
 // will configure a goroutine to watch a channel of messages the app sends when
 // an event occurs, which will be published to MQTT.
 type EventsApp interface {
-	// MsgCh is a channel of messages that the app generates when some internal
-	// event occurs and a new message should be published to MQTT.
-	MsgCh() chan *mqtt.Msg
+  // MsgCh is a channel of messages that the app generates when some internal
+  // event occurs and a new message should be published to MQTT.
+  MsgCh() chan *mqtt.Msg
 }
 ```
 
@@ -400,12 +422,12 @@ interface:
 // AppWithPreferences represents an app that has preferences that can be
 // configured by the user.
 type AppWithPreferences interface {
-	App
-	// Preferences returns the AppPreferences map of preferences for the app.
-	// This is passed to the UI code to facilitate generating a form to enter
-	// the preferences when the agent runs its configure command. If the
-	// preferences cannot be returned, a non-nil error will be returned.
-	Preferences() (preferences.AppPreferences, error)
+  App
+  // Preferences returns the AppPreferences map of preferences for the app.
+  // This is passed to the UI code to facilitate generating a form to enter
+  // the preferences when the agent runs its configure command. If the
+  // preferences cannot be returned, a non-nil error will be returned.
+  Preferences() (preferences.AppPreferences, error)
 }
 ```
 
@@ -414,15 +436,15 @@ Each app preference can be represented as a `preference.Preference`:
 ```go
 // Preference represents a single preference in a preferences file.
 type Preference struct {
-	// Value is the actual preference value.
-	Value any `toml:"value"`
-	// Description is a string that describes the preference, and may be used
-	// for display purposes.
-	Description string `toml:"description,omitempty"`
-	// Secret is a flag that indicates whether this preference represents a
-	// secret. The value has no effect on the preference encoding in the TOML,
-	// only on how to display the preference to the user (masked or plaintext).
-	Secret bool `toml:"-"`
+  // Value is the actual preference value.
+  Value any `toml:"value"`
+  // Description is a string that describes the preference, and may be used
+  // for display purposes.
+  Description string `toml:"description,omitempty"`
+  // Secret is a flag that indicates whether this preference represents a
+  // secret. The value has no effect on the preference encoding in the TOML,
+  // only on how to display the preference to the user (masked or plaintext).
+  Secret bool `toml:"-"`
 }
 ```
 
@@ -449,9 +471,9 @@ After building the agent, it should run all of your apps.
 
 ## 👋 Contributing
 
-<a href="https://github.com/joshuar/go-hass-anything/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=joshuar/go-hass-anything" />
-</a>
+<picture>
+ <img alt="Go Hass Anything Contributors" src="https://contrib.rocks/image?repo=joshuar/go-hass-anything">
+</picture>
 
 Contributions are always welcome!
 
