@@ -117,6 +117,9 @@ jobs:
     needs:
       - check_release
       - build_container
+    permissions:
+      contents: write
+      packages: write
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@17d0e2bd7d51742c71671bd19fa12bdc9d40a3d6 # v1
