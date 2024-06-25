@@ -8,7 +8,8 @@ name: build
 env:
   REGISTRY: ghcr.io
   IMAGE: ${{ github.repository }}
-  GO_VERSION: 1.22
+  GO_VERSION: "1.22"
+  COSIGN_VERSION: "v2.2.2"
   MAGEARGS: -v -d build/magefiles -w .
 
 on:
@@ -173,7 +174,7 @@ jobs:
       - name: Check and install cosign
         uses: sigstore/cosign-installer@59acb6260d9c0ba8f4a2f9d9b48431a222b68e20 # v3
         with:
-          cosign-release: 'v2.2.2'
+          cosign-release: ${{ env.COSIGN_VERSION }}
       - name: Sign image with a key
         env:
           TAGS: ${{ steps.docker_metadata.outputs.tags }}
@@ -182,7 +183,7 @@ jobs:
           images=""
           for digest in /tmp/digests/*; do
             for tag in ${TAGS}; do
-              images+="${tag#${{ env.REGISTRY }}/}@$(basename $digest) "
+              images+="${tag}@sha256:$(basename $digest) "
             done
           done
           cosign --verbose=true sign --yes --key cosign.key \
