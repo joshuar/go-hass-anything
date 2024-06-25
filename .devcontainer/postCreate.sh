@@ -9,6 +9,4 @@
 set -e
 
 # Install additional go build packages
-go install golang.org/x/tools/cmd/stringer@latest
-go install github.com/matryer/moq@latest
-go install github.com/magefile/mage@latest
+go install github.com/magefile/mage@v1.15.0
