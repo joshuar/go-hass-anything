@@ -48,7 +48,7 @@ jobs:
         go install golang.org/x/tools/cmd/stringer@latest
         go install github.com/matryer/moq@latest     
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v3
+      uses: github/codeql-action/init@8f1a6fed33af5212fab8a999d004627ae8901d1b # v3
       with:
         languages: ${{ matrix.language }}
         build-mode: ${{ matrix.build-mode }}
@@ -59,6 +59,6 @@ jobs:
         go generate -v ./...
         go build -v
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v3
+      uses: github/codeql-action/analyze@8f1a6fed33af5212fab8a999d004627ae8901d1b # v3
       with:
         category: "/language:${{matrix.language}}"
