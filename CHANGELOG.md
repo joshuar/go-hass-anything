@@ -1,5 +1,36 @@
 # Changelog
 
+## [10.0.0](https://github.com/joshuar/go-hass-anything/compare/v9.2.1...v10.0.0) (2024-06-25)
+
+
+### ⚠ BREAKING CHANGES
+
+* **mqtt:** require passing context when publishing
+* rewrite preferences rewrite
+* use koanf for app/agent preferences
+* **web:** switch to resty for web requests
+* **web:** switch to resty for web requests
+
+### Features
+
+* **container:** :sparkles: use mage for container build and support multiarch ([f10dfdd](https://github.com/joshuar/go-hass-anything/commit/f10dfdd8375e1642bdd54d8590e9056a4d831c5a))
+* **mqtt:** require passing context when publishing ([b1305a6](https://github.com/joshuar/go-hass-anything/commit/b1305a614c020358d649ee2fda701dfb81ead076))
+* **preferences:** :recycle: app preferences now use the same underlying structure as agent preferences ([89694e8](https://github.com/joshuar/go-hass-anything/commit/89694e844f5c41d9b8bc0edfc3876ea49a319d26))
+* **preferences:** :sparkles: add a Keys method to get the list of preference keys ([eed4836](https://github.com/joshuar/go-hass-anything/commit/eed4836068ceafbd8483573f576a4ef6342043f6))
+* rewrite preferences rewrite ([f8f32aa](https://github.com/joshuar/go-hass-anything/commit/f8f32aaac7b67b586aca32634d53d540e31446bf))
+* **ui:** :recycle: ui management for both agent and apps ([9126f38](https://github.com/joshuar/go-hass-anything/commit/9126f3896a35935527161ff9857ef765d90ac964))
+* use koanf for app/agent preferences ([d3b412a](https://github.com/joshuar/go-hass-anything/commit/d3b412a128dc0eb740cd7bdac9fdb8ed036c56b7))
+* **web:** switch to resty for web requests ([1287ecf](https://github.com/joshuar/go-hass-anything/commit/1287ecf44dda4a9c471007ec6f6446b12326bf3e))
+* **web:** switch to resty for web requests ([31c5326](https://github.com/joshuar/go-hass-anything/commit/31c5326b67c58c3e8871826dfe813772688513c0))
+
+
+### Bug Fixes
+
+* **container:** :bug: ensure container uses correct arch ([f02e096](https://github.com/joshuar/go-hass-anything/commit/f02e0967d20a4ee61583fa9a4fe88353cf5a7bb6))
+* **container:** :bug: use TARGETARCH during build stage ([f1ce406](https://github.com/joshuar/go-hass-anything/commit/f1ce406d2fb18e2dfe542ee8c29f28f426f9ae39))
+* **preferences:** :bug: fix loading preferences on initial run ([40832a6](https://github.com/joshuar/go-hass-anything/commit/40832a673dbb7b626fe15154b470440c67c6fcf3))
+* **ui:** :lipstick: increase input field character limit ([c1644af](https://github.com/joshuar/go-hass-anything/commit/c1644af7c4e40cf90ad123ff83bad91d6818b322))
+
 ## [9.2.1](https://github.com/joshuar/go-hass-anything/compare/v9.2.0...v9.2.1) (2024-06-02)
 
 
