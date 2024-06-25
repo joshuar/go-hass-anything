@@ -20,10 +20,10 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/shirou/gopsutil/v3/load"
 
-	mqtthass "github.com/joshuar/go-hass-anything/v9/pkg/hass"
-	mqttapi "github.com/joshuar/go-hass-anything/v9/pkg/mqtt"
-	"github.com/joshuar/go-hass-anything/v9/pkg/preferences"
-	"github.com/joshuar/go-hass-anything/v9/pkg/web"
+	mqtthass "github.com/joshuar/go-hass-anything/v10/pkg/hass"
+	mqttapi "github.com/joshuar/go-hass-anything/v10/pkg/mqtt"
+	"github.com/joshuar/go-hass-anything/v10/pkg/preferences"
+	"github.com/joshuar/go-hass-anything/v10/pkg/web"
 )
 
 const (
