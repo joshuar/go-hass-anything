@@ -60,6 +60,12 @@ func buildProject() error {
 		return fmt.Errorf("could not create dist directory: %w", err)
 	}
 
+	// Get the value of TARGETARCH (if set) from the environment, which
+	// indicates cross-compilation has been requested.
+	if v, ok := os.LookupEnv("TARGETARCH"); ok {
+		targetArch = v
+	}
+
 	ldflags, err := getFlags()
 	if err != nil {
 		return errors.Join(ErrBuildFailed, err)
