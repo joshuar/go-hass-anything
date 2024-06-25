@@ -22,7 +22,7 @@ RUN go install github.com/magefile/mage@v1.15.0
 # build the binary
 RUN mage -v -d build/magefiles -w . build:full
 
-FROM ubuntu@sha256:d11b1797008f48495a888a087b273f6581daef886da9d0bda9023557eff4f070
+FROM ubuntu@sha256:f0e91d9bc9a7a5bea3bb3a985f790da4c54b8a71459b9a05889b8bca94136dce
 
 # import TARGETARCH
 ARG TARGETARCH
