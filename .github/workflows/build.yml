@@ -182,7 +182,7 @@ jobs:
           images=""
           for digest in /tmp/digests/*; do
             for tag in ${TAGS}; do
-              images+="${tag}@${digest} "
+              images+="${tag}@$(basename $digest) "
             done
           done
           cosign --verbose=true sign --yes --key cosign.key \
