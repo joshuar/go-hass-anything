@@ -19,7 +19,8 @@ import (
 )
 
 const (
-	pkgBase = "github.com/joshuar/go-hass-anything/pkg/preferences"
+	pkgBase  = "github.com/joshuar/go-hass-anything/pkg/preferences"
+	distPath = "dist"
 )
 
 var ErrNotCI = errors.New("not in CI environment")
@@ -37,58 +38,75 @@ func isRoot() bool {
 	uid := syscall.Getuid()
 	egid := syscall.Getegid()
 	gid := syscall.Getgid()
+
 	if uid != euid || gid != egid || uid == 0 {
 		return true
 	}
+
 	return false
 }
 
-// SudoWrap will "wrap" the given command with sudo if needed.
-func SudoWrap(cmd string, args ...string) error {
+// sudoWrap will "wrap" the given command with sudo if needed.
+func sudoWrap(cmd string, args ...string) error {
 	if isRoot() {
-		return sh.RunV(cmd, args...)
+		if err := sh.RunV(cmd, args...); err != nil {
+			return fmt.Errorf("could not run command: %w", err)
+		}
+	} else {
+		if err := sh.RunV("sudo", slices.Concat([]string{cmd}, args)...); err != nil {
+			return fmt.Errorf("could not run command: %w", err)
+		}
 	}
-	return sh.RunV("sudo", slices.Concat([]string{cmd}, args)...)
+
+	return nil
 }
 
-// FoundOrInstalled checks for existence then installs a file if it's not there.
-func FoundOrInstalled(executableName, installURL string) (isInstalled bool) {
+// foundOrInstalled checks for existence then installs a file if it's not there.
+func foundOrInstalled(executableName, installURL string) error {
 	_, missing := exec.LookPath(executableName)
 	if missing != nil {
 		slog.Info("Installing tool.", "tool", executableName, "url", installURL)
+
 		err := sh.Run("go", "install", installURL)
 		if err != nil {
-			return false
+			return fmt.Errorf("installation failed: %w", err)
 		}
 	}
-	return true
+
+	return nil
 }
 
-// GetFlags gets all the compile flags to set the version and stuff.
-func GetFlags() (string, error) {
+// getFlags gets all the compile flags to set the version and stuff.
+func getFlags() (string, error) {
 	var version, hash, date string
+
 	var err error
-	if version, err = Version(); err != nil {
+
+	if version, err = getVersion(); err != nil {
 		return "", fmt.Errorf("failed to retrieve version from git: %w", err)
 	}
-	if hash, err = GitHash(); err != nil {
+
+	if hash, err = getGitHash(); err != nil {
 		return "", fmt.Errorf("failed to retrieve hash from git: %w", err)
 	}
-	if date, err = BuildDate(); err != nil {
+
+	if date, err = getBuildDate(); err != nil {
 		return "", fmt.Errorf("failed to retrieve build date from git: %w", err)
 	}
 
 	var flags strings.Builder
+
 	flags.WriteString("-X " + pkgBase + ".gitVersion=" + version)
 	flags.WriteString(" ")
 	flags.WriteString("-X " + pkgBase + ".gitCommit=" + hash)
 	flags.WriteString(" ")
 	flags.WriteString("-X " + pkgBase + ".buildDate=" + date)
+
 	return flags.String(), nil
 }
 
-// Version returns a string that can be used as a version string.
-func Version() (string, error) {
+// getVersion returns a string that can be used as a version string.
+func getVersion() (string, error) {
 	// Use the version already set in the environment (i.e., by the CI run).
 	if version, ok := os.LookupEnv("APPVERSION"); ok {
 		return version, nil
@@ -96,25 +114,28 @@ func Version() (string, error) {
 	// Else, derive a version from git.
 	version, err := sh.Output("git", "describe", "--tags", "--always", "--dirty")
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("could not get version from git: %w", err)
 	}
+
 	return version, nil
 }
 
 // hash returns the git hash for the current repo or "" if none.
-func GitHash() (string, error) {
+func getGitHash() (string, error) {
 	hash, err := sh.Output("git", "rev-parse", "--short", "HEAD")
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("could not get git hash: %w", err)
 	}
+
 	return hash, nil
 }
 
-// BuildDate returns the build date.
-func BuildDate() (string, error) {
+// getBuildDate returns the build date.
+func getBuildDate() (string, error) {
 	date, err := sh.Output("git", "log", "--date=iso8601-strict", "-1", "--pretty=%ct")
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("could not get build date from git: %w", err)
 	}
+
 	return date, nil
 }

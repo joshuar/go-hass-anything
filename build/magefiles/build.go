@@ -7,7 +7,9 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"log/slog"
+	"os"
 
 	"github.com/magefile/mage/mg"
 	"github.com/magefile/mage/sh"
@@ -44,11 +46,21 @@ func (b Build) CI() error {
 	}
 
 	mg.Deps(b.Full)
+
 	return nil
 }
 
+//nolint:mnd
 func buildProject() error {
-	ldflags, err := GetFlags()
+	if err := os.RemoveAll(distPath); err != nil {
+		return fmt.Errorf("could not clean dist directory: %w", err)
+	}
+
+	if err := os.Mkdir(distPath, 0o755); err != nil {
+		return fmt.Errorf("could not create dist directory: %w", err)
+	}
+
+	ldflags, err := getFlags()
 	if err != nil {
 		return errors.Join(ErrBuildFailed, err)
 	}
@@ -56,5 +68,10 @@ func buildProject() error {
 	output := "dist/" + appName + "-" + targetArch
 
 	slog.Info("Running go build...", "output", output, "ldflags", ldflags)
-	return sh.RunV("go", "build", "-ldflags="+ldflags, "-o", output)
+
+	if err := sh.RunV("go", "build", "-ldflags="+ldflags, "-o", output); err != nil {
+		return fmt.Errorf("build failed: %w", err)
+	}
+
+	return nil
 }
