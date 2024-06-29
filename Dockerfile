@@ -3,10 +3,14 @@
 # This software is released under the MIT License.
 # https://opensource.org/licenses/MIT
 
-FROM --platform=$BUILDPLATFORM golang@sha256:a8498215385dd85856145845f3caf34923fe5fbb11f3c7c1489ae43c4f263b20 AS builder
+FROM --platform=$BUILDPLATFORM alpine AS builder
 
 ARG TARGETARCH
 ARG APPDIR=pkg/apps
+
+RUN apk add --update go git
+
+ENV PATH="$PATH:/root/go/bin"
 
 WORKDIR /usr/src/go-hass-anything
 
@@ -23,7 +27,7 @@ RUN go install github.com/magefile/mage@v1.15.0
 # build the binary
 RUN mage -v -d build/magefiles -w . build:full
 
-FROM --platform=$BUILDPLATFORM ubuntu@sha256:f0e91d9bc9a7a5bea3bb3a985f790da4c54b8a71459b9a05889b8bca94136dce
+FROM --platform=$BUILDPLATFORM alpine
 
 # import TARGETARCH
 ARG TARGETARCH
