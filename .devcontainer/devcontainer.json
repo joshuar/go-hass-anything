@@ -4,7 +4,7 @@
     "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
     "shutdownAction": "stopCompose",
     "containerUser": "vscode",
-    "containerEnv": {
+    "remoteEnv": {
         "TZ": "${localEnv:TZ:Australia/Brisbane}"
     },
     "features": {
