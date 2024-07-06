@@ -1,5 +1,17 @@
 # Changelog
 
+## [10.1.0](https://github.com/joshuar/go-hass-anything/compare/v10.0.0...v10.1.0) (2024-07-06)
+
+
+### Features
+
+* **container:** :sparkles: switch to alpine base image for container ([676d6ba](https://github.com/joshuar/go-hass-anything/commit/676d6ba83e08f620de80d84a282d3922758d18d1))
+
+
+### Bug Fixes
+
+* **container:** :bug: container should run as (configurable) non-root user ([a7ba398](https://github.com/joshuar/go-hass-anything/commit/a7ba3988749d7e3ba62f670401c560e575543324))
+
 ## [10.0.0](https://github.com/joshuar/go-hass-anything/compare/v9.2.1...v10.0.0) (2024-06-25)
 
 
