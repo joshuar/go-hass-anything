@@ -200,7 +200,8 @@ TARGETARCH=arm64 mage -d build/magefiles -w . build:full
 
 ### 🚩 Deployment
 
-While Go Hass Anything can be run as a single binary, using a container is recommended. `podman` is the container engine of choice for deployment.
+While Go Hass Anything can be run as a single binary, using a container is
+recommended. `podman` is the container engine of choice for deployment.
 
 A [Dockerfile](./Dockerfile) is available that you can use to build an image
 containing your own custom apps.
@@ -212,6 +213,10 @@ to this location:
 ```shell
 podman build --file ./Dockerfile --tag go-hass-anything --build-arg APPDIR=apps
 ```
+
+By default, the container will run as a user with uid/gid 1000/1000. You can
+pick a different uid/gid when building by adding `--build-arg UID=999` and
+`--build-arg GID=999` (adjusting the values as appropriate).
 
 [Cross
 compilation](https://docs.docker.com/build/guide/multi-platform/#build-using-cross-compilation)
@@ -238,14 +243,15 @@ command:
 ```shell
 # For containers:
 podman run --interactive --tty --rm \
-    --volume ~/go-hass-anything:/home/gouser:U \
+    --volume ~/go-hass-anything:/home/go-hass-anything:U \
     ghcr.io/joshuar/go-hass-anything configure
 # For binaries:
 go-hass-anything configure
 ```
 
-This will open a user interface in the terminal to enter MQTT connection
-details for the agent, and then any preferences for apps. You can navigate the fields via the keyboard.
+This will open a user interface in the terminal to enter MQTT connection details
+for the agent, and then any preferences for apps. You can navigate the fields
+via the keyboard.
 
 #### 👀 Usage
 
@@ -254,7 +260,7 @@ Once the agent is configured, you can run it. Use the command:
 ```shell
 # For containers:
 podman run --name my-go-hass-anything \
-    --volume ~/go-hass-anything:/home/gouser:U \
+    --volume ~/go-hass-anything:/home/go-hass-anything:U \
     ghcr.io/joshuar/go-hass-anything
 # For binaries:
 go-hass-anything run
@@ -267,7 +273,9 @@ running the command:
 
 ```shell
 # For containers:
-podman exec my-go-hass-anything clear
+podman run --interactive --tty --rm \
+    --volume ~/go-hass-anything:/home/go-hass-anything:U \
+    ghcr.io/joshuar/go-hass-anything clear
 # For binaries:
 go-hass-anything clear
 ```
@@ -356,7 +364,8 @@ at least once. It can be used to update any app state before the agent publishes
 app state messages to MQTT. It should respect context cancellation and act
 appropriately on this signal.
 
-Create an exported function called `New` that is used to instantiate your app with the signature:
+Create an exported function called `New` that is used to instantiate your app
+with the signature:
 
 ```go
 func New(ctx context.Context) (*yourAppStruct, error)
@@ -448,7 +457,8 @@ type Preference struct {
 }
 ```
 
-The agent takes care of loading and saving the configuration. Generally, your `Preferences()` function should:
+The agent takes care of loading and saving the configuration. Generally, your
+`Preferences()` function should:
 
 - Use `preferences.LoadApp()` to fetch your app configuration from disk and return.
 - If this is the first time the app is run, generate default preferences and use
@@ -507,8 +517,6 @@ Joshua Rich - [@joshuar](https://github.com/joshuar)
 Project Link: [https://github.com/joshuar/go-hass-anything](https://github.com/joshuar/go-hass-anything)
 
 ## 💎 Acknowledgements
-
-Use this section to mention useful resources and libraries that you have used in your projects.
 
 - [Shields.io](https://shields.io/)
 - [Awesome README](https://github.com/matiassingers/awesome-readme)
