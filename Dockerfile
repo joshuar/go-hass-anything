@@ -29,11 +29,22 @@ RUN mage -v -d build/magefiles -w . build:full
 
 FROM --platform=$BUILDPLATFORM alpine
 
+# allow custom uid and gid
+ARG UID=1000
+ARG GID=1000
+
+# add user
+RUN addgroup --gid "${GID}" go-hass-anything && \
+    adduser --disabled-password --gecos "" --ingroup go-hass-anything \
+        --uid "${UID}" go-hass-anything
+
 # import TARGETARCH
 ARG TARGETARCH
 
 # copy binary over from builder stage
 COPY --from=builder /usr/src/go-hass-anything/dist/go-hass-anything-$TARGETARCH /usr/bin/go-hass-anything
+
+USER go-hass-anything
 
 ENTRYPOINT ["go-hass-anything"]
 CMD ["run"]
