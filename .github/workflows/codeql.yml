@@ -49,7 +49,7 @@ jobs:
         install-only: true
     - name: Copy over example app
       run: |
-        mkdir apps && cp -a pkg/apps/exampleapp apps
+        rm -fr apps && cp -a examples apps
     - name: Run generators
       run: mage ${MAGEARGS} preps:generate        
     - name: Initialize CodeQL
