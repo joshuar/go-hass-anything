@@ -3,7 +3,7 @@
 # This software is released under the MIT License.
 # https://opensource.org/licenses/MIT
 
-FROM --platform=$BUILDPLATFORM alpine AS builder
+FROM --platform=$BUILDPLATFORM alpine@sha256:b89d9c93e9ed3597455c90a0b88a8bbb5cb7188438f70953fede212a0c4394e0 AS builder
 
 ARG TARGETARCH
 ARG APPDIR=examples
@@ -30,7 +30,7 @@ RUN go install github.com/magefile/mage@v1.15.0
 # build the binary
 RUN mage -v -d build/magefiles -w . build:full
 
-FROM --platform=$BUILDPLATFORM alpine
+FROM --platform=$BUILDPLATFORM alpine@sha256:b89d9c93e9ed3597455c90a0b88a8bbb5cb7188438f70953fede212a0c4394e0
 
 # allow custom uid and gid
 ARG UID=1000
