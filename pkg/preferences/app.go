@@ -6,6 +6,7 @@
 package preferences
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,6 +14,11 @@ import (
 	"github.com/iancoleman/strcase"
 	"github.com/pelletier/go-toml"
 )
+
+type App interface {
+	Name() string
+	DefaultPreferences() AppPreferences
+}
 
 func findAppPreferences(name string) string {
 	a := strcase.ToSnake(name)
@@ -89,13 +95,30 @@ func SaveApp(app string, prefs AppPreferences) error {
 // care to handle os.ErrNotExists verses other returned errors. In the former case, it
 // would be wise to treat as not an error and revert to using default
 // preferences.
-func LoadApp(app string) (AppPreferences, error) {
-	// Load config from file.
-	data, err := os.ReadFile(findAppPreferences(app))
-	if err != nil {
+func LoadApp(app App) (AppPreferences, error) {
+	// Load config from file. If the preferences cannot be loaded for any reason
+	// other than the preferences file does not exist , return an error.
+	data, err := os.ReadFile(findAppPreferences(app.Name()))
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return nil, fmt.Errorf("could not read app preferences file: %w", err)
 	}
 
+	// If the preferences file does not exists, return the default preferences
+	// for the app.
+	if errors.Is(err, os.ErrNotExist) {
+		if err := checkPath(preferencesDir); err != nil {
+			return nil, fmt.Errorf("could not create new preferences directory: %w", err)
+		}
+		// Save the newly created preferences to disk.
+		if err := SaveApp(app.Name(), app.DefaultPreferences()); err != nil {
+			return nil, fmt.Errorf("could not save default preferences: %w", err)
+		}
+
+		return app.DefaultPreferences(), nil
+	}
+
+	// Otherwise, we have existing preferences. Unmarshal and return the
+	// preferences if possible.
 	prefs := make(AppPreferences)
 
 	if err := toml.Unmarshal(data, &prefs); err != nil {

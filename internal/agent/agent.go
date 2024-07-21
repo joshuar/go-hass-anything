@@ -16,7 +16,7 @@ import (
 	"github.com/joshuar/go-hass-anything/v10/pkg/preferences"
 )
 
-//go:generate go run ../../tools/appgenerator/run.go arg1
+//go:generate go run ../../tools/appgenerator/main.go
 var (
 	AppList []App
 )
@@ -59,7 +59,7 @@ type AppWithPreferences interface {
 	// This is passed to the UI code to facilitate generating a form to enter
 	// the preferences when the agent runs its configure command. If the
 	// preferences cannot be returned, a non-nil error will be returned.
-	Preferences() (preferences.AppPreferences, error)
+	DefaultPreferences() preferences.AppPreferences
 }
 
 // PollingApp represents an app that should be polled for updates on some
@@ -139,7 +139,7 @@ func (a *Agent) Configure() {
 			continue
 		}
 
-		appPrefs, err := preferences.LoadApp(app.Name())
+		appPrefs, err := preferences.LoadApp(app)
 		if err != nil {
 			log.Warn().Err(err).Str("app", app.Name()).Msg("Could not configure app.")
 

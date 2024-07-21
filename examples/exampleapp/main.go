@@ -11,7 +11,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"os/exec"
 	"strconv"
 	"time"
@@ -41,17 +40,6 @@ var (
 	ErrFetchLoadFailed    = errors.New("could not get load averages")
 )
 
-func defaultPreferences() preferences.AppPreferences {
-	prefs := make(preferences.AppPreferences)
-	prefs[weatherURLpref] = &preferences.Preference{
-		Value:       weatherURL,
-		Description: "The URL for the weather service to use for fetching the weather.",
-		Secret:      false,
-	}
-
-	return prefs
-}
-
 type ExampleApp struct {
 	loadData      *load.AvgStat
 	prefs         preferences.AppPreferences
@@ -75,7 +63,7 @@ func New(_ context.Context) (*ExampleApp, error) {
 		msgCh: make(chan *mqttapi.Msg),
 	}
 
-	prefs, err := app.Preferences()
+	prefs, err := preferences.LoadApp(app)
 	if err != nil {
 		return nil, fmt.Errorf("could not load preferences: %w", err)
 	}
@@ -85,31 +73,17 @@ func New(_ context.Context) (*ExampleApp, error) {
 	return app, nil
 }
 
-// Preferences sets up and returns our app preferences. This will load our
-// preferences from disk. If no preferences file exists, default preferences
-// will be set (as would be the case on first run).
-func (a *ExampleApp) Preferences() (preferences.AppPreferences, error) {
-	// Load the preferences from disk.
-	prefs, err := preferences.LoadApp(a.Name())
-	if err != nil && !errors.Is(err, os.ErrNotExist) {
-		return nil, fmt.Errorf("could not load %s preferences: %w", a.Name(), err)
+// Preferences sets up and returns our default app preferences. The agent will
+// use this for configuring the app for the first time.
+func (a *ExampleApp) DefaultPreferences() preferences.AppPreferences {
+	prefs := make(preferences.AppPreferences)
+	prefs[weatherURLpref] = &preferences.Preference{
+		Value:       weatherURL,
+		Description: "The URL for the weather service to use for fetching the weather.",
+		Secret:      false,
 	}
 
-	// If the preferences file does not exists, set up default preferences.
-	if errors.Is(err, os.ErrNotExist) {
-		// Save the newly created preferences to disk.
-		if err := preferences.SaveApp(a.Name(), defaultPreferences()); err != nil {
-			return nil, fmt.Errorf("could not save default preferences: %w", err)
-		}
-
-		return defaultPreferences(), nil
-	}
-
-	if len(prefs) == 0 {
-		return defaultPreferences(), nil
-	}
-
-	return prefs, nil
+	return prefs
 }
 
 // In order to use the web.ExecuteRequest helper to fetch the weather, we need
