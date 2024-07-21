@@ -175,9 +175,9 @@ mage -d build/magefiles -w . build:full
 
 This will:
 
+- Run `go generate ./...`.
 - Run `go mod tidy`.
 - Run `go fmt ./...`.
-- Run `go generate ./...`.
 - Build a binary and place it in `dist/go-hass-anything`.
 
 To just build a binary, replace `build:full` with `build:fast` in the mage
@@ -432,11 +432,10 @@ interface:
 // configured by the user.
 type AppWithPreferences interface {
   App
-  // Preferences returns the AppPreferences map of preferences for the app.
+  // DefaultPrefernces returns the AppPreferences map of default preferences for the app.
   // This is passed to the UI code to facilitate generating a form to enter
-  // the preferences when the agent runs its configure command. If the
-  // preferences cannot be returned, a non-nil error will be returned.
-  Preferences() (preferences.AppPreferences, error)
+  // the preferences when the agent runs its configure command.
+  DefaultPreferences() (preferences.AppPreferences)
 }
 ```
 
@@ -457,14 +456,9 @@ type Preference struct {
 }
 ```
 
-The agent takes care of loading and saving the configuration. Generally, your
-`Preferences()` function should:
-
-- Use `preferences.LoadApp()` to fetch your app configuration from disk and return.
-- If this is the first time the app is run, generate default preferences and use
-  `preferences.SaveApp()` to write them to disk.
-
-See the example app for a typical content of the function.
+The agent takes care of loading and saving the configuration. When the agent is
+configured or run for the first time, the agent will show/use default
+preferences for each app.
 
 ### Adding to the agent
 
