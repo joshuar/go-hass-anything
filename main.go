@@ -10,7 +10,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
+	"os"
+	"os/signal"
 	"syscall"
 
 	"github.com/alecthomas/kong"
@@ -25,9 +27,7 @@ const (
 )
 
 type Context struct {
-	Profile   profileFlags
-	LogLevel  string
-	NoLogFile bool
+	context.Context //nolint:containedctx // workaround for https://github.com/alecthomas/kong/issues/144
 }
 
 type profileFlags logging.ProfileFlags
@@ -50,14 +50,8 @@ configuration directory and remove the log file.
 `
 }
 
-func (r *ResetCmd) Run(ctx *Context) error {
-	agentCtx, cancelFunc := context.WithCancel(context.Background())
-	defer cancelFunc()
-
-	logger := logging.New(ctx.LogLevel, ctx.NoLogFile)
-	agentCtx = logging.ToContext(agentCtx, logger)
-
-	err := agent.ClearApps(agentCtx)
+func (r *ResetCmd) Run(ctx Context) error {
+	err := agent.ClearApps(ctx)
 	if err != nil {
 		return fmt.Errorf("reset agent: %w", err)
 	}
@@ -73,14 +67,9 @@ Configure will present a dialog to configure the agent and any apps that have us
 `
 }
 
-func (r *ConfigureCmd) Run(ctx *Context) error {
-	agentCtx, cancelFunc := context.WithCancel(context.Background())
-	defer cancelFunc()
-
-	logger := logging.New(ctx.LogLevel, ctx.NoLogFile)
-	agentCtx = logging.ToContext(agentCtx, logger)
-
-	hassAgent := agent.NewAgent(agentCtx, AgentID, AgentName)
+//nolint:unparam
+func (r *ConfigureCmd) Run(ctx Context) error {
+	hassAgent := agent.NewAgent(ctx, AgentID, AgentName)
 	hassAgent.Configure()
 
 	return nil
@@ -94,14 +83,8 @@ Run will run the agent and any configured apps.
 `
 }
 
-func (r *RunCmd) Run(ctx *Context) error {
-	agentCtx, cancelFunc := context.WithCancel(context.Background())
-	defer cancelFunc()
-
-	logger := logging.New(ctx.LogLevel, ctx.NoLogFile)
-	agentCtx = logging.ToContext(agentCtx, logger)
-
-	if err := agent.Run(agentCtx); err != nil {
+func (r *RunCmd) Run(ctx Context) error {
+	if err := agent.Run(ctx); err != nil {
 		return fmt.Errorf("run agent failed: %w", err)
 	}
 
@@ -115,7 +98,8 @@ func init() {
 	gid := syscall.Getgid()
 
 	if uid != euid || gid != egid || uid == 0 {
-		log.Fatalf("go-hass-anything should not be run with additional privileges or as root.")
+		slog.Error("go-hass-anything should not be run with additional privileges or as root.")
+		os.Exit(-1)
 	}
 }
 
@@ -131,12 +115,36 @@ var CLI struct {
 
 func main() {
 	kong.Name(AgentName)
-	ctx := kong.Parse(&CLI, kong.Bind(), kong.Vars{"defaultAppID": AgentID})
+	env := kong.Parse(&CLI, kong.Bind(), kong.Vars{"defaultAppID": AgentID})
 
-	err := ctx.Run(&Context{Profile: CLI.Profile, LogLevel: CLI.LogLevel, NoLogFile: CLI.NoLogFile})
+	ctx, cancelFunc := context.WithCancel(context.Background())
+
+	logger := logging.New(CLI.LogLevel, CLI.NoLogFile)
+	ctx = logging.ToContext(ctx, logger)
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		defer cancelFunc()
+		<-c
+		env.FatalIfErrorf(shutdown())
+		os.Exit(-1)
+	}()
+
+	err := env.Run(Context{ctx})
+	err = errors.Join(err, shutdown())
+
+	env.FatalIfErrorf(err)
+}
+
+func shutdown() error {
 	if CLI.Profile != nil {
-		err = errors.Join(logging.StopProfiling(logging.ProfileFlags(CLI.Profile)), err)
+		err := logging.StopProfiling(logging.ProfileFlags(CLI.Profile))
+		if err != nil {
+			return fmt.Errorf("could not stop profiling: %w", err)
+		}
 	}
 
-	ctx.FatalIfErrorf(err)
+	return nil
 }
