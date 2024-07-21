@@ -28,7 +28,8 @@
                 "yzhang.markdown-all-in-one",
                 "DavidAnson.vscode-markdownlint",
                 "bierner.markdown-emoji",
-                "shd101wyy.markdown-preview-enhanced"
+                "shd101wyy.markdown-preview-enhanced",
+                "TomRijndorp.find-it-faster"
             ],
             "settings": {
                 "terminal.integrated.defaultProfile.linux": "fish",
