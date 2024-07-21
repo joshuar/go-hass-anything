@@ -67,11 +67,11 @@ func ExecuteRequest(ctx context.Context, request, response any) error {
 
 	switch req := request.(type) {
 	case PostRequest:
-		slog.Debug("api request", "method", "POST", "body", req.RequestBody(), "sent_at", time.Now())
+		slog.Log(ctx, LevelTrace, "api request", "method", "POST", "body", req.RequestBody(), "sent_at", time.Now())
 
 		resp, err = webRequest.SetBody(req.RequestBody()).Post(req.URL())
 	case GetRequest:
-		slog.Debug("api request", "method", "GET", "sent_at", time.Now())
+		slog.Log(ctx, LevelTrace, "api request", "method", "GET", "sent_at", time.Now())
 
 		resp, err = webRequest.Get(req.URL())
 	}
@@ -80,7 +80,7 @@ func ExecuteRequest(ctx context.Context, request, response any) error {
 		return fmt.Errorf("could not send request: %w", err)
 	}
 
-	slog.Debug("api response",
+	slog.Log(ctx, LevelTrace, "api response",
 		"statuscode", resp.StatusCode(),
 		"status", resp.Status(),
 		"time", resp.Time(),
