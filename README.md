@@ -81,6 +81,10 @@ The code is flexible to be imported as a package into your own Go code to
 provide this functionality, or it can be run as its own “agent” process that
 will manage any apps you write.
 
+The agent is extremely light on resources, using only a few tens of megabytes of
+memory at most. As the agent and apps are written in Go, it can run on a wide
+variety of platforms from embedded through to server hardware.
+
 ### 👾 Tech Stack
 
 <details>
@@ -117,8 +121,10 @@ will manage any apps you write.
   - [Number](https://www.home-assistant.io/integrations/number.mqtt/)
   - _With more to come!_
 - Simple TOML based configuration.
-- Compile all apps into a single binary. Container builds supported.
-- Runs anywhere that Go runs.
+- Compile all apps into a single binary.
+- Use via a container or stand-alone binary.
+- Light on resources (CPU/memory).
+- Runs anywhere that Go runs, from embedded to server hardware.
 
 ### 🗒️ Versioning
 
