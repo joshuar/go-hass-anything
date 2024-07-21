@@ -24,9 +24,9 @@ func (Build) Full() error {
 	slog.Info("Starting full build.")
 
 	// Make everything nice, neat, and proper
+	mg.Deps(Preps.Generate)
 	mg.Deps(Preps.Tidy)
 	mg.Deps(Preps.Format)
-	mg.Deps(Preps.Generate)
 
 	return buildProject()
 }
