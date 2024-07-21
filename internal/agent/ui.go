@@ -10,13 +10,13 @@ package agent
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/cursor"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/rs/zerolog/log"
 
 	"github.com/joshuar/go-hass-anything/v10/pkg/preferences"
 )
@@ -57,7 +57,7 @@ func (m model) Init() tea.Cmd {
 }
 
 //nolint:cyclop
-//revive:disable:modifies-value-receiver
+//revive:disable:modifies-value-receiver,unnecessary-stmt
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -141,6 +141,7 @@ func (m *model) updateInputs(msg tea.Msg) tea.Cmd {
 	return tea.Batch(cmds...)
 }
 
+//revive:disable:unhandled-error
 func (m model) View() string {
 	var formOutput strings.Builder
 
@@ -151,6 +152,7 @@ func (m model) View() string {
 
 	for i := range m.inputs {
 		formOutput.WriteString(m.inputs[i].View())
+
 		if i < len(m.inputs)-1 {
 			formOutput.WriteRune('\n')
 		}
@@ -204,8 +206,6 @@ func newPreferencesForm(name string, prefs Preferences) *model {
 }
 
 func ShowPreferences(name string, prefs Preferences) error {
-	// fmt.Fprintln(os.Stdout, "data: %T", data)
-
 	appModel := newPreferencesForm(name, prefs)
 
 	if _, err := tea.NewProgram(appModel).Run(); err != nil {
@@ -214,7 +214,7 @@ func ShowPreferences(name string, prefs Preferences) error {
 
 	for i := 0; i <= len(appModel.inputs)-1; i++ {
 		if err := prefs.SetValue(appModel.keys[i], appModel.inputs[i].Value()); err != nil {
-			log.Warn().Err(err).Str("app", name).Str("preference", appModel.keys[i]).Msg("Could not save app preference.")
+			slog.Warn("Could not save app preference.", "app", name, "preference", appModel.keys[i], "error", err.Error())
 		}
 	}
 

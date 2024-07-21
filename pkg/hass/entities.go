@@ -10,6 +10,7 @@ package hass
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -21,6 +22,11 @@ import (
 	"golang.org/x/text/language"
 
 	mqttapi "github.com/joshuar/go-hass-anything/v10/pkg/mqtt"
+)
+
+var (
+	ErrNoStateCallback   = errors.New("no state callback function")
+	ErrNoCommandCallback = errors.New("no command callback function")
 )
 
 // HomeAssistantTopic is the prefix applied to all entity topics by default.
@@ -63,28 +69,38 @@ type entity struct {
 // MarshalState will generate an *mqtt.Msg for a given entity, that can be used
 // to publish the entity's state to the MQTT bus.
 func (e *entity) MarshalState(args ...any) (*mqttapi.Msg, error) {
-	var state json.RawMessage
-	var err error
+	var (
+		state json.RawMessage
+		err   error
+	)
+
 	if e.StateCallback == nil {
-		return nil, fmt.Errorf("entity %s for app %s does not have a state callback function", e.UniqueID, e.App)
+		return nil, fmt.Errorf("could not marshal state for entity %s: %w", e.Name, ErrNoStateCallback)
 	}
+
 	if state, err = e.StateCallback(args...); err != nil {
 		return nil, err
 	}
+
 	return mqttapi.NewMsg(e.StateTopic, state), nil
 }
 
 // MarshalAttributes will generate an *mqtt.Msg for the attributes of an entity,
 // that can be used for updating the entity's attributes.
 func (e *entity) MarshalAttributes(args ...any) (*mqttapi.Msg, error) {
-	var state json.RawMessage
-	var err error
+	var (
+		state json.RawMessage
+		err   error
+	)
+
 	if e.AttributesCallback == nil {
-		return nil, fmt.Errorf("entity %s for app %s does not have a state callback function", e.UniqueID, e.App)
+		return nil, fmt.Errorf("could not marshal state for entity %s: %w", e.Name, ErrNoStateCallback)
 	}
+
 	if state, err = e.AttributesCallback(args...); err != nil {
 		return nil, err
 	}
+
 	return mqttapi.NewMsg(e.AttributesTopic, state), nil
 }
 
@@ -93,13 +109,28 @@ func (e *entity) MarshalAttributes(args ...any) (*mqttapi.Msg, error) {
 // callback on messages.
 func (e *entity) MarshalSubscription() (*mqttapi.Subscription, error) {
 	if e.CommandCallback == nil {
-		return nil, fmt.Errorf("entity %s for app %s does not have a command callback function", e.UniqueID, e.App)
+		return nil, fmt.Errorf("could not marshal state for entity %s: %w", e.Name, ErrNoCommandCallback)
 	}
+
 	msg := &mqttapi.Subscription{
 		Topic:    e.CommandTopic,
 		Callback: e.CommandCallback,
 	}
+
 	return msg, nil
+}
+
+func (e *entity) MarshalConfig() (*mqttapi.Msg, error) {
+	var (
+		cfg []byte
+		err error
+	)
+
+	if cfg, err = json.Marshal(e); err != nil {
+		return nil, fmt.Errorf("marshal config: %w", err)
+	}
+
+	return mqttapi.NewMsg(e.ConfigTopic, cfg), nil
 }
 
 // SensorEntity represents an entity which has some kind of value. For more
@@ -108,28 +139,10 @@ type SensorEntity struct {
 	*entity
 }
 
-func (e *SensorEntity) MarshalConfig() (*mqttapi.Msg, error) {
-	var cfg []byte
-	var err error
-	if cfg, err = json.Marshal(e); err != nil {
-		return nil, err
-	}
-	return mqttapi.NewMsg(e.ConfigTopic, cfg), nil
-}
-
 // BinarySensorEntity represents an entity which has a boolean state. For more
 // details, see https://www.home-assistant.io/integrations/binary_sensor.mqtt/
 type BinarySensorEntity struct {
 	*entity
-}
-
-func (e *BinarySensorEntity) MarshalConfig() (*mqttapi.Msg, error) {
-	var cfg []byte
-	var err error
-	if cfg, err = json.Marshal(e); err != nil {
-		return nil, err
-	}
-	return mqttapi.NewMsg(e.ConfigTopic, cfg), nil
 }
 
 // ButtonEntity represents an entity which can perform some action or event in
@@ -137,15 +150,6 @@ func (e *BinarySensorEntity) MarshalConfig() (*mqttapi.Msg, error) {
 // https://www.home-assistant.io/integrations/button.mqtt/
 type ButtonEntity struct {
 	*entity
-}
-
-func (e *ButtonEntity) MarshalConfig() (*mqttapi.Msg, error) {
-	var cfg []byte
-	var err error
-	if cfg, err = json.Marshal(e); err != nil {
-		return nil, err
-	}
-	return mqttapi.NewMsg(e.ConfigTopic, cfg), nil
 }
 
 // NumberEntity represents an entity that is a number that has a given range of
@@ -160,29 +164,11 @@ type NumberEntity[T constraints.Ordered] struct {
 	Mode string `json:"mode,omitempty"`
 }
 
-func (e *NumberEntity[T]) MarshalConfig() (*mqttapi.Msg, error) {
-	var cfg []byte
-	var err error
-	if cfg, err = json.Marshal(e); err != nil {
-		return nil, err
-	}
-	return mqttapi.NewMsg(e.ConfigTopic, cfg), nil
-}
-
 // SwitchEntity represents an entity that can be turned on or off. For more
 // details see https://www.home-assistant.io/integrations/switch.mqtt/
 type SwitchEntity struct {
 	*entity
 	Optimistic bool `json:"optimistic,omitempty"`
-}
-
-func (e *SwitchEntity) MarshalConfig() (*mqttapi.Msg, error) {
-	var cfg []byte
-	var err error
-	if cfg, err = json.Marshal(e); err != nil {
-		return nil, err
-	}
-	return mqttapi.NewMsg(e.ConfigTopic, cfg), nil
 }
 
 type EntityConstraint[T constraints.Ordered] interface {
@@ -224,8 +210,11 @@ type Topics struct {
 // NewEntity creates a minimal entity based on the given name and id and
 // associates it with the given app. Additional builder functions should be
 // chained to fill out functionality that the entity will provide.
+//
+//nolint:exhaustruct
 func NewEntity(app, name, id string) *entity {
 	name = FormatName(name)
+
 	if id != "" {
 		id = FormatID(app + "_" + id)
 	} else {
@@ -245,32 +234,39 @@ func NewEntity(app, name, id string) *entity {
 // can be used to help structure various entities being provided.
 func (e *entity) WithNodeID(id string) *entity {
 	e.NodeID = FormatID(id)
+
 	return e
 }
 
-func (e *entity) setTopics(t EntityType) {
+func (e *entity) setTopics(entityType EntityType) {
 	var prefix string
 	if e.NodeID != "" {
-		prefix = strings.Join([]string{HomeAssistantTopic, t.String(), e.NodeID, e.UniqueID}, "/")
+		prefix = strings.Join([]string{HomeAssistantTopic, entityType.String(), e.NodeID, e.UniqueID}, "/")
 	} else {
-		prefix = strings.Join([]string{HomeAssistantTopic, t.String(), e.UniqueID}, "/")
+		prefix = strings.Join([]string{HomeAssistantTopic, entityType.String(), e.UniqueID}, "/")
 	}
+
 	e.ConfigTopic = prefix + "/config"
 	e.StateTopic = prefix + "/state"
+
 	if e.CommandCallback != nil {
 		e.CommandTopic = prefix + "/set"
 	}
+
 	if e.AttributesTemplate != "" || e.AttributesCallback != nil {
 		e.AttributesTopic = prefix + "/attributes"
 	}
-	e.EntityType = t
+
+	e.EntityType = entityType
 }
 
+//nolint:exhaustruct
 func (e *entity) validate() {
 	if e.Origin == nil {
 		slog.Warn("No origin set, using default origin for entity.", "entity", e.Name)
 		e.WithDefaultOriginInfo()
 	}
+
 	if e.Device == nil {
 		slog.Warn("No device set, using default device for entity.", "entity", e.Name)
 		e.WithDeviceInfo(&Device{
@@ -286,6 +282,7 @@ func (e *entity) validate() {
 // value of the attributes in Home Assistant.
 func (e *entity) WithAttributesTemplate(t string) *entity {
 	e.AttributesTemplate = t
+
 	return e
 }
 
@@ -295,6 +292,7 @@ func (e *entity) WithAttributesTemplate(t string) *entity {
 // called to set-up the attributes topic.
 func (e *entity) WithAttributesCallback(c func(args ...any) (json.RawMessage, error)) *entity {
 	e.AttributesCallback = c
+
 	return e
 }
 
@@ -304,6 +302,7 @@ func (e *entity) WithAttributesCallback(c func(args ...any) (json.RawMessage, er
 // like regular sensors.
 func (e *entity) WithCommandCallback(c func(p *paho.Publish)) *entity {
 	e.CommandCallback = c
+
 	return e
 }
 
@@ -315,28 +314,34 @@ func (e *entity) WithCommandCallback(c func(p *paho.Publish)) *entity {
 // your own code.
 func (e *entity) WithStateCallback(c func(args ...any) (json.RawMessage, error)) *entity {
 	e.StateCallback = c
+
 	return e
 }
 
 // WithDeviceInfo adds the passed in device info to the entity config.
 func (e *entity) WithDeviceInfo(d *Device) *entity {
 	e.Device = d
+
 	return e
 }
 
 // WithOriginInfo adds the passed in origin info to the entity config.
 func (e *entity) WithOriginInfo(o *Origin) *entity {
 	e.Origin = o
+
 	return e
 }
 
 // WithOriginInfo adds a pre-filled origin that references go-hass-agent
 // to the entity config.
+//
+//nolint:exhaustruct
 func (e *entity) WithDefaultOriginInfo() *entity {
 	e.Origin = &Origin{
 		Name: "Go Hass Anything",
 		URL:  "https://github.com/joshuar/go-hass-anything",
 	}
+
 	return e
 }
 
@@ -344,42 +349,49 @@ func (e *entity) WithDefaultOriginInfo() *entity {
 // value of the entity in Home Assistant.
 func (e *entity) WithValueTemplate(t string) *entity {
 	e.ValueTemplate = t
+
 	return e
 }
 
 // WithStateClassMeasurement configures the State Class for the entity to be "measurement".
 func (e *entity) WithStateClassMeasurement() *entity {
 	e.StateClass = "measurement"
+
 	return e
 }
 
 // WithStateClassMeasurement configures the State Class for the entity to be "total".
 func (e *entity) WithStateClassTotal() *entity {
 	e.StateClass = "total"
+
 	return e
 }
 
 // WithStateClassMeasurement configures the State Class for the entity to be "total_increasing".
 func (e *entity) WithStateClassTotalIncreasing() *entity {
 	e.StateClass = "total_increasing"
+
 	return e
 }
 
 // WithDeviceClass configures the Device Class for the entity.
 func (e *entity) WithDeviceClass(d string) *entity {
 	e.DeviceClass = d
+
 	return e
 }
 
 // WithUnits adds a unit of measurement to the entity.
 func (e *entity) WithUnits(u string) *entity {
 	e.UnitOfMeasurement = u
+
 	return e
 }
 
 // WithIcon adds an icon to the entity.
 func (e *entity) WithIcon(i string) *entity {
 	e.Icon = i
+
 	return e
 }
 
@@ -388,12 +400,14 @@ func (e *entity) WithIcon(i string) *entity {
 // "unavailable".
 func (e *entity) WithStateExpiry(i int) *entity {
 	e.StateExpiry = i
+
 	return e
 }
 
 // AsDiagnostic will mark this entity as a diagnostic entity in Home Assistant.
 func (e *entity) AsDiagnostic() *entity {
 	e.EntityCategory = "diagnostic"
+
 	return e
 }
 
@@ -414,6 +428,7 @@ func (e *entity) GetTopics() *Topics {
 func AsSensor(e *entity) *SensorEntity {
 	e.setTopics(Sensor)
 	e.validate()
+
 	return &SensorEntity{
 		entity: e,
 	}
@@ -424,6 +439,7 @@ func AsSensor(e *entity) *SensorEntity {
 func AsBinarySensor(e *entity) *BinarySensorEntity {
 	e.setTopics(BinarySensor)
 	e.validate()
+
 	return &BinarySensorEntity{
 		entity: e,
 	}
@@ -434,6 +450,7 @@ func AsBinarySensor(e *entity) *BinarySensorEntity {
 func AsButton(e *entity) *ButtonEntity {
 	e.setTopics(Button)
 	e.validate()
+
 	return &ButtonEntity{
 		entity: e,
 	}
@@ -444,6 +461,7 @@ func AsButton(e *entity) *ButtonEntity {
 func AsNumber[T constraints.Ordered](e *entity, step, min, max T, mode NumberMode) *NumberEntity[T] {
 	e.setTopics(Number)
 	e.validate()
+
 	return &NumberEntity[T]{
 		entity: e,
 		Step:   step,
@@ -458,6 +476,7 @@ func AsNumber[T constraints.Ordered](e *entity, step, min, max T, mode NumberMod
 func AsSwitch(e *entity, optimistic bool) *SwitchEntity {
 	e.setTopics(Switch)
 	e.validate()
+
 	return &SwitchEntity{
 		entity:     e,
 		Optimistic: optimistic,
@@ -468,6 +487,7 @@ func AsSwitch(e *entity, optimistic bool) *SwitchEntity {
 // affects how it will be displayed in Home Assistant.
 func (e *SwitchEntity) AsTypeSwitch() *SwitchEntity {
 	e.DeviceClass = "switch"
+
 	return e
 }
 
@@ -475,6 +495,7 @@ func (e *SwitchEntity) AsTypeSwitch() *SwitchEntity {
 // primarily affects how it will be displayed in Home Assistant.
 func (e *SwitchEntity) AsTypeOutlet() *SwitchEntity {
 	e.DeviceClass = "outlet"
+
 	return e
 }
 
@@ -484,6 +505,7 @@ func (e *SwitchEntity) AsTypeOutlet() *SwitchEntity {
 // to be used as a name in Home Assistant.
 func FormatName(s string) string {
 	c := cases.Title(language.AmericanEnglish)
+
 	return c.String(strcase.ToDelimited(s, ' '))
 }
 

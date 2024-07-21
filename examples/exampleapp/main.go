@@ -11,12 +11,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os/exec"
 	"strconv"
 	"time"
 
 	"github.com/eclipse/paho.golang/paho"
-	"github.com/rs/zerolog/log"
 	"github.com/shirou/gopsutil/v3/load"
 
 	mqtthass "github.com/joshuar/go-hass-anything/v10/pkg/hass"
@@ -97,7 +97,7 @@ func (a *ExampleApp) URL() string {
 	}
 	// If we can't get the config value, log a warning and fall back to the
 	// default weather URL.
-	log.Warn().Msg("Could not retrieve weather service URL from preferences.")
+	slog.Warn("Could not retrieve weather service URL from preferences.")
 
 	return weatherURL
 }
@@ -180,7 +180,7 @@ func (a *ExampleApp) Configuration() []*mqttapi.Msg {
 		WithValueTemplate("{{ value_json.current_condition[0].temp_C }}").
 		WithStateCallback(a.weatherStateCallback))
 	if msg, err := a.weatherEntity.MarshalConfig(); err != nil {
-		log.Error().Err(err).Str("entity", a.weatherEntity.Name).Msg("Could not marshal config for entity.")
+		slog.Error("Could not marshal config for weather entity", "entity", a.weatherEntity.Name, "error", err.Error())
 	} else {
 		msgs = append(msgs, msg)
 	}
@@ -194,7 +194,7 @@ func (a *ExampleApp) Configuration() []*mqttapi.Msg {
 			WithValueTemplate("{{ value }}").
 			WithStateCallback(a.loadStateCallback))
 		if msg, err := loadEntity.MarshalConfig(); err != nil {
-			log.Error().Err(err).Str("entity", loadEntity.Name).Msg("Could not marshal config for entity.")
+			slog.Error("Could not marshal config for load entity", "entity", loadEntity.Name, "error", err.Error())
 		} else {
 			msgs = append(msgs, msg)
 		}
@@ -209,7 +209,7 @@ func (a *ExampleApp) Configuration() []*mqttapi.Msg {
 		WithOriginInfo(originInfo).
 		WithCommandCallback(buttonCommandCallback))
 	if msg, err := a.buttonEntity.MarshalConfig(); err != nil {
-		log.Error().Err(err).Str("entity", a.buttonEntity.Name).Msg("Could not marshal config for entity.")
+		slog.Error("Could not marshal config for button entity", "entity", a.buttonEntity.Name, "error", err.Error())
 	} else {
 		msgs = append(msgs, msg)
 	}
@@ -227,7 +227,7 @@ func (a *ExampleApp) Configuration() []*mqttapi.Msg {
 		WithValueTemplate("{{ value_json.value }}"),
 		1, 0, 250, mqtthass.NumberSlider)
 	if msg, err := a.numberEntity.MarshalConfig(); err != nil {
-		log.Error().Err(err).Str("entity", a.numberEntity.Name).Msg("Could not marshal config for entity.")
+		slog.Error("Could not marshal config for number entity", "entity", a.numberEntity.Name, "error", err.Error())
 	} else {
 		msgs = append(msgs, msg)
 	}
@@ -241,7 +241,7 @@ func (a *ExampleApp) Configuration() []*mqttapi.Msg {
 		WithValueTemplate("{{ value }}"),
 		true).AsTypeSwitch()
 	if msg, err := a.switchEntity.MarshalConfig(); err != nil {
-		log.Error().Err(err).Str("entity", a.switchEntity.Name).Msg("Could not marshal config for entity.")
+		slog.Error("Could not marshal config for switch entity", "entity", a.switchEntity.Name, "error", err.Error())
 	} else {
 		msgs = append(msgs, msg)
 	}
@@ -258,7 +258,7 @@ func (a *ExampleApp) States() []*mqttapi.Msg {
 	// state topic.
 	weatherState, err := a.weatherEntity.MarshalState()
 	if err != nil {
-		log.Warn().Err(err).Msg("Unable to marshal weather state to MQTT message.")
+		slog.Warn("Unable to marshal weather state to MQTT message.", "error", err.Error())
 	} else {
 		msgs = append(msgs, weatherState)
 	}
@@ -270,7 +270,7 @@ func (a *ExampleApp) States() []*mqttapi.Msg {
 	for i, l := range []string{"1", "5", "15"} {
 		loadState, err = a.loadEntities[i].MarshalState(l)
 		if err != nil {
-			log.Warn().Err(err).Msg("Unable to marshal load state to MQTT message.")
+			slog.Warn("Unable to marshal load state to MQTT message.", "error", err.Error())
 		} else {
 			msgs = append(msgs, loadState)
 		}
@@ -279,7 +279,7 @@ func (a *ExampleApp) States() []*mqttapi.Msg {
 	// we create a msg to publish the current number value to its state topic
 	numberState, err := a.numberEntity.MarshalState()
 	if err != nil {
-		log.Warn().Err(err).Msg("Unable to marshal number state to MQTT message.")
+		slog.Warn("Unable to marshal number state to MQTT message.", "error", err.Error())
 	} else {
 		msgs = append(msgs, numberState)
 	}
@@ -287,7 +287,7 @@ func (a *ExampleApp) States() []*mqttapi.Msg {
 	// we create a msg to publish the current state of the switch
 	switchState, err := a.switchEntity.MarshalState()
 	if err != nil {
-		log.Warn().Err(err).Msg("Unable to marshal switch state to MQTT message.")
+		slog.Warn("Unable to marshal switch state to MQTT message.", "error", err.Error())
 	} else {
 		msgs = append(msgs, switchState)
 	}
@@ -305,7 +305,7 @@ func (a *ExampleApp) Subscriptions() []*mqttapi.Subscription {
 	// value.
 	buttonSub, err := a.buttonEntity.MarshalSubscription()
 	if err != nil {
-		log.Warn().Err(err).Msg("Unable to marshal button subscription.")
+		slog.Warn("Unable to marshal button subscription.", "error", err.Error())
 	} else {
 		msgs = append(msgs, buttonSub)
 	}
@@ -313,7 +313,7 @@ func (a *ExampleApp) Subscriptions() []*mqttapi.Subscription {
 	// value.
 	numberSub, err := a.numberEntity.MarshalSubscription()
 	if err != nil {
-		log.Warn().Err(err).Msg("Unable to marshal number subscription.")
+		slog.Warn("Unable to marshal number subscription.", "error", err.Error())
 	} else {
 		msgs = append(msgs, numberSub)
 	}
@@ -321,7 +321,7 @@ func (a *ExampleApp) Subscriptions() []*mqttapi.Subscription {
 	// value.
 	switchSub, err := a.switchEntity.MarshalSubscription()
 	if err != nil {
-		log.Warn().Err(err).Msg("Unable to marshal switch subscription.")
+		slog.Warn("Unable to marshal switch subscription.", "error", err.Error())
 	} else {
 		msgs = append(msgs, switchSub)
 	}
@@ -403,10 +403,10 @@ func (a *ExampleApp) loadStateCallback(args ...any) (json.RawMessage, error) {
 // once and/or react based on the response data we got (the MQTT.Message
 // parameter).
 func buttonCommandCallback(_ *paho.Publish) {
-	log.Info().Msg("Button was pressed. Opening the Home Assistant homepage.")
+	slog.Info("Button was pressed. Opening the Home Assistant homepage.")
 
 	if err := exec.Command("xdg-open", "https://home-assistant.io").Run(); err != nil {
-		log.Warn().Err(err).Msg("Could not execute xdg-open.")
+		slog.Warn("Could not execute xdg-open.", "error", err.Error())
 	}
 }
 
@@ -421,9 +421,9 @@ func (a *ExampleApp) numberStateCallback(_ ...any) (json.RawMessage, error) {
 // state topic for any listeners.
 func (a *ExampleApp) numberCommandCallback(p *paho.Publish) {
 	if newValue, err := strconv.Atoi(string(p.Payload)); err != nil {
-		log.Warn().Err(err).Msg("Could not parse new value for number.")
+		slog.Warn("Could not parse new value for number.", "error", err.Error())
 	} else {
-		log.Info().Int("value", newValue).Msg("Number was changed.")
+		slog.Info("Number was changed.", slog.Int("value", newValue))
 		a.numberState = newValue
 	}
 }
@@ -446,18 +446,18 @@ func (a *ExampleApp) switchCommandCallback(p *paho.Publish) {
 	state := string(p.Payload)
 	switch state {
 	case "ON":
-		log.Info().Msg("Switch was turned on.")
+		slog.Info("Switch was turned on.")
 
 		a.switchState = true
 	case "OFF":
-		log.Info().Msg("Switch was turned off.")
+		slog.Info("Switch was turned off.")
 
 		a.switchState = false
 	}
 	// Publish a message with the new state.
 	msg, err := a.switchEntity.MarshalState()
 	if err != nil {
-		log.Warn().Msg("Unable to marshal new state message.")
+		slog.Warn("Unable to marshal new state message.", "error", err.Error())
 	} else {
 		a.msgCh <- msg
 	}

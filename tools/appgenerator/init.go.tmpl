@@ -12,7 +12,7 @@ import (
 )
 
 func init() {
-	ctx, _ := context.WithCancel(context.Background())
+	ctx := context.Background()
 {{ range $app := .Names -}}
 	if app, err := {{$app}}.New(ctx); err != nil {
 		slog.Warn("Could not set-up app.","name",app.Name())

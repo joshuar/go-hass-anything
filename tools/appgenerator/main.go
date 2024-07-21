@@ -24,6 +24,7 @@ var (
 //go:embed init.go.tmpl
 var appTmpl string
 
+//nolint:exhaustruct
 func main() {
 	templVars := struct {
 		Dirs  []string
@@ -44,7 +45,7 @@ func main() {
 	}
 
 	for _, main := range appMains {
-		_, err := os.Stat(main)
+		_, err = os.Stat(main)
 		if err != nil {
 			slog.Error("Could not read main.go for app. Ignoring app directory.", "directory", main, "error", err.Error())
 
@@ -59,14 +60,14 @@ func main() {
 		slog.Info("Found app.", "name", appName, "directory", appDir)
 	}
 
-	f, err := os.Create(appFile)
+	initFile, err := os.Create(appFile)
 	if err != nil {
 		log.Fatalf("Unable to create file %s (%s). Exiting.", appFile, err.Error())
 	}
 
 	tmpl := template.Must(template.New("tmpl").Parse(appTmpl))
 
-	if err := tmpl.Execute(f, templVars); err != nil {
+	if err := tmpl.Execute(initFile, templVars); err != nil {
 		log.Fatalf("Unable to write out template to %s (%s). Exiting.", appFile, err.Error())
 	}
 

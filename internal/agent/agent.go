@@ -7,11 +7,12 @@ package agent
 
 import (
 	"context"
+	"fmt"
+	"log/slog"
 	"sync"
 	"time"
 
-	"github.com/rs/zerolog/log"
-
+	"github.com/joshuar/go-hass-anything/v10/internal/logging"
 	"github.com/joshuar/go-hass-anything/v10/pkg/mqtt"
 	"github.com/joshuar/go-hass-anything/v10/pkg/preferences"
 )
@@ -24,6 +25,7 @@ var (
 // Agent is a structure holding the internal agent data.
 type Agent struct {
 	done    chan struct{}
+	logger  *slog.Logger
 	id      string
 	name    string
 	version string
@@ -84,10 +86,11 @@ type EventsApp interface {
 }
 
 //nolint:exhaustruct
-func NewAgent(id, name string) *Agent {
+func NewAgent(ctx context.Context, id, name string) *Agent {
 	agent := &Agent{
-		id:   id,
-		name: name,
+		id:     id,
+		name:   name,
+		logger: logging.FromContext(ctx).With(slog.String("source", id)),
 	}
 
 	return agent
@@ -119,51 +122,52 @@ func (a *Agent) Configure() {
 	// Get the agent preferences.
 	prefs, err := preferences.Load()
 	if err != nil {
-		log.Warn().Err(err).Msg("Could not load agent preferences.")
+		a.logger.Warn("Could not load agent preferences.", "error", err.Error())
 	}
 	// Show a terminal UI to configure the agent preferences.
 	if err := ShowPreferences(a.AppName(), prefs); err != nil {
-		log.Warn().Err(err).Msg("Could not display agent preferences.")
+		a.logger.Warn("Could not display agent preferences.", "error", err.Error())
 	}
 	// Save agent preferences.
 	if err := preferences.Save(prefs); err != nil {
-		log.Warn().Err(err).Msg("Could not save agent preferences.")
+		a.logger.Warn("Could not save agent preferences.", "error", err.Error())
 	}
 	// For any apps that satisfy the Preferences interface, meaning they have
 	// configurable preferences, show a terminal UI to configure them.
-	for _, a := range AppList {
-		log.Debug().Str("app", a.Name()).Msg("Checking and configuring app preferences.")
+	for _, app := range AppList {
+		a.logger.Debug("Checking and configuring app preferences", "app", app.Name())
 
-		app, ok := a.(AppWithPreferences)
+		app, ok := app.(AppWithPreferences)
 		if !ok {
 			continue
 		}
 
 		appPrefs, err := preferences.LoadApp(app)
 		if err != nil {
-			log.Warn().Err(err).Str("app", app.Name()).Msg("Could not configure app.")
+			a.logger.Warn("Could not configure app.", "app", app.Name(), "error", err.Error())
 
 			continue
 		}
 
 		if err := ShowPreferences(app.Name(), appPrefs); err != nil {
-			log.Warn().Err(err).Str("app", app.Name()).Msg("Problem occurred configuring app.")
+			a.logger.Warn("Could not configure app.", "app", app.Name(), "error", err.Error())
 		}
 
 		if err := preferences.SaveApp(app.Name(), appPrefs); err != nil {
-			log.Warn().Err(err).Str("app", app.Name()).Msg("Could not save app preferences.")
+			a.logger.Warn("Could not configure app.", "app", app.Name(), "error", err.Error())
 		}
 	}
 }
 
-func Run(ctx context.Context) {
-	var subscriptions []*mqtt.Subscription
-
-	var configs []*mqtt.Msg
+func Run(ctx context.Context) error {
+	var (
+		subscriptions []*mqtt.Subscription
+		configs       []*mqtt.Msg
+	)
 
 	prefs, err := preferences.Load()
 	if err != nil {
-		log.Fatal().Err(err).Msg("Could not load preferences.")
+		return fmt.Errorf("run: %w", err)
 	}
 
 	for _, app := range AppList {
@@ -173,39 +177,45 @@ func Run(ctx context.Context) {
 
 	client, err := mqtt.NewClient(ctx, prefs, subscriptions, configs)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Could not connect to broker.")
+		return fmt.Errorf("run: %w", err)
 	}
 
 	runApps(ctx, client, AppList)
+
+	return nil
 }
 
-func ClearApps(ctx context.Context) {
+func ClearApps(ctx context.Context) error {
 	prefs, err := preferences.Load()
 	if err != nil {
-		log.Fatal().Err(err).Msg("Could not load preferences.")
+		return fmt.Errorf("clear: %w", err)
 	}
 
 	client, err := mqtt.NewClient(ctx, prefs, nil, nil)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Could not connect to broker.")
+		return fmt.Errorf("clear: %w", err)
 	}
 
 	for _, app := range AppList {
-		log.Debug().Str("app", app.Name()).Msg("Removing configuration for app.")
+		logging.FromContext(ctx).Debug("Removing configuration from MQTT for app.", "app", app.Name())
 
 		if err := client.Unpublish(ctx, app.Configuration()...); err != nil {
-			log.Error().Err(err).Str("app", app.Name()).Msg("Could not remove configuration for app.")
+			logging.FromContext(ctx).Warn("Could not remove configuration from MQTT for app.", "app", app.Name(), "error", err.Error())
 
 			continue
 		}
 	}
+
+	return nil
 }
 
 func runApps(ctx context.Context, client *mqtt.Client, apps []App) {
 	var wg sync.WaitGroup
 
+	logger := logging.FromContext(ctx)
+
 	for _, app := range apps {
-		log.Debug().Str("app", app.Name()).Msg("Running app.")
+		logger.Debug("Running app.", "app", app.Name())
 		wg.Add(1)
 
 		go func(runningApp App) {
@@ -213,12 +223,15 @@ func runApps(ctx context.Context, client *mqtt.Client, apps []App) {
 
 			if app, ok := runningApp.(PollingApp); ok {
 				interval, jitter := app.PollConfig()
-				log.Info().Dur("interval", interval).Str("app", runningApp.Name()).Msg("Running loop to poll app updates.")
+
+				logger.Info("Running loop to poll app for updates.", "app", runningApp.Name())
+
 				wg.Add(1)
 
 				go func() {
 					defer wg.Wait()
-					poll(
+
+					err := poll(
 						ctx,
 						func() {
 							updateApp(ctx, runningApp)
@@ -227,6 +240,9 @@ func runApps(ctx context.Context, client *mqtt.Client, apps []App) {
 						interval,
 						jitter,
 					)
+					if err != nil {
+						logger.Error("Failed to poll app for updates.", "app", runningApp.Name(), "error", err.Error())
+					}
 				}()
 			}
 
@@ -236,13 +252,14 @@ func runApps(ctx context.Context, client *mqtt.Client, apps []App) {
 
 				go func() {
 					defer wg.Done()
-					log.Info().Str("app", runningApp.Name()).Msg("Listening for message events from app to publish.")
+
+					logger.Info("Listening for message events from app.", "app", runningApp.Name())
 
 					for {
 						select {
 						case msg := <-app.MsgCh():
 							if err := client.Publish(ctx, msg); err != nil {
-								log.Error().Err(err).Str("app", runningApp.Name()).Msg("Failed to publish state messages.")
+								logger.Error("Failed to publish state messages for app.", "app", runningApp.Name(), "error", err.Error())
 							}
 						case <-ctx.Done():
 							return
@@ -257,17 +274,21 @@ func runApps(ctx context.Context, client *mqtt.Client, apps []App) {
 }
 
 func updateApp(ctx context.Context, app App) {
-	log.Debug().Str("app", app.Name()).Msg("Updating.")
+	logger := logging.FromContext(ctx)
+
+	logger.Debug("Updating app.", "app", app.Name())
 
 	if err := app.Update(ctx); err != nil {
-		log.Warn().Err(err).Str("app", app.Name()).Msg("App failed to update.")
+		logger.Warn("Failed to update app.", "app", app.Name(), "error", err.Error())
 	}
 }
 
 func publishAppStates(ctx context.Context, app App, client *mqtt.Client) {
-	log.Debug().Str("app", app.Name()).Msg("Publishing states.")
+	logger := logging.FromContext(ctx)
+
+	logger.Debug("Publishing app states.", "app", app.Name())
 
 	if err := client.Publish(ctx, app.States()...); err != nil {
-		log.Error().Err(err).Str("app", app.Name()).Msg("Failed to publish state messages.")
+		logger.Warn("Failed to publish app states.", "app", app.Name(), "error", err.Error())
 	}
 }

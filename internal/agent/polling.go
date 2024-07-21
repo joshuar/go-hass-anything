@@ -7,11 +7,13 @@ package agent
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/lthibault/jitterbug/v2"
-	"github.com/rs/zerolog/log"
 )
+
+var ErrInvalidPollConfig = errors.New("invalid polling configuration")
 
 // poll is a helper function that will call the passed `updater()`
 // function around each `interval` duration within the `stdev` duration window.
@@ -20,11 +22,9 @@ import (
 // trying to update at the same time.
 //
 //nolint:exhaustruct
-func poll(ctx context.Context, updater func(), interval, jitter time.Duration) {
+func poll(ctx context.Context, updater func(), interval, jitter time.Duration) error {
 	if interval <= 0 || jitter <= 0 {
-		log.Warn().Dur("interval", interval).Dur("jitter", jitter).Msg("Invalid interval and stdev for polling.")
-
-		return
+		return ErrInvalidPollConfig
 	}
 
 	updater()
@@ -44,4 +44,6 @@ func poll(ctx context.Context, updater func(), interval, jitter time.Duration) {
 			}
 		}
 	}()
+
+	return nil
 }

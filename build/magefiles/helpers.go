@@ -33,6 +33,8 @@ func isCI() bool {
 
 // isRoot checks whether we are running as the root user or with elevated
 // privileges.
+//
+//nolint:unused
 func isRoot() bool {
 	euid := syscall.Geteuid()
 	uid := syscall.Getuid()
@@ -47,6 +49,8 @@ func isRoot() bool {
 }
 
 // sudoWrap will "wrap" the given command with sudo if needed.
+//
+//nolint:unused
 func sudoWrap(cmd string, args ...string) error {
 	if isRoot() {
 		if err := sh.RunV(cmd, args...); err != nil {
