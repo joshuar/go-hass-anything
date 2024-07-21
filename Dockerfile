@@ -6,7 +6,7 @@
 FROM --platform=$BUILDPLATFORM alpine AS builder
 
 ARG TARGETARCH
-ARG APPDIR=pkg/apps
+ARG APPDIR=examples
 
 RUN apk add --update go git
 
@@ -16,6 +16,9 @@ WORKDIR /usr/src/go-hass-anything
 
 # copy the src to the workdir
 ADD . .
+
+# remove unneeded dev/build directories
+RUN rm -fr deployments dist/* || exit 0
 
 # copy the user-specified APPDIR to a location that will be picked up during build
 RUN rm -fr apps || exit 0

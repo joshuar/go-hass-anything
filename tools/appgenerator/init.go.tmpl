@@ -5,23 +5,19 @@ package agent
 
 import (
 	"context"
-	"github.com/rs/zerolog/log"
-{{ range $app := . -}}
-{{ if (eq $app "exampleapp") }}
-"github.com/joshuar/go-hass-anything/v10/pkg/apps/{{$app}}"
-{{ else }}
-"github.com/joshuar/go-hass-anything/v10/apps/{{$app}}"
-{{ end }}
+	"log/slog"
+{{ range $appDir := .Dirs -}}
+"github.com/joshuar/go-hass-anything/v10/{{$appDir}}"
 {{ end -}}	
 )
 
 func init() {
 	ctx, _ := context.WithCancel(context.Background())
-{{ range $app := . -}}
-	if a, err := {{$app}}.New(ctx); err != nil {
-		log.Warn().Err(err).Str("app",a.Name()).Msg("Could not set-up app.")
+{{ range $app := .Names -}}
+	if app, err := {{$app}}.New(ctx); err != nil {
+		slog.Warn("Could not set-up app.","name",app.Name())
 	} else {
-		AppList = append(AppList, a)
+		AppList = append(AppList, app)
 	}
 {{ end -}}	
 }
