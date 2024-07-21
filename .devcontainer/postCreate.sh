@@ -9,4 +9,4 @@
 set -e
 
 # Install additional go build packages
-go install github.com/magefile/mage@v1.15.0
+go install github.com/magefile/mage@9e91a03eaa438d0d077aca5654c7757141536a60

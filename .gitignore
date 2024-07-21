@@ -9,10 +9,15 @@
 
 # But not these files...
 !/.gitignore
-!/.vscode/tasks.json
+!/.vscode/*.json
 !/.vscode/ltex.dictionary.*.txt
 !/.github/**/*
 !/.devcontainer/**/*
+
+# don't ignore YAML configs in sub directories EXCEPT the deployments folder
+# tree
+!**/*.yaml
+deployments/**/*.yaml
 
 !*.md
 !*.go
@@ -28,5 +33,9 @@
 # ...even if they are in subdirectories
 !*/
 
+# always ignore the generated init.go and apps dir
 internal/agent/init.go
 apps
+
+## always ignore the dist folder
+dist
