@@ -8,24 +8,24 @@
   </p>
 
 <p>
-<picture>
+<a href="https://github.com/joshuar/go-hass-anything/graphs/contributors">
  <img alt="Contributors Shield" src="https://img.shields.io/github/contributors/joshuar/go-hass-anything">
-</picture>
-<picture>
+</a>
+<a href="https://github.com/joshuar/go-hass-anything/commits/main/">
  <img alt="Last Update Shield" src="https://img.shields.io/github/last-commit/joshuar/go-hass-anything">
-</picture>
-<picture>
+</a>
+<a href="https://github.com/joshuar/go-hass-anything/forks">
  <img alt="Forks Shield" src="https://img.shields.io/github/forks/joshuar/go-hass-anything">
-</picture>
-<picture>
+</a>
+<a href="https://github.com/joshuar/go-hass-anything/stargazers">
  <img alt="Stars Shield" src="https://img.shields.io/github/stars/joshuar/go-hass-anything">
-</picture>
-<picture>
+</a>
+<a href="https://github.com/joshuar/go-hass-anything/issues">
  <img alt="Open Issues Shield" src="https://img.shields.io/github/issues/joshuar/go-hass-anything">
-</picture>
-<picture>
+</a>
+<a href="https://github.com/joshuar/go-hass-anything/blob/main/LICENSE">
  <img alt="License Shield" src="https://img.shields.io/github/license/joshuar/go-hass-anything">
-</picture>
+</a>
 </p>
 
 <h4>
@@ -63,6 +63,7 @@
     - [Event based Apps](#event-based-apps)
     - [(Optional) App Configuration](#optional-app-configuration)
     - [Adding to the agent](#adding-to-the-agent)
+    - [Logging](#logging)
   - [👋 Contributing](#-contributing)
     - [🏁 Committing Code](#-committing-code)
     - [📜 Code of Conduct](#-code-of-conduct)
@@ -478,6 +479,14 @@ will contain the necessary code to run your apps to the agent.
 > your app code, this allows your apps to remain private.
 
 After building the agent, it should run all of your apps.
+
+### Logging
+
+All packages use [log/slog](https://pkg.go.dev/log/slog) for logging, so if
+including the Go Hass Anything packages in your own code, you can hook into
+and/or extend upon that. Note that some of the packages define custom levels for
+_trace_ (level -8) and _fatal_ (level 12), which if the logger is set to output,
+will show some additional details from the internals.  
 
 ## 👋 Contributing
 
