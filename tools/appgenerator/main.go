@@ -31,7 +31,11 @@ func main() {
 		Names []string
 	}{}
 
-	slog.Info("Looking for apps.")
+	if len(os.Args) > 1 && os.Args[1] != "" {
+		appPathMatch = filepath.Join(os.Args[1], "/*/main.go")
+	}
+
+	slog.Info("Looking for apps.", "path", appPathMatch)
 
 	appMains, err := filepath.Glob(appPathMatch)
 	if err != nil {
