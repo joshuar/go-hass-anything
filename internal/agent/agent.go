@@ -68,6 +68,7 @@ type AppWithPreferences interface {
 // interval. When an app satisfies this interface, the agent will configure a
 // goroutine to run the apps Update() function and publish its States().
 type PollingApp interface {
+	App
 	// PollConfig defines the interval on which the app should be polled and its
 	// states updated. A jitter should be defined, that is much less than the
 	// interval, to add a small variation to the interval to avoid any
@@ -80,6 +81,7 @@ type PollingApp interface {
 // will configure a goroutine to watch a channel of messages the app sends when
 // an event occurs, which will be published to MQTT.
 type EventsApp interface {
+	App
 	// MsgCh is a channel of messages that the app generates when some internal
 	// event occurs and a new message should be published to MQTT.
 	MsgCh() chan *mqtt.Msg
@@ -216,58 +218,26 @@ func runApps(ctx context.Context, client *mqtt.Client, apps []App) {
 
 	for _, app := range apps {
 		logger.Debug("Running app.", "app", app.Name())
-		wg.Add(1)
 
-		go func(runningApp App) {
-			defer wg.Done()
+		switch app := app.(type) {
+		case PollingApp:
+			wg.Add(1)
 
-			if app, ok := runningApp.(PollingApp); ok {
-				interval, jitter := app.PollConfig()
+			go func() {
+				defer wg.Done()
+				runPollingApp(ctx, client, logger, app)
+			}()
+		case EventsApp:
+			wg.Add(1)
 
-				logger.Info("Running loop to poll app for updates.", "app", runningApp.Name())
-
-				wg.Add(1)
-
-				go func() {
-					defer wg.Wait()
-
-					err := poll(
-						ctx,
-						func() {
-							updateApp(ctx, runningApp)
-							publishAppStates(ctx, runningApp, client)
-						},
-						interval,
-						jitter,
-					)
-					if err != nil {
-						logger.Error("Failed to poll app for updates.", "app", runningApp.Name(), "error", err.Error())
-					}
-				}()
-			}
-
-			if app, ok := runningApp.(EventsApp); ok {
-				updateApp(ctx, runningApp)
-				wg.Add(1)
-
-				go func() {
-					defer wg.Done()
-
-					logger.Info("Listening for message events from app.", "app", runningApp.Name())
-
-					for {
-						select {
-						case msg := <-app.MsgCh():
-							if err := client.Publish(ctx, msg); err != nil {
-								logger.Error("Failed to publish state messages for app.", "app", runningApp.Name(), "error", err.Error())
-							}
-						case <-ctx.Done():
-							return
-						}
-					}
-				}()
-			}
-		}(app)
+			go func() {
+				defer wg.Done()
+				runEventsApp(ctx, client, logger, app)
+			}()
+		default:
+			updateApp(ctx, app)
+			publishAppStates(ctx, app, client)
+		}
 	}
 
 	wg.Wait()
@@ -290,5 +260,41 @@ func publishAppStates(ctx context.Context, app App, client *mqtt.Client) {
 
 	if err := client.Publish(ctx, app.States()...); err != nil {
 		logger.Warn("Failed to publish app states.", "app", app.Name(), "error", err.Error())
+	}
+}
+
+func runPollingApp(ctx context.Context, client *mqtt.Client, logger *slog.Logger, app PollingApp) {
+	interval, jitter := app.PollConfig()
+
+	logger.Info("Running loop to poll app for updates.", "app", app.Name())
+
+	err := poll(
+		ctx,
+		func() {
+			updateApp(ctx, app)
+			publishAppStates(ctx, app, client)
+		},
+		interval,
+		jitter,
+	)
+	if err != nil {
+		logger.Error("Failed to poll app for updates.", "app", app.Name(), "error", err.Error())
+	}
+}
+
+func runEventsApp(ctx context.Context, client *mqtt.Client, logger *slog.Logger, app EventsApp) {
+	updateApp(ctx, app)
+
+	logger.Info("Listening for message events from app.", "app", app.Name())
+
+	for {
+		select {
+		case msg := <-app.MsgCh():
+			if err := client.Publish(ctx, msg); err != nil {
+				logger.Error("Failed to publish state messages for app.", "app", app.Name(), "error", err.Error())
+			}
+		case <-ctx.Done():
+			return
+		}
 	}
 }

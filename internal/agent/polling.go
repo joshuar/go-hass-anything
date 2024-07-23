@@ -34,16 +34,12 @@ func poll(ctx context.Context, updater func(), interval, jitter time.Duration) e
 		&jitterbug.Norm{Stdev: jitter},
 	)
 
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				updater()
-			}
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-ticker.C:
+			updater()
 		}
-	}()
-
-	return nil
+	}
 }
