@@ -120,6 +120,7 @@ variety of platforms from embedded through to server hardware.
   - [Switch](https://www.home-assistant.io/integrations/switch.mqtt/)
   - [Button](https://www.home-assistant.io/integrations/button.mqtt/)
   - [Number](https://www.home-assistant.io/integrations/number.mqtt/)
+  - [Text](https://www.home-assistant.io/integrations/text.mqtt/)
   - _With more to come!_
 - Simple TOML based configuration.
 - Compile all apps into a single binary.
@@ -201,7 +202,7 @@ architecture, set the `TARGETARCH` environment variable to the equivalent
 `GOARCH` value when running the mage build command above:
 
 ```shell
-# Set TARGETARCH as appropriate, i.e., amd64 or arm64 or arm 
+# Set TARGETARCH as appropriate, i.e., amd64 or arm64 or arm
 TARGETARCH=arm64 mage -d build/magefiles -w . build:full
 ```
 
@@ -236,9 +237,9 @@ podman build --file ./Dockerfile \
   --platform=linux/arm64,linux/armv7,linux/amd64
 ```
 
-Pre-built containers that can run a demo app can be found on the
+Pre-built containers that can run some demo apps can be found on the
 [packages](https://github.com/joshuar/go-hass-anything/pkgs/container/go-hass-anything)
-page on GitHub.
+page on GitHub. The demo app source code can be found in [examples/](./examples/).
 
 ### 🏃 Running
 
@@ -296,16 +297,8 @@ command again.
 ### 💽 Building Apps
 
 > [!NOTE]
-> Check out the [example app](./pkg/apps/exampleapp/) which demonstrates:
->
-> - How to get data from the system running Go Hass anything using an external
->   Go package.
-> - How to get data from the web using a helper function to issue web requests.
-> - How to create different types of controls in Home Assistant.
->
-> The code has lots of comments for guidance. It can also be heavily optimised
-> from its current state and so is a good starting point for practising Go as
-> well.
+> Check out the [examples](./examples/) which a few of the different
+> types of entities you can create in Home Assistant.
 
 #### Code Location
 
@@ -486,7 +479,7 @@ All packages use [log/slog](https://pkg.go.dev/log/slog) for logging, so if
 including the Go Hass Anything packages in your own code, you can hook into
 and/or extend upon that. Note that some of the packages define custom levels for
 _trace_ (level -8) and _fatal_ (level 12), which if the logger is set to output,
-will show some additional details from the internals.  
+will show some additional details from the internals.
 
 ## 👋 Contributing
 

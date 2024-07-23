@@ -33,7 +33,7 @@ linters:
     - errname
     - errorlint
     - exhaustive
-    - exhaustruct
+    # - exhaustruct
     - exportloopref
     - fatcontext
     - forbidigo
