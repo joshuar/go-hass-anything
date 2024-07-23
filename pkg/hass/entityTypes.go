@@ -18,6 +18,8 @@ const (
 	Number // number
 	// An entity that changes state between ON and OFF.
 	Switch // switch
+	// An entity that can show/set a string of text.
+	Text // text
 )
 
 type EntityType int

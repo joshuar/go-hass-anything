@@ -171,6 +171,16 @@ type SwitchEntity struct {
 	Optimistic bool `json:"optimistic,omitempty"`
 }
 
+// TextEntity represents an entity that can display a string of text and set the
+// string remotely. For more details see
+// https://www.home-assistant.io/integrations/text.mqtt/
+type TextEntity struct {
+	*entity
+	Mode string `json:"mode,omitempty"`
+	Min  int    `json:"min,omitempty"`
+	Max  int    `json:"max,omitempty"`
+}
+
 type EntityConstraint[T constraints.Ordered] interface {
 	~*SensorEntity | ~*BinarySensorEntity | ~*ButtonEntity | ~*NumberEntity[T] | ~*SwitchEntity
 }
@@ -495,6 +505,38 @@ func (e *SwitchEntity) AsTypeSwitch() *SwitchEntity {
 // primarily affects how it will be displayed in Home Assistant.
 func (e *SwitchEntity) AsTypeOutlet() *SwitchEntity {
 	e.DeviceClass = "outlet"
+
+	return e
+}
+
+// AsText converts the given entity into a TextEntity. The min, max parameters
+// do not need to be specified (default min: 0, default max: 255).
+func AsText(entity *entity, min, max int) *TextEntity {
+	entity.setTopics(Text)
+	entity.validate()
+
+	if max == 0 || max > 255 {
+		max = 255
+	}
+
+	return &TextEntity{
+		entity: entity,
+		Min:    min,
+		Max:    max,
+		Mode:   PlainText.String(),
+	}
+}
+
+// AsPlainText sets the mode for this text entity to (the default) plain text.
+func (e *TextEntity) AsPlainText() *TextEntity {
+	e.Mode = PlainText.String()
+
+	return e
+}
+
+// AsPassword sets the mode for this text entity to a password.
+func (e *TextEntity) AsPassword() *TextEntity {
+	e.Mode = Password.String()
 
 	return e
 }
