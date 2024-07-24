@@ -1,5 +1,30 @@
 # Changelog
 
+## [11.0.0](https://github.com/joshuar/go-hass-anything/compare/v10.1.0...v11.0.0) (2024-07-24)
+
+
+### ⚠ BREAKING CHANGES
+
+* migrate cobra->kong and zerolog->slog
+* **agent:** improve app preference handling
+
+### Features
+
+* **agent:** improve app preference handling ([0c36708](https://github.com/joshuar/go-hass-anything/commit/0c3670812e03f68bc4536587d3326002ddf44642))
+* **examples:** :recycle: split example into multiple apps to make it easier to follow and copy ([aede219](https://github.com/joshuar/go-hass-anything/commit/aede219589a678452dd7f95f53c1808443eac783))
+* **hass:** :sparkles: add text entity type ([ddeb37e](https://github.com/joshuar/go-hass-anything/commit/ddeb37ec9758655e487b97d9c6d429d487dabbd3))
+* migrate cobra-&gt;kong and zerolog->slog ([0926713](https://github.com/joshuar/go-hass-anything/commit/0926713685025fdb9bb7fb84e41e2d4a804d0398))
+
+
+### Bug Fixes
+
+* **agent:** :zap: gracefully handle sigterm ([21b9ad4](https://github.com/joshuar/go-hass-anything/commit/21b9ad484aa52e275041bc9ab989a951f6318028))
+
+
+### Performance Improvements
+
+* **agent:** :zap: improve handling of different types of apps and remove need for a waitgroup ([feb1991](https://github.com/joshuar/go-hass-anything/commit/feb1991dbcd990274bd7a849fdccca1aa4054b44))
+
 ## [10.1.0](https://github.com/joshuar/go-hass-anything/compare/v10.0.0...v10.1.0) (2024-07-06)
 
 
