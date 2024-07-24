@@ -17,8 +17,8 @@ import (
 
 	"github.com/alecthomas/kong"
 
-	"github.com/joshuar/go-hass-anything/v10/internal/agent"
-	"github.com/joshuar/go-hass-anything/v10/internal/logging"
+	"github.com/joshuar/go-hass-anything/v11/internal/agent"
+	"github.com/joshuar/go-hass-anything/v11/internal/logging"
 )
 
 const (

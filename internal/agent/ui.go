@@ -18,7 +18,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/joshuar/go-hass-anything/v10/pkg/preferences"
+	"github.com/joshuar/go-hass-anything/v11/pkg/preferences"
 )
 
 var (

@@ -17,8 +17,8 @@ import (
 
 	"github.com/eclipse/paho.golang/paho"
 
-	mqtthass "github.com/joshuar/go-hass-anything/v10/pkg/hass"
-	mqttapi "github.com/joshuar/go-hass-anything/v10/pkg/mqtt"
+	mqtthass "github.com/joshuar/go-hass-anything/v11/pkg/hass"
+	mqttapi "github.com/joshuar/go-hass-anything/v11/pkg/mqtt"
 )
 
 const (
