@@ -56,6 +56,7 @@
       - [♻️ Reset](#️-reset)
   - [💻 Development](#-development)
     - [💽 Building Apps](#-building-apps)
+      - [Examples](#examples)
       - [Code Location](#code-location)
     - [App Requirements](#app-requirements)
     - [Poll based Apps](#poll-based-apps)
@@ -302,9 +303,10 @@ command again.
 
 ### 💽 Building Apps
 
-> [!NOTE]
-> Check out the [examples](./examples/) which a few of the different
-> types of entities you can create in Home Assistant.
+#### Examples
+
+Check out the [examples](./examples/) which a few of the different types of
+entities you can create in Home Assistant.
 
 #### Code Location
 
@@ -316,11 +318,10 @@ command again.
 You can put your code in `apps/`. You can create multiple
 directories for each app you develop.
 
-> [!NOTE]
-> The filename is important. The generator to automatically add your app
-> to the agent needs a `.go` file named the same as the app directory to detect
-> your app. Make sure you at least have this file if you split your app code
-> into multiple files.
+> [!NOTE] The filename is important. The generator expects a file named
+> `main.go` in app directories for those directories to be considered as an app.
+> Make sure you at least have this file if you split your app code into multiple
+> files.
 
 ### App Requirements
 
