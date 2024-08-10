@@ -21,6 +21,29 @@ import (
 	mqttapi "github.com/joshuar/go-hass-anything/v11/pkg/mqtt"
 )
 
+//go:generate stringer -type=EntityType -output entity_generated.go -linecomment
+const (
+	Unknown EntityType = iota // unknown
+	// An entity with some kind of value, numeric or string.
+	Sensor // sensor
+	// An entity with a boolean value.
+	BinarySensor // binary_sensor
+	// An entity that changes state when activated.
+	Button // button
+	// An entity that is a number (float or int) with a range of values.
+	Number // number
+	// An entity that changes state between ON and OFF.
+	Switch // switch
+	// An entity that can show/set a string of text.
+	Text // text
+	// Any entity that can send images.
+	Camera // camera
+	// Any entity that can send images.
+	Image // image
+)
+
+type EntityType int
+
 var (
 	ErrNoStateCallback   = errors.New("no state callback function")
 	ErrNoCommandCallback = errors.New("no command callback function")
@@ -129,54 +152,6 @@ func (e *entity) MarshalConfig() (*mqttapi.Msg, error) {
 	}
 
 	return mqttapi.NewMsg(e.ConfigTopic, cfg), nil
-}
-
-// SensorEntity represents an entity which has some kind of value. For more
-// details, see https://www.home-assistant.io/integrations/sensor.mqtt/
-type SensorEntity struct {
-	*entity
-}
-
-// BinarySensorEntity represents an entity which has a boolean state. For more
-// details, see https://www.home-assistant.io/integrations/binary_sensor.mqtt/
-type BinarySensorEntity struct {
-	*entity
-}
-
-// ButtonEntity represents an entity which can perform some action or event in
-// response to being "pushed". For more details, see
-// https://www.home-assistant.io/integrations/button.mqtt/
-type ButtonEntity struct {
-	*entity
-}
-
-// NumberEntity represents an entity that is a number that has a given range of
-// values and can be set to any value in that range, with a precision by the
-// given step. For more details, see
-// https://www.home-assistant.io/integrations/number.mqtt/
-type NumberEntity[T constraints.Ordered] struct {
-	*entity
-	Min  T      `json:"min,omitempty"`
-	Max  T      `json:"max,omitempty"`
-	Step T      `json:"step,omitempty"`
-	Mode string `json:"mode,omitempty"`
-}
-
-// SwitchEntity represents an entity that can be turned on or off. For more
-// details see https://www.home-assistant.io/integrations/switch.mqtt/
-type SwitchEntity struct {
-	*entity
-	Optimistic bool `json:"optimistic,omitempty"`
-}
-
-// TextEntity represents an entity that can display a string of text and set the
-// string remotely. For more details see
-// https://www.home-assistant.io/integrations/text.mqtt/
-type TextEntity struct {
-	*entity
-	Mode string `json:"mode,omitempty"`
-	Min  int    `json:"min,omitempty"`
-	Max  int    `json:"max,omitempty"`
 }
 
 type EntityConstraint[T constraints.Ordered] interface {
@@ -428,157 +403,4 @@ func (e *entity) GetTopics() *Topics {
 		State:      e.StateTopic,
 		Attributes: e.AttributesTopic,
 	}
-}
-
-// AsSensor converts the given entity into a SensorEntity. Additional builders
-// can potentially be applied to customise it further.
-func AsSensor(entity *entity) *SensorEntity {
-	entity.EntityType = Sensor
-	entity.setTopics()
-	entity.validate()
-
-	return &SensorEntity{
-		entity: entity,
-	}
-}
-
-// AsBinarySensor converts the given entity into a BinarySensorEntity.
-// Additional builders can potentially be applied to customise it further.
-func AsBinarySensor(entity *entity) *BinarySensorEntity {
-	entity.EntityType = BinarySensor
-	entity.setTopics()
-	entity.validate()
-
-	return &BinarySensorEntity{
-		entity: entity,
-	}
-}
-
-// AsButton converts the given entity into a ButtonEntity. Additional builders
-// can potentially be applied to customise it further.
-func AsButton(entity *entity) *ButtonEntity {
-	entity.EntityType = Button
-	entity.setTopics()
-	entity.validate()
-
-	return &ButtonEntity{
-		entity: entity,
-	}
-}
-
-// AsNumber converts the given entity into a NumberEntity. Additional builders
-// can potentially be applied to customise it further.
-func AsNumber[T constraints.Ordered](entity *entity, step, min, max T, mode NumberMode) *NumberEntity[T] {
-	entity.EntityType = Number
-	entity.setTopics()
-	entity.validate()
-
-	return &NumberEntity[T]{
-		entity: entity,
-		Step:   step,
-		Min:    min,
-		Max:    max,
-		Mode:   mode.String(),
-	}
-}
-
-func (e *NumberEntity[T]) MarshalConfig() (*mqttapi.Msg, error) {
-	var (
-		cfg []byte
-		err error
-	)
-
-	if cfg, err = json.Marshal(e); err != nil {
-		return nil, fmt.Errorf("marshal config: %w", err)
-	}
-
-	return mqttapi.NewMsg(e.ConfigTopic, cfg), nil
-}
-
-// AsSwitch converts the given entity into a SwitchEntity. Additional builders
-// can potentially be applied to customise it further.
-func AsSwitch(entity *entity, optimistic bool) *SwitchEntity {
-	entity.EntityType = Switch
-	entity.setTopics()
-	entity.validate()
-
-	return &SwitchEntity{
-		entity:     entity,
-		Optimistic: optimistic,
-	}
-}
-
-// AsTypeSwitch sets the SwitchEntity device class as a "switch". This primarily
-// affects how it will be displayed in Home Assistant.
-func (e *SwitchEntity) AsTypeSwitch() *SwitchEntity {
-	e.DeviceClass = "switch"
-
-	return e
-}
-
-// AsTypeSwitch sets the SwitchEntity device class as an "outlet". This
-// primarily affects how it will be displayed in Home Assistant.
-func (e *SwitchEntity) AsTypeOutlet() *SwitchEntity {
-	e.DeviceClass = "outlet"
-
-	return e
-}
-
-func (e *SwitchEntity) MarshalConfig() (*mqttapi.Msg, error) {
-	var (
-		cfg []byte
-		err error
-	)
-
-	if cfg, err = json.Marshal(e); err != nil {
-		return nil, fmt.Errorf("marshal config: %w", err)
-	}
-
-	return mqttapi.NewMsg(e.ConfigTopic, cfg), nil
-}
-
-// AsText converts the given entity into a TextEntity. The min, max parameters
-// do not need to be specified (default min: 0, default max: 255).
-func AsText(entity *entity, min, max int) *TextEntity {
-	entity.EntityType = Text
-	entity.setTopics()
-	entity.validate()
-
-	if max == 0 || max > 255 {
-		max = 255
-	}
-
-	return &TextEntity{
-		entity: entity,
-		Min:    min,
-		Max:    max,
-		Mode:   PlainText.String(),
-	}
-}
-
-// AsPlainText sets the mode for this text entity to (the default) plain text.
-func (e *TextEntity) AsPlainText() *TextEntity {
-	e.Mode = PlainText.String()
-
-	return e
-}
-
-// AsPassword sets the mode for this text entity to a password.
-func (e *TextEntity) AsPassword() *TextEntity {
-	e.Mode = Password.String()
-
-	return e
-}
-
-func (e *TextEntity) MarshalConfig() (*mqttapi.Msg, error) {
-	var (
-		cfg []byte
-		err error
-	)
-
-	if cfg, err = json.Marshal(e); err != nil {
-		return nil, fmt.Errorf("marshal config: %w", err)
-	}
-
-	return mqttapi.NewMsg(e.ConfigTopic, cfg), nil
 }
