@@ -1,6 +1,5 @@
 <div align="center">
 
-  <!-- <img src="assets/logo.png" alt="logo" width="200" height="auto" /> -->
   <h1>Go Hass Anything</h1>
 
   <p>
@@ -115,18 +114,25 @@ variety of platforms from embedded through to server hardware.
 - Apps can optionally specify user-facing preferences that the agent will
   present via a terminal UI for configuration.
 - Apps can use the following Home Assistant entities:
-  - [Sensor](https://www.home-assistant.io/integrations/sensor.mqtt/)
+  - [Sensor](https://www.home-assistant.io/integrations/sensor.mqtt/) ([Example App](examples/sensorapp/main.go))
   - [Binary Sensor](https://www.home-assistant.io/integrations/binary_sensor.mqtt/)
-  - [Switch](https://www.home-assistant.io/integrations/switch.mqtt/)
-  - [Button](https://www.home-assistant.io/integrations/button.mqtt/)
-  - [Number](https://www.home-assistant.io/integrations/number.mqtt/)
-  - [Text](https://www.home-assistant.io/integrations/text.mqtt/)
+  - [Switch](https://www.home-assistant.io/integrations/switch.mqtt/) ([Example App](examples/switchapp/main.go))
+  - [Button](https://www.home-assistant.io/integrations/button.mqtt/) ([Example App](examples/buttonapp/main.go))
+  - [Number](https://www.home-assistant.io/integrations/number.mqtt/) ([Example App](examples/numberapp/main.go))
+  - [Text](https://www.home-assistant.io/integrations/text.mqtt/) ([Example App](examples/textapp/main.go))
+  - [Image](https://www.home-assistant.io/integrations/image.mqtt/) ([Example App](examples/cameraapp/main.go))
+  - [Camera](https://www.home-assistant.io/integrations/camera.mqtt/)
   - _With more to come!_
 - Simple TOML based configuration.
 - Compile all apps into a single binary.
 - Use via a container or stand-alone binary.
 - Light on resources (CPU/memory).
 - Runs anywhere that Go runs, from embedded to server hardware.
+
+> [!NOTE]
+> If you are looking to add sensors for a Linux desktop/server to Home
+> Assistant, check out [Go Hass Agent](https://github.com/joshuar/go-hass-agent)
+> which uses Go Hass Anything under the hood!
 
 ### 🗒️ Versioning
 
