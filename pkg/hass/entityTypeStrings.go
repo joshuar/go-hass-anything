@@ -15,11 +15,13 @@ func _() {
 	_ = x[Number-4]
 	_ = x[Switch-5]
 	_ = x[Text-6]
+	_ = x[Camera-7]
+	_ = x[Image-8]
 }
 
-const _EntityType_name = "unknownsensorbinary_sensorbuttonnumberswitchtext"
+const _EntityType_name = "unknownsensorbinary_sensorbuttonnumberswitchtextcameraimage"
 
-var _EntityType_index = [...]uint8{0, 7, 13, 26, 32, 38, 44, 48}
+var _EntityType_index = [...]uint8{0, 7, 13, 26, 32, 38, 44, 48, 54, 59}
 
 func (i EntityType) String() string {
 	if i < 0 || i >= EntityType(len(_EntityType_index)-1) {

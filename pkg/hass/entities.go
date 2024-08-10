@@ -16,10 +16,7 @@ import (
 	"strings"
 
 	"github.com/eclipse/paho.golang/paho"
-	"github.com/iancoleman/strcase"
 	"golang.org/x/exp/constraints"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 
 	mqttapi "github.com/joshuar/go-hass-anything/v11/pkg/mqtt"
 )
@@ -48,22 +45,23 @@ type entityConfig struct {
 // across any specific entity.
 type entity struct {
 	*entityConfig      `json:"-"`
-	Origin             *Origin `json:"origin,omitempty"`
-	Device             *Device `json:"device,omitempty"`
-	UnitOfMeasurement  string  `json:"unit_of_measurement,omitempty"`
-	StateClass         string  `json:"state_class,omitempty"`
-	ConfigTopic        string  `json:"-"`
-	CommandTopic       string  `json:"command_topic,omitempty"`
-	StateTopic         string  `json:"state_topic"`
-	ValueTemplate      string  `json:"value_template"`
-	UniqueID           string  `json:"unique_id"`
-	Name               string  `json:"name"`
-	EntityCategory     string  `json:"entity_category,omitempty"`
-	Icon               string  `json:"icon,omitempty"`
-	AttributesTopic    string  `json:"json_attributes_topic,omitempty"`
-	AttributesTemplate string  `json:"json_attributes_template,omitempty"`
-	DeviceClass        string  `json:"device_class,omitempty"`
-	StateExpiry        int     `json:"expire_after,omitempty"`
+	Origin             *Origin    `json:"origin,omitempty"`
+	Device             *Device    `json:"device,omitempty"`
+	UnitOfMeasurement  string     `json:"unit_of_measurement,omitempty"`
+	StateClass         string     `json:"state_class,omitempty"`
+	ConfigTopic        string     `json:"-"`
+	CommandTopic       string     `json:"command_topic,omitempty"`
+	StateTopic         string     `json:"state_topic"`
+	ValueTemplate      string     `json:"value_template"`
+	UniqueID           string     `json:"unique_id"`
+	Name               string     `json:"name"`
+	EntityCategory     string     `json:"entity_category,omitempty"`
+	Icon               string     `json:"icon,omitempty"`
+	AttributesTopic    string     `json:"json_attributes_topic,omitempty"`
+	AttributesTemplate string     `json:"json_attributes_template,omitempty"`
+	DeviceClass        string     `json:"device_class,omitempty"`
+	StateExpiry        int        `json:"expire_after,omitempty"`
+	EntityType         EntityType `json:"-"`
 }
 
 // MarshalState will generate an *mqtt.Msg for a given entity, that can be used
@@ -248,26 +246,25 @@ func (e *entity) WithNodeID(id string) *entity {
 	return e
 }
 
-func (e *entity) setTopics(entityType EntityType) {
-	var prefix string
+func (e *entity) getTopicPrefix() string {
 	if e.NodeID != "" {
-		prefix = strings.Join([]string{HomeAssistantTopic, entityType.String(), e.NodeID, e.UniqueID}, "/")
-	} else {
-		prefix = strings.Join([]string{HomeAssistantTopic, entityType.String(), e.UniqueID}, "/")
+		return strings.Join([]string{HomeAssistantTopic, e.EntityType.String(), e.NodeID, e.UniqueID}, "/")
 	}
 
-	e.ConfigTopic = prefix + "/config"
-	e.StateTopic = prefix + "/state"
+	return strings.Join([]string{HomeAssistantTopic, e.EntityType.String(), e.UniqueID}, "/")
+}
+
+func (e *entity) setTopics() {
+	e.ConfigTopic = e.getTopicPrefix() + "/config"
+	e.StateTopic = e.getTopicPrefix() + "/state"
 
 	if e.CommandCallback != nil {
-		e.CommandTopic = prefix + "/set"
+		e.CommandTopic = e.getTopicPrefix() + "/set"
 	}
 
 	if e.AttributesTemplate != "" || e.AttributesCallback != nil {
-		e.AttributesTopic = prefix + "/attributes"
+		e.AttributesTopic = e.getTopicPrefix() + "/attributes"
 	}
-
-	e.EntityType = entityType
 }
 
 //nolint:exhaustruct
@@ -435,45 +432,49 @@ func (e *entity) GetTopics() *Topics {
 
 // AsSensor converts the given entity into a SensorEntity. Additional builders
 // can potentially be applied to customise it further.
-func AsSensor(e *entity) *SensorEntity {
-	e.setTopics(Sensor)
-	e.validate()
+func AsSensor(entity *entity) *SensorEntity {
+	entity.EntityType = Sensor
+	entity.setTopics()
+	entity.validate()
 
 	return &SensorEntity{
-		entity: e,
+		entity: entity,
 	}
 }
 
 // AsBinarySensor converts the given entity into a BinarySensorEntity.
 // Additional builders can potentially be applied to customise it further.
-func AsBinarySensor(e *entity) *BinarySensorEntity {
-	e.setTopics(BinarySensor)
-	e.validate()
+func AsBinarySensor(entity *entity) *BinarySensorEntity {
+	entity.EntityType = BinarySensor
+	entity.setTopics()
+	entity.validate()
 
 	return &BinarySensorEntity{
-		entity: e,
+		entity: entity,
 	}
 }
 
 // AsButton converts the given entity into a ButtonEntity. Additional builders
 // can potentially be applied to customise it further.
-func AsButton(e *entity) *ButtonEntity {
-	e.setTopics(Button)
-	e.validate()
+func AsButton(entity *entity) *ButtonEntity {
+	entity.EntityType = Button
+	entity.setTopics()
+	entity.validate()
 
 	return &ButtonEntity{
-		entity: e,
+		entity: entity,
 	}
 }
 
 // AsNumber converts the given entity into a NumberEntity. Additional builders
 // can potentially be applied to customise it further.
-func AsNumber[T constraints.Ordered](e *entity, step, min, max T, mode NumberMode) *NumberEntity[T] {
-	e.setTopics(Number)
-	e.validate()
+func AsNumber[T constraints.Ordered](entity *entity, step, min, max T, mode NumberMode) *NumberEntity[T] {
+	entity.EntityType = Number
+	entity.setTopics()
+	entity.validate()
 
 	return &NumberEntity[T]{
-		entity: e,
+		entity: entity,
 		Step:   step,
 		Min:    min,
 		Max:    max,
@@ -481,14 +482,28 @@ func AsNumber[T constraints.Ordered](e *entity, step, min, max T, mode NumberMod
 	}
 }
 
+func (e *NumberEntity[T]) MarshalConfig() (*mqttapi.Msg, error) {
+	var (
+		cfg []byte
+		err error
+	)
+
+	if cfg, err = json.Marshal(e); err != nil {
+		return nil, fmt.Errorf("marshal config: %w", err)
+	}
+
+	return mqttapi.NewMsg(e.ConfigTopic, cfg), nil
+}
+
 // AsSwitch converts the given entity into a SwitchEntity. Additional builders
 // can potentially be applied to customise it further.
-func AsSwitch(e *entity, optimistic bool) *SwitchEntity {
-	e.setTopics(Switch)
-	e.validate()
+func AsSwitch(entity *entity, optimistic bool) *SwitchEntity {
+	entity.EntityType = Switch
+	entity.setTopics()
+	entity.validate()
 
 	return &SwitchEntity{
-		entity:     e,
+		entity:     entity,
 		Optimistic: optimistic,
 	}
 }
@@ -509,10 +524,24 @@ func (e *SwitchEntity) AsTypeOutlet() *SwitchEntity {
 	return e
 }
 
+func (e *SwitchEntity) MarshalConfig() (*mqttapi.Msg, error) {
+	var (
+		cfg []byte
+		err error
+	)
+
+	if cfg, err = json.Marshal(e); err != nil {
+		return nil, fmt.Errorf("marshal config: %w", err)
+	}
+
+	return mqttapi.NewMsg(e.ConfigTopic, cfg), nil
+}
+
 // AsText converts the given entity into a TextEntity. The min, max parameters
 // do not need to be specified (default min: 0, default max: 255).
 func AsText(entity *entity, min, max int) *TextEntity {
-	entity.setTopics(Text)
+	entity.EntityType = Text
+	entity.setTopics()
 	entity.validate()
 
 	if max == 0 || max > 255 {
@@ -541,18 +570,15 @@ func (e *TextEntity) AsPassword() *TextEntity {
 	return e
 }
 
-// FormatName will take a string s and format it with appropriate spacing
-// between words and capitalised the first letter of each word. For example
-// someString becomes Some String. The new string is then an appropriate format
-// to be used as a name in Home Assistant.
-func FormatName(s string) string {
-	c := cases.Title(language.AmericanEnglish)
+func (e *TextEntity) MarshalConfig() (*mqttapi.Msg, error) {
+	var (
+		cfg []byte
+		err error
+	)
 
-	return c.String(strcase.ToDelimited(s, ' '))
-}
+	if cfg, err = json.Marshal(e); err != nil {
+		return nil, fmt.Errorf("marshal config: %w", err)
+	}
 
-// FormatID will take a string s and format it as snake_case. The new string is
-// then an appropriate format to be used as a unique ID in Home Assistant.
-func FormatID(s string) string {
-	return strcase.ToSnake(s)
+	return mqttapi.NewMsg(e.ConfigTopic, cfg), nil
 }

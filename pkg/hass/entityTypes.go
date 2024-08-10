@@ -20,6 +20,10 @@ const (
 	Switch // switch
 	// An entity that can show/set a string of text.
 	Text // text
+	// Any entity that can send images.
+	Camera // camera
+	// Any entity that can send images.
+	Image // image
 )
 
 type EntityType int
