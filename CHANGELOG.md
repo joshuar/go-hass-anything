@@ -1,5 +1,18 @@
 # Changelog
 
+## [11.1.0](https://github.com/joshuar/go-hass-anything/compare/v11.0.0...v11.1.0) (2024-08-10)
+
+
+### Features
+
+* **hass:** :sparkles: add image and camera entities ([c44d321](https://github.com/joshuar/go-hass-anything/commit/c44d321443b62d3361fec290b0c5a1972442067f))
+
+
+### Bug Fixes
+
+* **container:** :heavy_plus_sign: ensure linux-headers are installed for camera example app ([7efc46e](https://github.com/joshuar/go-hass-anything/commit/7efc46e1f26c1c145285cef595e30c04780e0273))
+* **mqtt:** :bug: don't assume json encoding of message ([fd218cd](https://github.com/joshuar/go-hass-anything/commit/fd218cd83a9ef5d62a29d4249b8d5b15922014cc))
+
 ## [11.0.0](https://github.com/joshuar/go-hass-anything/compare/v10.1.0...v11.0.0) (2024-07-24)
 
 
