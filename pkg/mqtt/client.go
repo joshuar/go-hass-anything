@@ -213,12 +213,12 @@ func publish(ctx context.Context, conn *autopaho.ConnectionManager, msgs ...*Msg
 		slog.Log(ctx, LevelTrace, "Publishing message.",
 			slog.String("topic", msg.Topic),
 			slog.Bool("retain", msg.Retained),
-			slog.Any("payload", string(msg.Message)))
+			slog.Any("payload", msg.Message))
 
 		if _, err := conn.Publish(ctx, &paho.Publish{
 			QoS:     1,
 			Topic:   msg.Topic,
-			Payload: []byte(msg.Message),
+			Payload: msg.Message,
 		}); err != nil {
 			slog.Error("Error publishing message.", "topic", msg.Topic, "error", err.Error())
 		}

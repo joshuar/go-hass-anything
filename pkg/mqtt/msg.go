@@ -5,12 +5,10 @@
 
 package mqtt
 
-import "encoding/json"
-
 // Msg represents a message that can be sent or received on the MQTT bus.
 type Msg struct {
 	Topic    string
-	Message  json.RawMessage
+	Message  []byte
 	QOS      byte
 	Retained bool
 }
@@ -27,9 +25,7 @@ func (m *Msg) Retain() *Msg {
 // message body. The returned Msg can be further customised directly for
 // specifying retention and QoS parameters, which are not set through this
 // function and assumed to be left as their default values.
-//
-//nolint:exhaustruct
-func NewMsg(topic string, msg json.RawMessage) *Msg {
+func NewMsg(topic string, msg []byte) *Msg {
 	return &Msg{
 		Topic:   topic,
 		Message: msg,
