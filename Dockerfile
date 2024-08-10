@@ -8,7 +8,7 @@ FROM --platform=$BUILDPLATFORM alpine@sha256:b89d9c93e9ed3597455c90a0b88a8bbb5cb
 ARG TARGETARCH
 ARG APPDIR=examples
 
-RUN apk add --update go git
+RUN apk add --update go git linux-headers
 
 ENV PATH="$PATH:/root/go/bin"
 
