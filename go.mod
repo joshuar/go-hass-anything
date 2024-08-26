@@ -3,7 +3,7 @@ module github.com/joshuar/go-hass-anything/v11
 go 1.22.0
 
 require (
-	github.com/charmbracelet/lipgloss v0.12.1
+	github.com/charmbracelet/lipgloss v0.13.0
 	github.com/pelletier/go-toml v1.9.5
 )
 
