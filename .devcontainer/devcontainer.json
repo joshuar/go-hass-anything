@@ -1,16 +1,16 @@
 {
     "dockerComposeFile": "docker-compose.yml",
     "service": "devcontainer",
-    "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
     "shutdownAction": "stopCompose",
     "containerUser": "vscode",
+    "updateRemoteUserUID": true,
+	"workspaceFolder": "/workspace",
     "remoteEnv": {
         "TZ": "${localEnv:TZ:Australia/Brisbane}"
     },
     "features": {
         "ghcr.io/devcontainers/features/go:1": {},
         "ghcr.io/devcontainers/features/github-cli:1": {},
-        "ghcr.io/devcontainers-contrib/features/pre-commit:2": {}
     },
     "postCreateCommand": ".devcontainer/postCreate.sh",
     "customizations": {

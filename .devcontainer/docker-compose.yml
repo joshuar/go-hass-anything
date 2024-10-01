@@ -3,10 +3,13 @@ services:
     build: 
       dockerfile: Dockerfile
     volumes:
-      - ../..:/workspaces:cached
+      - ..:/workspace:cached
       - /etc/localtime:/etc/localtime:ro,cached
     command: sleep infinity
-    network_mode: host
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined    
     user: vscode
   mosquitto:
     image: docker.io/eclipse-mosquitto:2.0.18
@@ -20,7 +23,7 @@ services:
       - 8883:8883
     restart: on-failure
   home-assistant:
-    image: ghcr.io/home-assistant/home-assistant:2024.6.3
+    image: ghcr.io/home-assistant/home-assistant:2024.10.0
     volumes:
       - ../deployments/home-assistant/config:/config
     ports:
