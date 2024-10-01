@@ -33,7 +33,7 @@ require (
 
 require (
 	github.com/adrg/xdg v0.5.0
-	github.com/alecthomas/kong v0.9.0
+	github.com/alecthomas/kong v1.2.1
 	github.com/charmbracelet/bubbles v0.18.0
 	github.com/charmbracelet/bubbletea v0.26.6
 	github.com/eclipse/paho.golang v0.21.0
