@@ -43,7 +43,7 @@ require (
 	github.com/lthibault/jitterbug/v2 v2.2.2
 	github.com/magefile/mage v1.15.0
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/samber/slog-multi v1.2.0
+	github.com/samber/slog-multi v1.2.2
 	github.com/vladimirvivien/go4vl v0.0.5
 	golang.org/x/exp v0.0.0-20240416160154-fe59bbe5cc7f
 	golang.org/x/net v0.27.0 // indirect
