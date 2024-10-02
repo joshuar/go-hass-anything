@@ -25,7 +25,8 @@ func (Checks) Lint() error {
 	slog.Info("Running linter (go vet)...")
 
 	if err := sh.RunV("golangci-lint", "run"); err != nil {
-		slog.Warn("Linter reported issues.", "error", err.Error())
+		slog.Warn("Linter reported issues.",
+			slog.Any("error", err))
 	}
 
 	if err := foundOrInstalled("staticcheck", "honnef.co/go/tools/cmd/staticcheck@latest"); err != nil {

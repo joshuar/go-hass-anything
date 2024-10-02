@@ -69,7 +69,9 @@ func sudoWrap(cmd string, args ...string) error {
 func foundOrInstalled(executableName, installURL string) error {
 	_, missing := exec.LookPath(executableName)
 	if missing != nil {
-		slog.Info("Installing tool.", "tool", executableName, "url", installURL)
+		slog.Info("Installing tool.",
+			slog.String("tool", executableName),
+			slog.String("url", installURL))
 
 		err := sh.Run("go", "install", installURL)
 		if err != nil {

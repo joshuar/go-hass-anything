@@ -70,7 +70,9 @@ func buildProject() error {
 
 	output := "dist/" + appName + "-" + targetArch
 
-	slog.Info("Running go build...", "output", output, "ldflags", ldflags)
+	slog.Info("Running go build...",
+		slog.String("output", output),
+		slog.String("ldflags", ldflags))
 
 	if err := sh.RunV("go", "build", "-ldflags="+ldflags, "-o", output); err != nil {
 		return fmt.Errorf("build failed: %w", err)
