@@ -124,20 +124,24 @@ func (a *Agent) Configure() {
 	// Get the agent preferences.
 	prefs, err := preferences.Load()
 	if err != nil {
-		a.logger.Warn("Could not load agent preferences.", "error", err.Error())
+		a.logger.Warn("Could not load agent preferences.",
+			slog.Any("error", err))
 	}
 	// Show a terminal UI to configure the agent preferences.
 	if err := ShowPreferences(a.AppName(), prefs); err != nil {
-		a.logger.Warn("Could not display agent preferences.", "error", err.Error())
+		a.logger.Warn("Could not display agent preferences.",
+			slog.Any("error", err))
 	}
 	// Save agent preferences.
 	if err := preferences.Save(prefs); err != nil {
-		a.logger.Warn("Could not save agent preferences.", "error", err.Error())
+		a.logger.Warn("Could not save agent preferences.",
+			slog.Any("error", err))
 	}
 	// For any apps that satisfy the Preferences interface, meaning they have
 	// configurable preferences, show a terminal UI to configure them.
 	for _, app := range AppList {
-		a.logger.Debug("Checking and configuring app preferences", "app", app.Name())
+		a.logger.Debug("Checking and configuring app preferences",
+			slog.String("app", app.Name()))
 
 		app, ok := app.(AppWithPreferences)
 		if !ok {
@@ -146,17 +150,23 @@ func (a *Agent) Configure() {
 
 		appPrefs, err := preferences.LoadApp(app)
 		if err != nil {
-			a.logger.Warn("Could not configure app.", "app", app.Name(), "error", err.Error())
+			a.logger.Warn("Could not configure app.",
+				slog.String("app", app.Name()),
+				slog.Any("error", err))
 
 			continue
 		}
 
 		if err := ShowPreferences(app.Name(), appPrefs); err != nil {
-			a.logger.Warn("Could not configure app.", "app", app.Name(), "error", err.Error())
+			a.logger.Warn("Could not configure app.",
+				slog.String("app", app.Name()),
+				slog.Any("error", err))
 		}
 
 		if err := preferences.SaveApp(app.Name(), appPrefs); err != nil {
-			a.logger.Warn("Could not configure app.", "app", app.Name(), "error", err.Error())
+			a.logger.Warn("Could not configure app.",
+				slog.String("app", app.Name()),
+				slog.Any("error", err))
 		}
 	}
 }
@@ -199,10 +209,13 @@ func ClearApps(ctx context.Context) error {
 	}
 
 	for _, app := range AppList {
-		logging.FromContext(ctx).Debug("Removing configuration from MQTT for app.", "app", app.Name())
+		logging.FromContext(ctx).Debug("Removing configuration from MQTT for app.",
+			slog.String("app", app.Name()))
 
 		if err := client.Unpublish(ctx, app.Configuration()...); err != nil {
-			logging.FromContext(ctx).Warn("Could not remove configuration from MQTT for app.", "app", app.Name(), "error", err.Error())
+			logging.FromContext(ctx).Warn("Could not remove configuration from MQTT for app.",
+				slog.String("app", app.Name()),
+				slog.Any("error", err))
 
 			continue
 		}
@@ -217,7 +230,8 @@ func runApps(ctx context.Context, client *mqtt.Client, apps []App) {
 	logger := logging.FromContext(ctx)
 
 	for _, app := range apps {
-		logger.Debug("Running app.", "app", app.Name())
+		logger.Debug("Running app.",
+			slog.String("app", app.Name()))
 
 		switch app := app.(type) {
 		case PollingApp:
@@ -246,27 +260,34 @@ func runApps(ctx context.Context, client *mqtt.Client, apps []App) {
 func updateApp(ctx context.Context, app App) {
 	logger := logging.FromContext(ctx)
 
-	logger.Debug("Updating app.", "app", app.Name())
+	logger.Debug("Updating app.",
+		slog.String("app", app.Name()))
 
 	if err := app.Update(ctx); err != nil {
-		logger.Warn("Failed to update app.", "app", app.Name(), "error", err.Error())
+		logger.Warn("Failed to update app.",
+			slog.String("app", app.Name()),
+			slog.Any("error", err))
 	}
 }
 
 func publishAppStates(ctx context.Context, app App, client *mqtt.Client) {
 	logger := logging.FromContext(ctx)
 
-	logger.Debug("Publishing app states.", "app", app.Name())
+	logger.Debug("Publishing app states.",
+		slog.String("app", app.Name()))
 
 	if err := client.Publish(ctx, app.States()...); err != nil {
-		logger.Warn("Failed to publish app states.", "app", app.Name(), "error", err.Error())
+		logger.Warn("Failed to publish app states.",
+			slog.String("app", app.Name()),
+			slog.Any("error", err))
 	}
 }
 
 func runPollingApp(ctx context.Context, client *mqtt.Client, logger *slog.Logger, app PollingApp) {
 	interval, jitter := app.PollConfig()
 
-	logger.Info("Running loop to poll app for updates.", "app", app.Name())
+	logger.Info("Running loop to poll app for updates.",
+		slog.String("app", app.Name()))
 
 	err := poll(
 		ctx,
@@ -278,20 +299,25 @@ func runPollingApp(ctx context.Context, client *mqtt.Client, logger *slog.Logger
 		jitter,
 	)
 	if err != nil {
-		logger.Error("Failed to poll app for updates.", "app", app.Name(), "error", err.Error())
+		logger.Error("Failed to poll app for updates.",
+			slog.String("app", app.Name()),
+			slog.Any("error", err))
 	}
 }
 
 func runEventsApp(ctx context.Context, client *mqtt.Client, logger *slog.Logger, app EventsApp) {
 	updateApp(ctx, app)
 
-	logger.Info("Listening for message events from app.", "app", app.Name())
+	logger.Info("Listening for message events from app.",
+		slog.String("app", app.Name()))
 
 	for {
 		select {
 		case msg := <-app.MsgCh():
 			if err := client.Publish(ctx, msg); err != nil {
-				logger.Error("Failed to publish state messages for app.", "app", app.Name(), "error", err.Error())
+				logger.Error("Failed to publish state messages for app.",
+					slog.String("app", app.Name()),
+					slog.Any("error", err))
 			}
 		case <-ctx.Done():
 			return

@@ -15,6 +15,8 @@ import (
 	"time"
 
 	"github.com/go-resty/resty/v2"
+
+	"github.com/joshuar/go-hass-anything/v11/internal/logging"
 )
 
 type contextKey string
@@ -67,11 +69,20 @@ func ExecuteRequest(ctx context.Context, request, response any) error {
 
 	switch req := request.(type) {
 	case PostRequest:
-		slog.Log(ctx, LevelTrace, "api request", "method", "POST", "body", req.RequestBody(), "sent_at", time.Now())
+		logging.FromContext(ctx).
+			LogAttrs(ctx, logging.LevelTrace,
+				"Sending request.",
+				slog.String("method", "POST"),
+				slog.String("body", string(req.RequestBody())),
+				slog.Time("sent_at", time.Now()))
 
 		resp, err = webRequest.SetBody(req.RequestBody()).Post(req.URL())
 	case GetRequest:
-		slog.Log(ctx, LevelTrace, "api request", "method", "GET", "sent_at", time.Now())
+		logging.FromContext(ctx).
+			LogAttrs(ctx, logging.LevelTrace,
+				"Sending request.",
+				slog.String("method", "GET"),
+				slog.Time("sent_at", time.Now()))
 
 		resp, err = webRequest.Get(req.URL())
 	}
@@ -80,12 +91,14 @@ func ExecuteRequest(ctx context.Context, request, response any) error {
 		return fmt.Errorf("could not send request: %w", err)
 	}
 
-	slog.Log(ctx, LevelTrace, "api response",
-		"statuscode", resp.StatusCode(),
-		"status", resp.Status(),
-		"time", resp.Time(),
-		"received_at", resp.ReceivedAt(),
-		"body", resp.Body())
+	logging.FromContext(ctx).
+		LogAttrs(ctx, logging.LevelTrace,
+			"Received response.",
+			slog.Int("statuscode", resp.StatusCode()),
+			slog.String("status", resp.Status()),
+			slog.String("protocol", resp.Proto()),
+			slog.Duration("time", resp.Time()),
+			slog.String("body", string(resp.Body())))
 
 	if resp.IsError() {
 		return fmt.Errorf("received error response: %w", err)

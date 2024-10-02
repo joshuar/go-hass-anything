@@ -38,12 +38,23 @@ type TextApp struct {
 func New(_ context.Context) (*TextApp, error) {
 	app := &TextApp{}
 	app.text = "Replace this text and hit return!"
-	app.entity = mqtthass.AsText(mqtthass.NewEntity(appName, "Text", "").
-		WithDeviceInfo(newDevice()).
-		WithDefaultOriginInfo().
-		WithValueTemplate("{{ value }}").
-		WithStateCallback(app.stateCallback).
-		WithCommandCallback(app.commandCallback), minTextLen, maxTextLen).AsPlainText()
+	app.entity = mqtthass.NewTextEntity().
+		WithMode(mqtthass.PlainText).
+		WithMin(minTextLen).
+		WithMax(maxTextLen).
+		WithDetails(
+			mqtthass.App(appName),
+			mqtthass.Name("Text"),
+			mqtthass.ID("text"),
+			mqtthass.DeviceInfo(newDevice()),
+		).
+		WithCommand(
+			mqtthass.CommandCallback(app.commandCallback),
+		).
+		WithState(
+			mqtthass.StateCallback(app.stateCallback),
+			mqtthass.ValueTemplate("{{ value }}"),
+		)
 
 	return app, nil
 }

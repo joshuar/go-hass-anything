@@ -22,7 +22,6 @@ const (
 	LevelFatal = slog.Level(12)
 )
 
-//nolint:misspell
 var LevelNames = map[slog.Leveler]string{
 	LevelTrace: "TRACE",
 	LevelFatal: "FATAL",
@@ -65,7 +64,9 @@ func New(level string, noLogFile bool) *slog.Logger {
 	if logFile != "" {
 		logFile, err := openLogFile(logFile)
 		if err != nil {
-			slog.Warn("unable to open log file", "file", logFile, "error", err)
+			slog.Warn("unable to open log file",
+				slog.String("file", logFile.Name()),
+				slog.Any("error", err))
 		} else {
 			logHandler = slogmulti.Fanout(
 				tint.NewHandler(os.Stdout, consoleOpts),

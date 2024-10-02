@@ -15,52 +15,52 @@ import (
 // CameraEntity represents an entity which sends image files through MQTT. For
 // more details, see https://www.home-assistant.io/integrations/camera.mqtt/
 type CameraEntity struct {
-	*entity
-	Encoding      string `json:"encoding,omitempty"`
-	ImageEncoding string `json:"image_encoding,omitempty"`
-	Topic         string `json:"topic"`
+	*EntityDetails
+	*EntityAttributes
+	*EntityEncoding
+	Topic string `json:"topic" validate:"required"`
 }
 
-// AsCamera converts the given entity into a CameraEntity. The min, max parameters
-// do not need to be specified (default min: 0, default max: 255).
-func AsCamera(entity *entity) *CameraEntity {
-	entity.EntityType = Camera
-	entity.setTopics()
-	entity.validate()
+func (e *CameraEntity) WithDetails(options ...DetailsOption) *CameraEntity {
+	e.EntityDetails = WithDetails(Camera, options...)
 
-	return &CameraEntity{
-		entity: entity,
-		Topic:  entity.getTopicPrefix() + "/camera",
-	}
+	return e
 }
 
-// WithEncoding sets the encoding of the payloads. By default, a CameraEntity
-// publishes raw binary data on the topic.
-func (entity *CameraEntity) WithEncoding(encoding string) *CameraEntity {
-	entity.Encoding = encoding
+func (e *CameraEntity) WithEncoding(options ...EncodingOption) *CameraEntity {
+	e.EntityEncoding = WithEncodingOptions(options...)
 
-	return entity
+	return e
 }
 
-// WithImageEncoding sets the image encoding of the payloads. By default, a
-// CameraEntity publishes images as raw binary data on the topic. Setting a
-// special value of "b64" is used by Home Assistant to represent base64 encoding
-// of images.
-func (entity *CameraEntity) WithImageEncoding(encoding string) *CameraEntity {
-	entity.ImageEncoding = encoding
+func (e *CameraEntity) WithAttributes(options ...AttributeOption) *CameraEntity {
+	e.EntityAttributes = WithAttributesOptions(options...)
+	e.AttributesTopic = generateTopic("attributes", e.EntityDetails)
 
-	return entity
+	return e
 }
 
-func (entity *CameraEntity) MarshalConfig() (*mqttapi.Msg, error) {
+func (e *CameraEntity) MarshalConfig() (*mqttapi.Msg, error) {
 	var (
 		cfg []byte
 		err error
 	)
 
-	if cfg, err = json.Marshal(entity); err != nil {
+	if err = validateEntity(e); err != nil {
+		return nil, fmt.Errorf("entity config is invalid: %w", err)
+	}
+
+	e.Topic = generateTopic("camera", e.EntityDetails)
+
+	configTopic := generateTopic("config", e.EntityDetails)
+
+	if cfg, err = json.Marshal(e); err != nil {
 		return nil, fmt.Errorf("marshal config: %w", err)
 	}
 
-	return mqttapi.NewMsg(entity.ConfigTopic, cfg), nil
+	return mqttapi.NewMsg(configTopic, cfg), nil
+}
+
+func NewCameraEntity() *CameraEntity {
+	return &CameraEntity{}
 }

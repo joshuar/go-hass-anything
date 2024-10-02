@@ -72,48 +72,64 @@ func New(ctx context.Context) (*CameraApp, error) {
 		msgCh: make(chan *mqttapi.Msg),
 	}
 
-	app.images = mqtthass.AsImage(mqtthass.NewEntity(appName, "Webcam", "").
-		WithDeviceInfo(newDevice()).
-		WithDefaultOriginInfo(), mqtthass.ModeImage)
+	app.images = mqtthass.NewImageEntity().
+		WithDetails(
+			mqtthass.App(appName),
+			mqtthass.Name("Webcam"),
+			mqtthass.ID("webcam"),
+			mqtthass.DeviceInfo(newDevice()),
+		)
 
-	app.startButton = mqtthass.AsButton(mqtthass.NewEntity(appName, "Start Webcam", "").
-		WithDeviceInfo(newDevice()).
-		WithDefaultOriginInfo().
-		WithIcon("mdi:play").
-		WithCommandCallback(func(_ *paho.Publish) {
-			// We are using a function enclosure here for the callback as we
-			// need access to the context passed to our app.
-			camera, err := openCamera(deviceFile)
-			if err != nil {
-				slog.Error("Could not open camera device.", slog.Any("error", err))
+	app.startButton = mqtthass.NewButtonEntity().
+		WithDetails(
+			mqtthass.App(appName),
+			mqtthass.Name("Start Webcam"),
+			mqtthass.ID("start_webcam"),
+			mqtthass.DeviceInfo(newDevice()),
+			mqtthass.Icon("mdi:play"),
+		).
+		WithCommand(
+			mqtthass.CommandCallback(func(_ *paho.Publish) {
+				// We are using a function enclosure here for the callback as we
+				// need access to the context passed to our app.
+				camera, err := openCamera(deviceFile)
+				if err != nil {
+					slog.Error("Could not open camera device.", slog.Any("error", err))
 
-				return
-			}
-
-			app.camera = camera
-
-			camCtx, cancelFunc := context.WithCancel(ctx)
-			app.camera.cancelFunc = cancelFunc
-
-			slog.Info("Start recording webcam.")
-
-			go app.camera.publishImages(camCtx, app.images.GetImageTopic(), app.msgCh)
-		}))
-
-	app.stopButton = mqtthass.AsButton(mqtthass.NewEntity(appName, "Stop Webcam", "").
-		WithDeviceInfo(newDevice()).
-		WithDefaultOriginInfo().
-		WithIcon("mdi:stop").
-		WithCommandCallback(func(_ *paho.Publish) {
-			if app.camera.cancelFunc != nil {
-				app.camera.cancelFunc()
-				slog.Info("Stop recording webcam.")
-
-				if err := app.camera.closeCamera(); err != nil {
-					slog.Error("Close camera failed.", slog.Any("error", err))
+					return
 				}
-			}
-		}))
+
+				app.camera = camera
+
+				camCtx, cancelFunc := context.WithCancel(ctx)
+				app.camera.cancelFunc = cancelFunc
+
+				slog.Info("Start recording webcam.")
+
+				go app.camera.publishImages(camCtx, app.images.GetImageTopic(), app.msgCh)
+			}),
+		)
+
+	app.stopButton = mqtthass.NewButtonEntity().
+		WithDetails(
+			mqtthass.App(appName),
+			mqtthass.Name("Stop Webcam"),
+			mqtthass.ID("stop_webcam"),
+			mqtthass.DeviceInfo(newDevice()),
+			mqtthass.Icon("mdi:stop"),
+		).
+		WithCommand(
+			mqtthass.CommandCallback(func(_ *paho.Publish) {
+				if app.camera.cancelFunc != nil {
+					app.camera.cancelFunc()
+					slog.Info("Stop recording webcam.")
+
+					if err := app.camera.closeCamera(); err != nil {
+						slog.Error("Close camera failed.", slog.Any("error", err))
+					}
+				}
+			}),
+		)
 
 	go func() {
 		defer close(app.msgCh)

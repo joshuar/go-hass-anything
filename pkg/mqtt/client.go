@@ -99,7 +99,9 @@ func NewClient(ctx context.Context, prefs Preferences, subscriptions []*Subscrip
 	router := paho.NewStandardRouter()
 
 	for _, s := range subscriptions {
-		slog.Debug("Adding subscription for topic.", "topic", s.Topic)
+		slog.Debug("Adding subscription for topic.",
+			slog.String("topic", s.Topic))
+
 		subOpts = append(subOpts, paho.SubscribeOptions{Topic: s.Topic, QoS: 1})
 		router.RegisterHandler(s.Topic, s.Callback)
 	}
@@ -116,7 +118,7 @@ func NewClient(ctx context.Context, prefs Preferences, subscriptions []*Subscrip
 
 	connOpts := genConnOpts(ctx, prefs, subOpts, router)
 
-	conn, err := autopaho.NewConnection(ctx, connOpts) // starts process; will reconnect until context cancelled
+	conn, err := autopaho.NewConnection(ctx, connOpts) // starts process; will reconnect until context canceled.
 	if err != nil {
 		return nil, fmt.Errorf("could not connect: %w", err)
 	}
@@ -128,7 +130,8 @@ func NewClient(ctx context.Context, prefs Preferences, subscriptions []*Subscrip
 	client.conn = conn
 
 	if err := client.Publish(ctx, configs...); err != nil {
-		slog.Error("Failed to publish configuration messages.", "error", err.Error())
+		slog.Error("Failed to publish configuration messages.",
+			slog.Any("error", err))
 	}
 
 	client.monitorHAStatus(ctx, configs...)
@@ -162,12 +165,14 @@ func genConnOpts(ctx context.Context, prefs Preferences, subOpts []paho.Subscrib
 			// Subscribing in the OnConnectionUp callback is recommended (ensures the subscription is reestablished if
 			// the connection drops)
 			if _, err := cm.Subscribe(ctx, &paho.Subscribe{Subscriptions: subOpts}); err != nil {
-				slog.Warn("Failed to publish subscriptions to MQTT.", "error", err.Error())
+				slog.Warn("Failed to publish subscriptions to MQTT.",
+					slog.Any("error", err))
 			}
 			slog.Debug("Subscriptions added to MQTT.")
 		},
 		OnConnectError: func(err error) {
-			slog.Error("Error establishing MQTT connection.", "error", err.Error())
+			slog.Error("Error establishing MQTT connection.",
+				slog.Any("error", err))
 		},
 		// eclipse/paho.golang/paho provides base mqtt functionality, the below config will be passed in for each connection
 		ClientConfig: paho.ClientConfig{
@@ -177,20 +182,24 @@ func genConnOpts(ctx context.Context, prefs Preferences, subOpts []paho.Subscrib
 			// You can write the function(s) yourself or use the supplied Router
 			OnPublishReceived: []func(paho.PublishReceived) (bool, error){
 				func(pr paho.PublishReceived) (bool, error) {
-					slog.Log(ctx, LevelTrace, "Routing message to handler.", "topic", pr.Packet.Topic)
+					slog.Log(ctx, LevelTrace, "Routing message to handler.",
+						slog.String("topic", pr.Packet.Topic))
 					router.Route(pr.Packet.Packet())
 
 					return true, nil // we assume that the router handles all messages (todo: amend router API)
 				},
 			},
 			OnClientError: func(err error) {
-				slog.Error("Client error.", "error", err.Error())
+				slog.Error("Client error.",
+					slog.Any("error", err))
 			},
-			OnServerDisconnect: func(d *paho.Disconnect) {
-				if d.Properties != nil {
-					slog.Debug("Server requested disconnect.", "reason", d.Properties.ReasonString)
+			OnServerDisconnect: func(packet *paho.Disconnect) {
+				if packet.Properties != nil {
+					slog.Debug("Server requested disconnect.",
+						slog.String("reason", packet.Properties.ReasonString))
 				} else {
-					slog.Debug("Server requested disconnect.", "code", d.ReasonCode)
+					slog.Debug("Server requested disconnect.",
+						slog.Any("code", packet.ReasonCode))
 				}
 			},
 		},
@@ -220,7 +229,9 @@ func publish(ctx context.Context, conn *autopaho.ConnectionManager, msgs ...*Msg
 			Topic:   msg.Topic,
 			Payload: msg.Message,
 		}); err != nil {
-			slog.Error("Error publishing message.", "topic", msg.Topic, "error", err.Error())
+			slog.Error("Error publishing message.",
+				slog.String("topic", msg.Topic),
+				slog.Any("error", err))
 		}
 	}
 
@@ -237,7 +248,8 @@ func (c *Client) monitorHAStatus(ctx context.Context, configs ...*Msg) {
 					slog.Debug("Home Assistant detected online.")
 
 					if err := c.Publish(ctx, configs...); err != nil {
-						slog.Warn("Could not publish configs to MQTT", "error", err.Error())
+						slog.Warn("Could not publish configs to MQTT",
+							slog.Any("error", err))
 					}
 				case "offline":
 					slog.Debug("Home Assistant detected offline.")

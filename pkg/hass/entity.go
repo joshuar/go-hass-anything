@@ -3,25 +3,20 @@
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
-// revive:disable:max-public-structs
-// revive:disable:unexported-return
-
+//go:generate stringer -type=EntityType -output entity_generated.go -linecomment
 package hass
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log/slog"
 	"strings"
 
 	"github.com/eclipse/paho.golang/paho"
-	"golang.org/x/exp/constraints"
 
 	mqttapi "github.com/joshuar/go-hass-anything/v11/pkg/mqtt"
 )
 
-//go:generate stringer -type=EntityType -output entity_generated.go -linecomment
 const (
 	Unknown EntityType = iota // unknown
 	// An entity with some kind of value, numeric or string.
@@ -42,6 +37,7 @@ const (
 	Image // image
 )
 
+// EntityType is an iota that represents the type of entity (i.e., Switch or Sensor).
 type EntityType int
 
 var (
@@ -54,108 +50,411 @@ var (
 // such that it can be overridden as necessary.
 var HomeAssistantTopic = "homeassistant"
 
-// entityConfig contains fields for defining the configuration of the entity.
-type entityConfig struct {
-	CommandCallback    func(p *paho.Publish)
-	StateCallback      func(args ...any) (json.RawMessage, error)
-	AttributesCallback func(args ...any) (json.RawMessage, error)
-	App                string
-	NodeID             string
-	EntityType         EntityType
+type EntityAvailability struct {
+	AvailabilityTopic    string `json:"availability_topic,omitempty" validate:"required"`
+	AvailabilityTemplate string `json:"availability_template,omitempty"`
+	PayloadAvailable     string `json:"payload_available,omitempty"`
+	PayloadNotAvailable  string `json:"payload_not_available,omitempty"`
 }
 
-// entity represents a generic entity in Home Assistant. The fields are common
-// across any specific entity.
-type entity struct {
-	*entityConfig      `json:"-"`
-	Origin             *Origin    `json:"origin,omitempty"`
-	Device             *Device    `json:"device,omitempty"`
-	UnitOfMeasurement  string     `json:"unit_of_measurement,omitempty"`
-	StateClass         string     `json:"state_class,omitempty"`
-	ConfigTopic        string     `json:"-"`
-	CommandTopic       string     `json:"command_topic,omitempty"`
-	StateTopic         string     `json:"state_topic"`
-	ValueTemplate      string     `json:"value_template"`
-	UniqueID           string     `json:"unique_id"`
-	Name               string     `json:"name"`
-	EntityCategory     string     `json:"entity_category,omitempty"`
-	Icon               string     `json:"icon,omitempty"`
-	AttributesTopic    string     `json:"json_attributes_topic,omitempty"`
-	AttributesTemplate string     `json:"json_attributes_template,omitempty"`
-	DeviceClass        string     `json:"device_class,omitempty"`
-	StateExpiry        int        `json:"expire_after,omitempty"`
-	EntityType         EntityType `json:"-"`
-}
-
-// MarshalState will generate an *mqtt.Msg for a given entity, that can be used
-// to publish the entity's state to the MQTT bus.
-func (e *entity) MarshalState(args ...any) (*mqttapi.Msg, error) {
-	var (
-		state json.RawMessage
-		err   error
-	)
-
-	if e.StateCallback == nil {
-		return nil, fmt.Errorf("could not marshal state for entity %s: %w", e.Name, ErrNoStateCallback)
-	}
-
-	if state, err = e.StateCallback(args...); err != nil {
-		return nil, err
-	}
-
-	return mqttapi.NewMsg(e.StateTopic, state), nil
+// EntityAttributes are the fields that can be used for entities that have
+// additional attributes.
+type EntityAttributes struct {
+	attributesCallback func(args ...any) (json.RawMessage, error)
+	// AttributesTopic defines the MQTT topic subscribed to receive a JSON
+	// dictionary payload and then set as sensor attributes. Implies force_update
+	// of the current sensor state when a message is received on this topic.
+	AttributesTopic    string `json:"json_attributes_topic,omitempty" validate:"required"`
+	AttributesTemplate string `json:"json_attributes_template,omitempty"`
 }
 
 // MarshalAttributes will generate an *mqtt.Msg for the attributes of an entity,
 // that can be used for updating the entity's attributes.
-func (e *entity) MarshalAttributes(args ...any) (*mqttapi.Msg, error) {
+func (e *EntityAttributes) MarshalAttributes(args ...any) (*mqttapi.Msg, error) {
 	var (
 		state json.RawMessage
 		err   error
 	)
 
-	if e.AttributesCallback == nil {
-		return nil, fmt.Errorf("could not marshal state for entity %s: %w", e.Name, ErrNoStateCallback)
+	if e.attributesCallback == nil {
+		return nil, fmt.Errorf("could not marshal attributes: %w", ErrNoStateCallback)
 	}
 
-	if state, err = e.AttributesCallback(args...); err != nil {
+	if state, err = e.attributesCallback(args...); err != nil {
 		return nil, err
 	}
 
 	return mqttapi.NewMsg(e.AttributesTopic, state), nil
 }
 
+type AttributeOption func(*EntityAttributes) *EntityAttributes
+
+func WithAttributesOptions(options ...AttributeOption) *EntityAttributes {
+	entity := &EntityAttributes{}
+
+	for _, option := range options {
+		entity = option(entity)
+	}
+
+	return entity
+}
+
+// WithAttributesTemplate configures the passed in template to be used to extract the
+// value of the attributes in Home Assistant.
+func AttributesTemplate(t string) AttributeOption {
+	return func(e *EntityAttributes) *EntityAttributes {
+		e.AttributesTemplate = t
+
+		return e
+	}
+}
+
+// WithAttributesCallback will add the passed in function as the callback action
+// to be run whenever the attributes of the entity are needed. If this callback
+// is to be used, then the WithAttributesTopic() builder function should also be
+// called to set-up the attributes topic.
+func AttributesCallback(c func(args ...any) (json.RawMessage, error)) AttributeOption {
+	return func(e *EntityAttributes) *EntityAttributes {
+		e.attributesCallback = c
+
+		return e
+	}
+}
+
+// EntityState represents all the fields that can be used for an entity that has
+// a state.
+type EntityState struct {
+	stateCallback func(args ...any) (json.RawMessage, error)
+	// StateTopic is the MQTT topic subscribed to receive state updates. A “None” payload resets
+	// to an unknown state. An empty payload is ignored.
+	StateTopic         string `json:"state_topic" validate:"required"`
+	ValueTemplate      string `json:"value_template"`
+	UnitOfMeasurement  string `json:"unit_of_measurement,omitempty"`
+	StateClass         string `json:"state_class,omitempty"`
+	DeviceClass        string `json:"device_lass,omitempty"`
+	SuggestedPrecision uint   `json:"suggested_display_precision,omitempty"`
+}
+
+// MarshalState will generate an *mqtt.Msg for a given entity, that can be used
+// to publish the entity's state to the MQTT bus.
+func (e *EntityState) MarshalState(args ...any) (*mqttapi.Msg, error) {
+	var (
+		state json.RawMessage
+		err   error
+	)
+
+	if e.stateCallback == nil {
+		return nil, fmt.Errorf("could not marshal state: %w", ErrNoStateCallback)
+	}
+
+	if state, err = e.stateCallback(args...); err != nil {
+		return nil, err
+	}
+
+	return mqttapi.NewMsg(e.StateTopic, state), nil
+}
+
+// StateOption is used to add functionality to the entity state, such as
+// defining the state callback function or setting the state units.
+type StateOption func(*EntityState) *EntityState
+
+// WithStateOptions will assign all of the passed in options to the EntityState.
+// It will also generate an appropriate state topic using the given entity ID
+// and type.
+func WithStateOptions(options ...StateOption) *EntityState {
+	state := &EntityState{}
+
+	for _, option := range options {
+		state = option(state)
+	}
+
+	return state
+}
+
+// Units adds a unit of measurement to the entity. Only relevant to set for
+// sensors with a numeric state.
+func Units(u string) StateOption {
+	return func(e *EntityState) *EntityState {
+		e.UnitOfMeasurement = u
+
+		return e
+	}
+}
+
+// SuggestedPrecision defines the number of decimals which should be used in the
+// sensor’s state after rounding. Only relevant to set for sensors with a
+// numeric state.
+func SuggestedPrecision(p uint) StateOption {
+	return func(e *EntityState) *EntityState {
+		e.SuggestedPrecision = p
+
+		return e
+	}
+}
+
+// StateCallback will add the passed in function as the callback action to
+// be run whenever the state of the entity is needed. It might not
+// be useful to use this where you have a single state that represents many
+// entities. In such cases, it would be better to manually send the state in
+// your own code.
+func StateCallback(callback func(args ...any) (json.RawMessage, error)) StateOption {
+	return func(e *EntityState) *EntityState {
+		e.stateCallback = callback
+
+		return e
+	}
+}
+
+// ValueTemplate configures the passed in string to be the template to be used
+// to extract the value of the entity in Home Assistant.
+func ValueTemplate(t string) StateOption {
+	return func(e *EntityState) *EntityState {
+		e.ValueTemplate = t
+
+		return e
+	}
+}
+
+// StateClassMeasurement configures the State Class for the entity to be "measurement".
+func StateClassMeasurement() StateOption {
+	return func(e *EntityState) *EntityState {
+		e.StateClass = "measurement"
+
+		return e
+	}
+}
+
+// StateClassTotal configures the State Class for the entity to be "total".
+func StateClassTotal() StateOption {
+	return func(e *EntityState) *EntityState {
+		e.StateClass = "total"
+
+		return e
+	}
+}
+
+// StateClassTotalIncreasing configures the State Class for the entity to be "total_increasing".
+func StateClassTotalIncreasing() StateOption {
+	return func(e *EntityState) *EntityState {
+		e.StateClass = "total_increasing"
+
+		return e
+	}
+}
+
+// DeviceClass configures the Device Class of the entity. Device classes are
+// specific to the type of entity.
+func DeviceClass(class string) StateOption {
+	return func(e *EntityState) *EntityState {
+		e.DeviceClass = class
+
+		return e
+	}
+}
+
+type EntityDetails struct {
+	Origin     *Origin `json:"origin,omitempty"`
+	Device     *Device `json:"device,omitempty"`
+	UniqueID   string  `json:"unique_id" validate:"required"`
+	Name       string  `json:"name" validate:"required"`
+	app        string
+	Category   string `json:"entity_category,omitempty"`
+	Icon       string `json:"icon,omitempty" validate:"omitempty,startswith=mdi:"`
+	entityType EntityType
+	Enabled    bool `json:"enabled_by_default"`
+}
+
+type DetailsOption func(*EntityDetails) *EntityDetails
+
+// WithDetails will assign all of the passed in details options to the entity.
+// Additionally, it will convieniently set the origin info of the entity to "Go
+// Hass Anything" where no custom origin is desired.
+func WithDetails(entityType EntityType, options ...DetailsOption) *EntityDetails {
+	details := &EntityDetails{
+		entityType: entityType,
+		Enabled:    true,
+	}
+	for _, option := range options {
+		details = option(details)
+	}
+
+	// If OriginInfo option was not passed in, set the default origin.
+	if details.Origin == nil {
+		details = DefaultOriginInfo()(details)
+	}
+
+	return details
+}
+
+// App assigns the passed in app name to the entity.
+func App(app string) DetailsOption {
+	return func(e *EntityDetails) *EntityDetails {
+		e.app = app
+
+		return e
+	}
+}
+
+// Name assigns the passed in name to the entity.
+func Name(name string) DetailsOption {
+	return func(e *EntityDetails) *EntityDetails {
+		e.Name = name
+
+		return e
+	}
+}
+
+// ID assigns the passed in name to the entity. It will format the value to be
+// appropriate for an entity name.
+func ID(id string) DetailsOption {
+	return func(e *EntityDetails) *EntityDetails {
+		e.UniqueID = strings.ToLower(strings.ReplaceAll(id, " ", "_"))
+
+		return e
+	}
+}
+
+// Icon assigns the passed in icon string to the entity.
+func Icon(icon string) DetailsOption {
+	return func(e *EntityDetails) *EntityDetails {
+		e.Icon = icon
+
+		return e
+	}
+}
+
+// AsDiagnostic ensures that the entity will appear as a diagnostic entity in
+// Home Assistant.
+func AsDiagnostic() DetailsOption {
+	return func(e *EntityDetails) *EntityDetails {
+		e.Category = "diagnostic"
+
+		return e
+	}
+}
+
+// NotEnabledByDefault ensures that the entity will not be enabled by default
+// when first added to Home Assistant.
+func NotEnabledByDefault() DetailsOption {
+	return func(e *EntityDetails) *EntityDetails {
+		e.Enabled = false
+
+		return e
+	}
+}
+
+// WithDeviceInfo adds the passed in device info to the entity config.
+func DeviceInfo(d *Device) DetailsOption {
+	return func(e *EntityDetails) *EntityDetails {
+		e.Device = d
+
+		return e
+	}
+}
+
+// WithOriginInfo adds the passed in origin info to the entity config.
+func OriginInfo(o *Origin) DetailsOption {
+	return func(e *EntityDetails) *EntityDetails {
+		e.Origin = o
+
+		return e
+	}
+}
+
+// DefaultOriginInfo adds a pre-filled origin that references go-hass-agent
+// to the entity config.
+func DefaultOriginInfo() DetailsOption {
+	return func(entity *EntityDetails) *EntityDetails {
+		entity.Origin = &Origin{
+			Name: "Go Hass Anything",
+			URL:  "https://github.com/joshuar/go-hass-anything",
+		}
+
+		return entity
+	}
+}
+
+type EntityCommand struct {
+	commandCallback func(p *paho.Publish)
+	CommandTopic    string `json:"command_topic" validate:"required"`
+}
+
+type CommandOption func(*EntityCommand) *EntityCommand
+
+func WithCommandOptions(options ...CommandOption) *EntityCommand {
+	details := &EntityCommand{}
+	for _, option := range options {
+		details = option(details)
+	}
+
+	return details
+}
+
+func CommandCallback(callback func(p *paho.Publish)) CommandOption {
+	return func(e *EntityCommand) *EntityCommand {
+		e.commandCallback = callback
+
+		return e
+	}
+}
+
 // MarshallSubscription will generate an *mqtt.Subscription for a given entity,
 // which can be used to subscribe to an entity's command topic and execute a
 // callback on messages.
-func (e *entity) MarshalSubscription() (*mqttapi.Subscription, error) {
-	if e.CommandCallback == nil {
-		return nil, fmt.Errorf("could not marshal state for entity %s: %w", e.Name, ErrNoCommandCallback)
+func (e *EntityCommand) MarshalSubscription() (*mqttapi.Subscription, error) {
+	if e.commandCallback == nil {
+		return nil, fmt.Errorf("could not marshal subscription: %w", ErrNoCommandCallback)
 	}
 
 	msg := &mqttapi.Subscription{
 		Topic:    e.CommandTopic,
-		Callback: e.CommandCallback,
+		Callback: e.commandCallback,
 	}
 
 	return msg, nil
 }
 
-func (e *entity) MarshalConfig() (*mqttapi.Msg, error) {
-	var (
-		cfg []byte
-		err error
-	)
-
-	if cfg, err = json.Marshal(e); err != nil {
-		return nil, fmt.Errorf("marshal config: %w", err)
-	}
-
-	return mqttapi.NewMsg(e.ConfigTopic, cfg), nil
+type EntityEncoding struct {
+	Encoding      string `json:"encoding,omitempty"`
+	ImageEncoding string `json:"image_encoding,omitempty"`
 }
 
-type EntityConstraint[T constraints.Ordered] interface {
-	~*SensorEntity | ~*BinarySensorEntity | ~*ButtonEntity | ~*NumberEntity[T] | ~*SwitchEntity
+type EncodingOption func(*EntityEncoding) *EntityEncoding
+
+func WithEncodingOptions(options ...EncodingOption) *EntityEncoding {
+	details := &EntityEncoding{}
+	for _, option := range options {
+		details = option(details)
+	}
+
+	return details
+}
+
+// WithEncoding sets the encoding of the payloads.
+func WithEncoding(encoding string) EncodingOption {
+	return func(e *EntityEncoding) *EntityEncoding {
+		e.Encoding = encoding
+
+		return e
+	}
+}
+
+// WithImageEncoding sets the image encoding of the payloads. By default, an
+// entity publishes images as raw binary data on the topic.
+func WithImageEncoding(encoding string) EncodingOption {
+	return func(e *EntityEncoding) *EntityEncoding {
+		e.ImageEncoding = encoding
+
+		return e
+	}
+}
+
+func WithBase64ImageEncoding() EncodingOption {
+	return func(e *EntityEncoding) *EntityEncoding {
+		e.ImageEncoding = "b64"
+
+		return e
+	}
 }
 
 // Device contains information about the device an entity is a part of to tie it
@@ -180,227 +479,11 @@ type Origin struct {
 	URL     string `json:"support_url,omitempty"`
 }
 
-// Topics contains the names of important topics on the MQTT bus related to the
-// entity. Apps can store these topics for later retrieval and usage (for
-// example, to update state topics or listen to command topics).
-type Topics struct {
-	Config     string
-	Command    string
-	State      string
-	Attributes string
-}
+// GenerateTopic takes the given topicName and entityID and generates an
+// appropriate topic based on the EntityType as per the Home Assistant topic
+// naming recommendations.
+func generateTopic(topicName string, details *EntityDetails) string {
+	appID := strings.ToLower(strings.ReplaceAll(details.app, " ", "_"))
 
-// NewEntity creates a minimal entity based on the given name and id and
-// associates it with the given app. Additional builder functions should be
-// chained to fill out functionality that the entity will provide.
-//
-//nolint:exhaustruct
-func NewEntity(app, name, id string) *entity {
-	name = FormatName(name)
-
-	if id != "" {
-		id = FormatID(app + "_" + id)
-	} else {
-		id = FormatID(app + "_" + name)
-	}
-
-	return &entity{
-		entityConfig: &entityConfig{
-			App: app,
-		},
-		UniqueID: id,
-		Name:     name,
-	}
-}
-
-// WithNodeID adds an additional section to the topics of the entity in MQTT. It
-// can be used to help structure various entities being provided.
-func (e *entity) WithNodeID(id string) *entity {
-	e.NodeID = FormatID(id)
-
-	return e
-}
-
-func (e *entity) getTopicPrefix() string {
-	if e.NodeID != "" {
-		return strings.Join([]string{HomeAssistantTopic, e.EntityType.String(), e.NodeID, e.UniqueID}, "/")
-	}
-
-	return strings.Join([]string{HomeAssistantTopic, e.EntityType.String(), e.UniqueID}, "/")
-}
-
-func (e *entity) setTopics() {
-	e.ConfigTopic = e.getTopicPrefix() + "/config"
-	e.StateTopic = e.getTopicPrefix() + "/state"
-
-	if e.CommandCallback != nil {
-		e.CommandTopic = e.getTopicPrefix() + "/set"
-	}
-
-	if e.AttributesTemplate != "" || e.AttributesCallback != nil {
-		e.AttributesTopic = e.getTopicPrefix() + "/attributes"
-	}
-}
-
-//nolint:exhaustruct
-func (e *entity) validate() {
-	if e.Origin == nil {
-		slog.Warn("No origin set, using default origin for entity.", "entity", e.Name)
-		e.WithDefaultOriginInfo()
-	}
-
-	if e.Device == nil {
-		slog.Warn("No device set, using default device for entity.", "entity", e.Name)
-		e.WithDeviceInfo(&Device{
-			Name:         "Go Hass Anything Default Device",
-			Identifiers:  []string{"DefaultDevice"},
-			URL:          "https://github.com/joshuar/go-hass-anything",
-			Manufacturer: "go-hass-anything",
-		})
-	}
-}
-
-// WithAttributesTemplate configures the passed in template to be used to extract the
-// value of the attributes in Home Assistant.
-func (e *entity) WithAttributesTemplate(t string) *entity {
-	e.AttributesTemplate = t
-
-	return e
-}
-
-// WithAttributesCallback will add the passed in function as the callback action
-// to be run whenever the attributes of the entity are needed. If this callback
-// is to be used, then the WithAttributesTopic() builder function should also be
-// called to set-up the attributes topic.
-func (e *entity) WithAttributesCallback(c func(args ...any) (json.RawMessage, error)) *entity {
-	e.AttributesCallback = c
-
-	return e
-}
-
-// WithCommandCallback will add the passed in function as the callback action to
-// be run when a message is received on the command topic of the entity. It
-// doesn't make sense to add this for entities that don't have a command topic,
-// like regular sensors.
-func (e *entity) WithCommandCallback(c func(p *paho.Publish)) *entity {
-	e.CommandCallback = c
-
-	return e
-}
-
-// WithStateCallback will add the passed in function as the callback action to
-// be run whenever the state of the entity is needed. It doesn't make sense to
-// add this for entities that don't report a state, like buttons. It might not
-// be useful to use this where you have a single state that represents many
-// entities. In such cases, it would be better to manually send the state in
-// your own code.
-func (e *entity) WithStateCallback(c func(args ...any) (json.RawMessage, error)) *entity {
-	e.StateCallback = c
-
-	return e
-}
-
-// WithDeviceInfo adds the passed in device info to the entity config.
-func (e *entity) WithDeviceInfo(d *Device) *entity {
-	e.Device = d
-
-	return e
-}
-
-// WithOriginInfo adds the passed in origin info to the entity config.
-func (e *entity) WithOriginInfo(o *Origin) *entity {
-	e.Origin = o
-
-	return e
-}
-
-// WithOriginInfo adds a pre-filled origin that references go-hass-agent
-// to the entity config.
-//
-//nolint:exhaustruct
-func (e *entity) WithDefaultOriginInfo() *entity {
-	e.Origin = &Origin{
-		Name: "Go Hass Anything",
-		URL:  "https://github.com/joshuar/go-hass-anything",
-	}
-
-	return e
-}
-
-// WithValueTemplate configures the passed in template to be used to extract the
-// value of the entity in Home Assistant.
-func (e *entity) WithValueTemplate(t string) *entity {
-	e.ValueTemplate = t
-
-	return e
-}
-
-// WithStateClassMeasurement configures the State Class for the entity to be "measurement".
-func (e *entity) WithStateClassMeasurement() *entity {
-	e.StateClass = "measurement"
-
-	return e
-}
-
-// WithStateClassMeasurement configures the State Class for the entity to be "total".
-func (e *entity) WithStateClassTotal() *entity {
-	e.StateClass = "total"
-
-	return e
-}
-
-// WithStateClassMeasurement configures the State Class for the entity to be "total_increasing".
-func (e *entity) WithStateClassTotalIncreasing() *entity {
-	e.StateClass = "total_increasing"
-
-	return e
-}
-
-// WithDeviceClass configures the Device Class for the entity.
-func (e *entity) WithDeviceClass(d string) *entity {
-	e.DeviceClass = d
-
-	return e
-}
-
-// WithUnits adds a unit of measurement to the entity.
-func (e *entity) WithUnits(u string) *entity {
-	e.UnitOfMeasurement = u
-
-	return e
-}
-
-// WithIcon adds an icon to the entity.
-func (e *entity) WithIcon(i string) *entity {
-	e.Icon = i
-
-	return e
-}
-
-// WithStateExpiry defines the number of seconds after the sensor’s state
-// expires, if it’s not updated. After expiry, the sensor’s state becomes
-// "unavailable".
-func (e *entity) WithStateExpiry(i int) *entity {
-	e.StateExpiry = i
-
-	return e
-}
-
-// AsDiagnostic will mark this entity as a diagnostic entity in Home Assistant.
-func (e *entity) AsDiagnostic() *entity {
-	e.EntityCategory = "diagnostic"
-
-	return e
-}
-
-// GetTopics returns a Topic struct containing the topics configured for this
-// entity. If an entity does not have a particular topic (due to not having some
-// functionality), the topic value will be an empty string.
-func (e *entity) GetTopics() *Topics {
-	return &Topics{
-		Config:     e.ConfigTopic,
-		Command:    e.CommandTopic,
-		State:      e.StateTopic,
-		Attributes: e.AttributesTopic,
-	}
+	return strings.Join([]string{HomeAssistantTopic, details.entityType.String(), appID, details.UniqueID, topicName}, "/")
 }

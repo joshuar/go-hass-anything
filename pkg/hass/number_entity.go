@@ -34,27 +34,93 @@ type NumberMode int
 // given step. For more details, see
 // https://www.home-assistant.io/integrations/number.mqtt/
 type NumberEntity[T constraints.Ordered] struct {
-	*entity
-	Min  T      `json:"min,omitempty"`
-	Max  T      `json:"max,omitempty"`
-	Step T      `json:"step,omitempty"`
-	Mode string `json:"mode,omitempty"`
+	Min  T `json:"min,omitempty"`
+	Max  T `json:"max,omitempty"`
+	Step T `json:"step,omitempty"`
+	*EntityDetails
+	*EntityState
+	*EntityCommand
+	*EntityAttributes
+	Mode         string `json:"mode,omitempty"`
+	ResetPayload string `json:"payload_reset,omitempty"`
+	Optimistic   bool   `json:"optimistic,omitempty"`
 }
 
-// AsNumber converts the given entity into a NumberEntity. Additional builders
-// can potentially be applied to customise it further.
-func AsNumber[T constraints.Ordered](entity *entity, step, min, max T, mode NumberMode) *NumberEntity[T] {
-	entity.EntityType = Number
-	entity.setTopics()
-	entity.validate()
+// OptimisticMode ensures the number entity works in optimistic mode.
+func (e *NumberEntity[T]) OptimisticMode() *NumberEntity[T] {
+	e.Optimistic = true
 
-	return &NumberEntity[T]{
-		entity: entity,
-		Step:   step,
-		Min:    min,
-		Max:    max,
-		Mode:   mode.String(),
-	}
+	return e
+}
+
+// WithMin sets the minimum value for the number entity state.
+//
+//nolint:predeclared
+func (e *NumberEntity[T]) WithMin(min T) *NumberEntity[T] {
+	e.Min = min
+
+	return e
+}
+
+// WithMax sets the maximum value for the number entity state.
+//
+//nolint:predeclared
+func (e *NumberEntity[T]) WithMax(max T) *NumberEntity[T] {
+	e.Max = max
+
+	return e
+}
+
+// WithStep sets the step value. For entities with float value, smallest step
+// accepted by Home Assistant 0.001.
+func (e *NumberEntity[T]) WithStep(step T) *NumberEntity[T] {
+	e.Step = step
+
+	return e
+}
+
+// WithMode controls how the number should be displayed in the Home Assistant
+// UI. Can be set to NumberBox or NumberSlide to force a display mode. Default
+// is NumberAuto which will let Home Assistant decide.
+func (e *NumberEntity[T]) WithMode(mode NumberMode) *NumberEntity[T] {
+	e.Mode = mode.String()
+
+	return e
+}
+
+// WithResetPayload defines a special payload that resets the state to unknown
+// when received on the state_topic.
+func (e *NumberEntity[T]) WithResetPayload(payload string) *NumberEntity[T] {
+	e.ResetPayload = payload
+
+	return e
+}
+
+func (e *NumberEntity[T]) WithDetails(options ...DetailsOption) *NumberEntity[T] {
+	e.EntityDetails = WithDetails(Number, options...)
+
+	return e
+}
+
+func (e *NumberEntity[T]) WithState(options ...StateOption) *NumberEntity[T] {
+	e.EntityState = WithStateOptions(options...)
+	e.StateTopic = generateTopic("state", e.EntityDetails)
+
+	return e
+}
+
+func (e *NumberEntity[T]) WithCommand(options ...CommandOption) *NumberEntity[T] {
+	e.EntityCommand = WithCommandOptions(options...)
+	e.CommandTopic = generateTopic("set", e.EntityDetails)
+
+	return e
+}
+
+func (e *NumberEntity[T]) WithAttributes(options ...AttributeOption) *NumberEntity[T] {
+	e.EntityAttributes = WithAttributesOptions(options...)
+	e.AttributesTopic = generateTopic("attributes", e.EntityDetails)
+
+	return e
 }
 
 func (e *NumberEntity[T]) MarshalConfig() (*mqttapi.Msg, error) {
@@ -63,9 +129,19 @@ func (e *NumberEntity[T]) MarshalConfig() (*mqttapi.Msg, error) {
 		err error
 	)
 
+	if err = validateEntity(e); err != nil {
+		return nil, fmt.Errorf("entity config is invalid: %w", err)
+	}
+
+	configTopic := generateTopic("config", e.EntityDetails)
+
 	if cfg, err = json.Marshal(e); err != nil {
 		return nil, fmt.Errorf("marshal config: %w", err)
 	}
 
-	return mqttapi.NewMsg(e.ConfigTopic, cfg), nil
+	return mqttapi.NewMsg(configTopic, cfg), nil
+}
+
+func NewNumberEntity[T constraints.Ordered]() *NumberEntity[T] {
+	return &NumberEntity[T]{}
 }

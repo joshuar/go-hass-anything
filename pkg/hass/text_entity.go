@@ -24,41 +24,73 @@ type TextEntityMode int
 // string remotely. For more details see
 // https://www.home-assistant.io/integrations/text.mqtt/
 type TextEntity struct {
-	*entity
-	Mode string `json:"mode,omitempty"`
-	Min  int    `json:"min,omitempty"`
-	Max  int    `json:"max,omitempty"`
+	*EntityDetails
+	*EntityCommand
+	*EntityAttributes
+	*EntityState
+	Mode    string `json:"mode,omitempty"`
+	Pattern string `json:"pattern,omitempty"`
+	Min     int    `json:"min,omitempty" validate:"min=0"`
+	Max     int    `json:"max,omitempty" validate:"max=255"`
 }
 
-// AsText converts the given entity into a TextEntity. The min, max parameters
-// do not need to be specified (default min: 0, default max: 255).
-func AsText(entity *entity, min, max int) *TextEntity {
-	entity.EntityType = Text
-	entity.setTopics()
-	entity.validate()
-
-	if max == 0 || max > 255 {
-		max = 255
-	}
-
-	return &TextEntity{
-		entity: entity,
-		Min:    min,
-		Max:    max,
-		Mode:   PlainText.String(),
-	}
-}
-
-// AsPlainText sets the mode for this text entity to (the default) plain text.
-func (e *TextEntity) AsPlainText() *TextEntity {
-	e.Mode = PlainText.String()
+// WithMin will set the minimum size of a text being set or received.
+//
+//nolint:predeclared
+func (e *TextEntity) WithMin(min int) *TextEntity {
+	e.Min = min
 
 	return e
 }
 
-// AsPassword sets the mode for this text entity to a password.
-func (e *TextEntity) AsPassword() *TextEntity {
-	e.Mode = Password.String()
+// WithMax will set the maximum size of a text being set or received (maximum is
+// 255).
+//
+//nolint:predeclared
+func (e *TextEntity) WithMax(max int) *TextEntity {
+	e.Max = max
+
+	return e
+}
+
+// WithMode sets the mode of the text entity. Must be either PlainText or Password.
+func (e *TextEntity) WithMode(mode TextEntityMode) *TextEntity {
+	e.Mode = mode.String()
+
+	return e
+}
+
+// WithPattern sets a valid regular expression the text being set or received
+// must match with.
+func (e *TextEntity) WithPattern(pattern string) *TextEntity {
+	e.Pattern = pattern
+
+	return e
+}
+
+func (e *TextEntity) WithDetails(options ...DetailsOption) *TextEntity {
+	e.EntityDetails = WithDetails(Text, options...)
+
+	return e
+}
+
+func (e *TextEntity) WithState(options ...StateOption) *TextEntity {
+	e.EntityState = WithStateOptions(options...)
+	e.StateTopic = generateTopic("state", e.EntityDetails)
+
+	return e
+}
+
+func (e *TextEntity) WithCommand(options ...CommandOption) *TextEntity {
+	e.EntityCommand = WithCommandOptions(options...)
+	e.CommandTopic = generateTopic("set", e.EntityDetails)
+
+	return e
+}
+
+func (e *TextEntity) WithAttributes(options ...AttributeOption) *TextEntity {
+	e.EntityAttributes = WithAttributesOptions(options...)
+	e.AttributesTopic = generateTopic("attributes", e.EntityDetails)
 
 	return e
 }
@@ -69,9 +101,19 @@ func (e *TextEntity) MarshalConfig() (*mqttapi.Msg, error) {
 		err error
 	)
 
+	if err = validateEntity(e); err != nil {
+		return nil, fmt.Errorf("entity config is invalid: %w", err)
+	}
+
+	configTopic := generateTopic("config", e.EntityDetails)
+
 	if cfg, err = json.Marshal(e); err != nil {
 		return nil, fmt.Errorf("marshal config: %w", err)
 	}
 
-	return mqttapi.NewMsg(e.ConfigTopic, cfg), nil
+	return mqttapi.NewMsg(configTopic, cfg), nil
+}
+
+func NewTextEntity() *TextEntity {
+	return &TextEntity{}
 }

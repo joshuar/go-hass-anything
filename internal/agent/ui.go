@@ -3,8 +3,6 @@
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
-//nolint:misspell
-//revive:disable:unused-receiver
 package agent
 
 import (
@@ -52,12 +50,13 @@ type model struct {
 	cursorMode cursor.Mode
 }
 
+//revive:disable:unused-receiver
 func (m model) Init() tea.Cmd {
 	return textinput.Blink
 }
 
-//nolint:cyclop
-//revive:disable:modifies-value-receiver,unnecessary-stmt
+//nolint:gocognit
+//revive:disable:modifies-value-receiver
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -214,7 +213,10 @@ func ShowPreferences(name string, prefs Preferences) error {
 
 	for i := 0; i <= len(appModel.inputs)-1; i++ {
 		if err := prefs.SetValue(appModel.keys[i], appModel.inputs[i].Value()); err != nil {
-			slog.Warn("Could not save app preference.", "app", name, "preference", appModel.keys[i], "error", err.Error())
+			slog.Warn("Could not save app preference.",
+				slog.String("app", name),
+				slog.String("preference", appModel.keys[i]),
+				slog.Any("error", err))
 		}
 	}
 

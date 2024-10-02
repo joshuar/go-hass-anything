@@ -34,10 +34,14 @@ type ButtonApp struct {
 func New(_ context.Context) (*ButtonApp, error) {
 	app := &ButtonApp{}
 
-	app.entity = mqtthass.AsButton(mqtthass.NewEntity(appName, "Open HA Homepage", "").
-		WithDeviceInfo(newDevice()).
-		WithDefaultOriginInfo().
-		WithCommandCallback(app.buttonCommandCallback))
+	app.entity = mqtthass.NewButtonEntity().
+		WithDetails(
+			mqtthass.App(appName),
+			mqtthass.Name("Open HA Homepage"),
+			mqtthass.ID("open_ha_homepage"),
+			mqtthass.DeviceInfo(newDevice()),
+		).
+		WithCommand(mqtthass.CommandCallback(app.buttonCommandCallback))
 
 	return app, nil
 }

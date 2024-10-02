@@ -42,14 +42,21 @@ func New(_ context.Context) (*NumberApp, error) {
 	// Our number entity. The value can be an int or float type. The min/max can
 	// be any value in the range of the type in use. We configure the entity to
 	// appear as a slider in Home Assistant.
-	app.entity = mqtthass.AsNumber(mqtthass.NewEntity(appName, "Number", "").
-		WithDeviceInfo(newDevice()).
-		WithDefaultOriginInfo().
-		WithStateClassMeasurement().
-		WithCommandCallback(app.numberCommandCallback).
-		WithStateCallback(app.numberStateCallback).
-		WithValueTemplate("{{ value_json.value }}"),
-		1, minNum, maxNum, mqtthass.NumberSlider)
+	app.entity = mqtthass.NewNumberEntity[int]().
+		WithMin(minNum).WithMax(maxNum).WithStep(1).WithMode(mqtthass.NumberSlider).
+		WithDetails(
+			mqtthass.App(appName),
+			mqtthass.Name("Number"),
+			mqtthass.ID("number"),
+			mqtthass.DeviceInfo(newDevice()),
+		).
+		WithState(
+			mqtthass.StateCallback(app.numberStateCallback),
+			mqtthass.ValueTemplate("{{ value_json.value }}"),
+		).
+		WithCommand(
+			mqtthass.CommandCallback(app.numberCommandCallback),
+		)
 
 	return app, nil
 }

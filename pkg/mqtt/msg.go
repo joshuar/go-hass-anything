@@ -22,7 +22,7 @@ func (m *Msg) Retain() *Msg {
 }
 
 // NewMsg is a convenience function to create a new Msg with a given topic and
-// message body. The returned Msg can be further customised directly for
+// message body. The returned Msg can be further customized directly for
 // specifying retention and QoS parameters, which are not set through this
 // function and assumed to be left as their default values.
 func NewMsg(topic string, msg []byte) *Msg {

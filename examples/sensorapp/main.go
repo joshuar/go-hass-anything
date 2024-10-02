@@ -58,14 +58,20 @@ func New(_ context.Context) (*SensorApp, error) {
 
 	app.prefs = prefs
 
-	app.entity = mqtthass.AsSensor(mqtthass.NewEntity(appName, "Weather Temp", "").
-		WithDeviceInfo(newDevice()).
-		WithDefaultOriginInfo().
-		WithStateClassMeasurement().
-		WithDeviceClass("temperature").
-		WithUnits("°C").
-		WithValueTemplate("{{ value_json.current_condition[0].temp_C }}").
-		WithStateCallback(app.weatherStateCallback))
+	app.entity = mqtthass.NewSensorEntity().
+		WithDetails(
+			mqtthass.App(appName),
+			mqtthass.Name("Weather Temp"),
+			mqtthass.ID("weather_temp"),
+			mqtthass.DeviceInfo(newDevice()),
+		).
+		WithState(
+			mqtthass.ValueTemplate("{{ value_json.current_condition[0].temp_C }}"),
+			mqtthass.StateCallback(app.weatherStateCallback),
+			mqtthass.StateClassMeasurement(),
+			mqtthass.Units("°C"),
+			mqtthass.DeviceClass("temperature"),
+		)
 
 	return app, nil
 }

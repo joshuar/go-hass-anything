@@ -35,11 +35,13 @@ func main() {
 		appPathMatch = filepath.Join(os.Args[1], "/*/main.go")
 	}
 
-	slog.Info("Looking for apps.", "path", appPathMatch)
+	slog.Info("Looking for apps.",
+		slog.String("path", appPathMatch))
 
 	appMains, err := filepath.Glob(appPathMatch)
 	if err != nil {
-		slog.Error("Unable parse app pattern.", "error", err.Error())
+		slog.Error("Unable parse app pattern.",
+			slog.Any("error", err))
 		os.Exit(-1)
 	}
 
@@ -51,7 +53,9 @@ func main() {
 	for _, main := range appMains {
 		_, err = os.Stat(main)
 		if err != nil {
-			slog.Error("Could not read main.go for app. Ignoring app directory.", "directory", main, "error", err.Error())
+			slog.Error("Could not read main.go for app. Ignoring app directory.",
+				slog.String("directory", main),
+				slog.Any("error", err))
 
 			break
 		}
@@ -61,7 +65,9 @@ func main() {
 		appName := filepath.Base(appDir)
 		templVars.Dirs = append(templVars.Dirs, appDir)
 		templVars.Names = append(templVars.Names, appName)
-		slog.Info("Found app.", "name", appName, "directory", appDir)
+		slog.Info("Found app.",
+			slog.String("name", appName),
+			slog.String("directory", appDir))
 	}
 
 	initFile, err := os.Create(appFile)

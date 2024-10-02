@@ -36,13 +36,21 @@ func New(_ context.Context) (*SwitchApp, error) {
 		msgCh: make(chan *mqttapi.Msg),
 	}
 
-	app.entity = mqtthass.AsSwitch(mqtthass.NewEntity(appName, "Switch", "").
-		WithDeviceInfo(newDevice()).
-		WithDefaultOriginInfo().
-		WithCommandCallback(app.switchCommandCallback).
-		WithStateCallback(app.switchStateCallback).
-		WithValueTemplate("{{ value }}"),
-		true).AsTypeSwitch()
+	app.entity = mqtthass.NewSwitchEntity().
+		OptimisticMode().
+		WithDetails(
+			mqtthass.App(appName),
+			mqtthass.Name("Switch"),
+			mqtthass.ID("switch"),
+			mqtthass.DeviceInfo(newDevice()),
+		).
+		WithState(
+			mqtthass.StateCallback(app.switchStateCallback),
+			mqtthass.ValueTemplate("{{ value }}"),
+		).
+		WithCommand(
+			mqtthass.CommandCallback(app.switchCommandCallback),
+		)
 
 	return app, nil
 }
