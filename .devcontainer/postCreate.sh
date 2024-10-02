@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Copyright (c) 2023 Joshua Rich <joshua.rich@gmail.com>
-# 
+#
 # This software is released under the MIT License.
 # https://opensource.org/licenses/MIT
 
@@ -20,5 +20,6 @@ go install github.com/sigstore/cosign/v2/cmd/cosign@fb651b4ddd8176bd81756fca2d98
 
 # Install and configure starship
 curl -sS https://starship.rs/install.sh | sh -s -- -y || exit -1
+mkdir -p ~/.config/fish
 echo "starship init fish | source" >> ~/.config/fish/config.fish
 exit 0

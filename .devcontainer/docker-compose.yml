@@ -1,6 +1,6 @@
 services:
   devcontainer:
-    build: 
+    build:
       dockerfile: Dockerfile
     volumes:
       - ..:/workspace:cached
@@ -9,8 +9,9 @@ services:
     cap_add:
       - SYS_PTRACE
     security_opt:
-      - seccomp:unconfined    
+      - seccomp:unconfined
     user: vscode
+
   mosquitto:
     image: docker.io/eclipse-mosquitto:2.0.18
     volumes:
@@ -22,8 +23,9 @@ services:
       - 1883:1883
       - 8883:8883
     restart: on-failure
+
   home-assistant:
-    image: ghcr.io/home-assistant/home-assistant:2024.10.0
+    image: ghcr.io/home-assistant/home-assistant:2024.9.3
     volumes:
       - ../deployments/home-assistant/config:/config
     ports:
