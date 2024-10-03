@@ -51,13 +51,12 @@ type GenericResponse interface {
 }
 
 func ExecuteRequest(ctx context.Context, request, response any) error {
-	var resp *resty.Response
-
-	var err error
-
-	var client *resty.Client
-
-	var found bool
+	var (
+		resp   *resty.Response
+		err    error
+		client *resty.Client
+		found  bool
+	)
 
 	client, found = ContextGetClient(ctx)
 	if !found {
