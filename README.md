@@ -49,11 +49,12 @@
     - [‼️ Prerequisites](#️-prerequisites)
     - [🚧 Development Environment](#-development-environment)
     - [⚙️ Building](#️-building)
+    - [📦 Cross Compilation](#-cross-compilation)
     - [🚩 Deployment](#-deployment)
-    - [🏃 Running](#-running)
-      - [🔧 Configuration](#-configuration)
-      - [👀 Usage](#-usage)
-      - [♻️ Reset](#️-reset)
+  - [🏃 Running](#-running)
+    - [🔧 Configuration](#-configuration)
+    - [👀 Usage](#-usage)
+    - [♻️ Reset](#️-reset)
   - [💻 Development](#-development)
     - [💽 Building Apps](#-building-apps)
       - [Examples](#examples)
@@ -145,6 +146,8 @@ number `MAJOR`.`MINOR`.`PATCH`, the gist of it is:
   added, but not breaking changes.
 - A `PATCH` number change indicate minor changes and bug fixes.
 
+[⬆️ Back to Top](#-table-of-contents)
+
 ## 🧰 Getting Started
 
 ### ‼️ Prerequisites
@@ -204,13 +207,14 @@ To see all possible build commands, run:
 mage -d build/magefiles -w . -l
 ```
 
-Cross compilation should work as per normal for Go. To build for a particular
-architecture, set the `TARGETARCH` environment variable to the equivalent
-`GOARCH` value when running the mage build command above:
+### 📦 Cross Compilation
+
+Go Hass Anything can also be built for **arm (v6/v7)** and **arm64** with
+cross-compilation. To build for a different architecture, set the
+`TARGETPLATFORM` environment variable:
 
 ```shell
-# Set TARGETARCH as appropriate, i.e., amd64 or arm64 or arm
-TARGETARCH=arm64 mage -d build/magefiles -w . build:full
+export TARGETPLATFORM=linux/arm64 # or linux/arm/v6 or linux/arm/v7
 ```
 
 ### 🚩 Deployment
@@ -229,28 +233,30 @@ to this location:
 podman build --file ./Dockerfile --tag go-hass-anything --build-arg APPDIR=apps
 ```
 
+As with building a binary,
+[cross-compliation](https://docs.docker.com/build/building/multi-platform/#cross-compilation)
+is supported:
+
+```shell
+# use either linux/arm64, linux/arm/v7 or linux/arm/v6
+podman build --file ./Dockerfile --platform linux/arm/v7 --tag go-hass-anything --build-arg APPDIR=apps
+```
+
 By default, the container will run as a user with uid/gid 1000/1000. You can
 pick a different uid/gid when building by adding `--build-arg UID=999` and
 `--build-arg GID=999` (adjusting the values as appropriate).
 
-[Cross
-compilation](https://docs.docker.com/build/guide/multi-platform/#build-using-cross-compilation)
-is supported. For example, to build for multiple architectures:
-
-```shell
-podman build --file ./Dockerfile \
-  --tag go-hass-anything \
-  --build-arg APPDIR=apps \
-  --platform=linux/arm64,linux/armv7,linux/amd64
-```
-
-Pre-built containers that can run some demo apps can be found on the
+Pre-built containers that can run some demo apps showing some of the available
+entities can be found on the
 [packages](https://github.com/joshuar/go-hass-anything/pkgs/container/go-hass-anything)
-page on GitHub. The demo app source code can be found in [examples/](./examples/).
+page on GitHub. The demo app source code can be found in
+[examples/](./examples/).
 
-### 🏃 Running
+[⬆️ Back to Top](#-table-of-contents)
 
-#### 🔧 Configuration
+## 🏃 Running
+
+### 🔧 Configuration
 
 To run the agent, you first need to configure the MQTT connection. Use the
 command:
@@ -258,7 +264,7 @@ command:
 ```shell
 # For containers:
 podman run --interactive --tty --rm \
-    --volume ~/go-hass-anything:/home/go-hass-anything:U \
+    --volume go-hass-anything:/home/go-hass-anything:U \
     ghcr.io/joshuar/go-hass-anything configure
 # For binaries:
 go-hass-anything configure
@@ -268,20 +274,20 @@ This will open a user interface in the terminal to enter MQTT connection details
 for the agent, and then any preferences for apps. You can navigate the fields
 via the keyboard.
 
-#### 👀 Usage
+### 👀 Usage
 
 Once the agent is configured, you can run it. Use the command:
 
 ```shell
 # For containers:
 podman run --name my-go-hass-anything \
-    --volume ~/go-hass-anything:/home/go-hass-anything:U \
+    --volume go-hass-anything:/home/go-hass-anything:U \
     ghcr.io/joshuar/go-hass-anything
 # For binaries:
 go-hass-anything run
 ```
 
-#### ♻️ Reset
+### ♻️ Reset
 
 If needed/desired, you can remove the app entities from Home Assistant by
 running the command:
@@ -298,6 +304,8 @@ go-hass-anything clear
 After this, there should be no devices (from Go Hass Anything) and associated
 entities in Home Assistant. If you want to re-add them, execute the run
 command again.
+
+[⬆️ Back to Top](#-table-of-contents)
 
 ## 💻 Development
 
@@ -488,6 +496,8 @@ and/or extend upon that. Note that some of the packages define custom levels for
 _trace_ (level -8) and _fatal_ (level 12), which if the logger is set to output,
 will show some additional details from the internals.
 
+[⬆️ Back to Top](#-table-of-contents)
+
 ## 👋 Contributing
 
 <picture>
@@ -515,6 +525,8 @@ when writing commit messages, add a prefix:
 
 Please read the [Code of Conduct](./CODE_OF_CONDUCT.md)
 
+[⬆️ Back to Top](#-table-of-contents)
+
 ## ⚠️ License
 
 Distributed under the [MIT](LICENSE) license.
@@ -531,3 +543,5 @@ Project Link: [https://github.com/joshuar/go-hass-anything](https://github.com/j
 - [Awesome README](https://github.com/matiassingers/awesome-readme)
 - [Emoji Cheat Sheet](https://github.com/ikatyang/emoji-cheat-sheet/blob/master/README.md#travel--places)
 - [Home Assistant](https://home-assistant.io).
+
+[⬆️ Back to Top](#-table-of-contents)
