@@ -5,8 +5,43 @@
 
 package main
 
-import "runtime"
+import (
+	"log/slog"
+	"os"
+	"time"
 
-const appName = "go-hass-anything"
+	"github.com/lmittmann/tint"
+	"github.com/mattn/go-isatty"
+)
 
-var targetArch = runtime.GOARCH
+const (
+	appName     = "go-hass-anything"
+	platformENV = "TARGETPLATFORM"
+)
+
+func init() {
+	version, _ := getVersion() //nolint:errcheck
+	hash, _ := getGitHash()    //nolint:errcheck
+
+	// platform, arch, ver := parseBuildPlatform()
+
+	// set global logger with custom options
+	logger := slog.New(tint.NewHandler(os.Stderr, &tint.Options{
+		Level:      slog.LevelDebug,
+		TimeFormat: time.Kitchen,
+		NoColor:    !isatty.IsTerminal(os.Stderr.Fd()),
+	})).
+		With(
+			slog.Group("git",
+				slog.String("version", version),
+				slog.String("hash", hash),
+			),
+			// slog.Group("build",
+			// 	slog.String("os", platform),
+			// 	slog.String("arch", arch),
+			// 	slog.String("revision", ver),
+			// ),
+		)
+
+	slog.SetDefault(logger)
+}

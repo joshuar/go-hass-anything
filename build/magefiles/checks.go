@@ -29,13 +29,11 @@ func (Checks) Lint() error {
 			slog.Any("error", err))
 	}
 
-	if err := foundOrInstalled("staticcheck", "honnef.co/go/tools/cmd/staticcheck@latest"); err != nil {
-		return fmt.Errorf("could not install staticcheck: %w", err)
-	}
-
 	slog.Info("Running linter (staticcheck)...")
 
-	if err := sh.RunV("staticcheck", "-f", "stylish", "./..."); err != nil {
+	if err := sh.RunV("go", "run",
+		"honnef.co/go/tools/cmd/staticcheck@latest",
+		"-f", "stylish", "./..."); err != nil {
 		return fmt.Errorf("linting failed: %w", err)
 	}
 
@@ -53,14 +51,12 @@ func (Checks) Licenses() error {
 		return fmt.Errorf("could not create licenses directory: %w", err)
 	}
 
-	// If go-licenses is missing, install it
-	if err := foundOrInstalled("go-licenses", "github.com/google/go-licenses@latest"); err != nil {
-		return fmt.Errorf("could not install go-licenses: %w", err)
-	}
 	// The header sets the columns for the contents
 	csvHeader := "Package,URL,License\n"
 
-	csvContents, err := sh.Output("go-licenses", "report", "--ignore=github.com/joshuar", "./...")
+	csvContents, err := sh.Output("go", "run",
+		"github.com/google/go-licenses@latest",
+		"report", "--ignore=github.com/joshuar", "./...")
 	if err != nil {
 		return fmt.Errorf("could not run go-licenses: %w", err)
 	}

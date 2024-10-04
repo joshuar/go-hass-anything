@@ -57,10 +57,10 @@ func buildProject() error {
 		return fmt.Errorf("could not create dist directory: %w", err)
 	}
 
-	// Get the value of TARGETARCH (if set) from the environment, which
-	// indicates cross-compilation has been requested.
-	if v, ok := os.LookupEnv("TARGETARCH"); ok {
-		targetArch = v
+	// Set-up the build environment.
+	buildEnv, err := generateBuildEnv()
+	if err != nil {
+		return errors.Join(ErrBuildFailed, err)
 	}
 
 	ldflags, err := getFlags()
@@ -68,13 +68,11 @@ func buildProject() error {
 		return errors.Join(ErrBuildFailed, err)
 	}
 
-	output := "dist/" + appName + "-" + targetArch
-
 	slog.Info("Running go build...",
-		slog.String("output", output),
+		slog.String("output", buildEnv["OUTPUT"]),
 		slog.String("ldflags", ldflags))
 
-	if err := sh.RunV("go", "build", "-ldflags="+ldflags, "-o", output); err != nil {
+	if err := sh.RunV("go", "build", "-ldflags="+ldflags, "-o", buildEnv["OUTPUT"]); err != nil {
 		return fmt.Errorf("build failed: %w", err)
 	}
 

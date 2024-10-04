@@ -10,7 +10,8 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"os/exec"
+	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"syscall"
@@ -23,7 +24,10 @@ const (
 	distPath = "dist"
 )
 
-var ErrNotCI = errors.New("not in CI environment")
+var (
+	ErrNotCI           = errors.New("not in CI environment")
+	ErrUnsupportedArch = errors.New("unsupported target architecture")
+)
 
 // isCI checks whether we are currently running as part of a CI pipeline (i.e.
 // in a GitHub runner).
@@ -59,23 +63,6 @@ func sudoWrap(cmd string, args ...string) error {
 	} else {
 		if err := sh.RunV("sudo", slices.Concat([]string{cmd}, args)...); err != nil {
 			return fmt.Errorf("could not run command: %w", err)
-		}
-	}
-
-	return nil
-}
-
-// foundOrInstalled checks for existence then installs a file if it's not there.
-func foundOrInstalled(executableName, installURL string) error {
-	_, missing := exec.LookPath(executableName)
-	if missing != nil {
-		slog.Info("Installing tool.",
-			slog.String("tool", executableName),
-			slog.String("url", installURL))
-
-		err := sh.Run("go", "install", installURL)
-		if err != nil {
-			return fmt.Errorf("installation failed: %w", err)
 		}
 	}
 
@@ -144,4 +131,79 @@ func getBuildDate() (string, error) {
 	}
 
 	return date, nil
+}
+
+// parseBuildPlatform reads the TARGETPLATFORM environment variable, which should
+// always be set, and extracts the value into appropriate GOOS, GOARCH and GOARM
+// (if applicable) variables.
+func parseBuildPlatform() (operatingsystem, architecture, version string) {
+	var buildPlatform string
+
+	var ok bool
+
+	if buildPlatform, ok = os.LookupEnv(platformENV); !ok {
+		return runtime.GOOS, runtime.GOARCH, ""
+	}
+
+	buildComponents := strings.Split(buildPlatform, "/")
+	operatingsystem = buildComponents[0]
+
+	if len(buildComponents) > 1 {
+		architecture = buildComponents[1]
+	}
+
+	if len(buildComponents) > 2 {
+		version = strings.TrimPrefix(buildComponents[2], "v")
+	}
+
+	return operatingsystem, architecture, version
+}
+
+// generateBuildEnv will create a map[string]string containing environment
+// variables and their values necessary for building Go Hass Agent on the given
+// architecture.
+func generateBuildEnv() (map[string]string, error) {
+	envMap := make(map[string]string)
+
+	// CGO_ENABLED is required.
+	envMap["CGO_ENABLED"] = "1"
+
+	version, err := getVersion()
+	if err != nil {
+		return nil, fmt.Errorf("could not generate environment: %w", err)
+	}
+	// Set APPVERSION to current version.
+	envMap["APPVERSION"] = version
+
+	// Get the value of BUILDPLATFORM (if set) from the environment, which
+	// indicates cross-compilation has been requested.
+	_, arch, ver := parseBuildPlatform()
+
+	if arch != "" && arch != runtime.GOARCH {
+		slog.Info("Setting up cross-compilation.")
+		// Set additional build-related variables based on the target arch.
+		switch arch {
+		case "arm":
+			envMap["CC"] = "arm-linux-gnueabihf-gcc"
+			envMap["PKG_CONFIG_PATH"] = "/usr/lib/arm-linux-gnueabihf/pkgconfig"
+			envMap["GOARCH"] = arch
+			envMap["GOARM"] = ver
+			envMap["PLATFORMPAIR"] = arch + ver
+		case "arm64":
+			envMap["CC"] = "aarch64-linux-gnu-gcc"
+			envMap["PKG_CONFIG_PATH"] = "/usr/lib/aarch64-linux-gnu/pkgconfig"
+			envMap["GOARCH"] = arch
+			envMap["PLATFORMPAIR"] = arch
+		default:
+			return nil, ErrUnsupportedArch
+		}
+	} else {
+		envMap["GOARCH"] = runtime.GOARCH
+		envMap["PLATFORMPAIR"] = runtime.GOARCH
+	}
+
+	// Set an appropriate output file based on the arch to build for.
+	envMap["OUTPUT"] = filepath.Join(distPath, appName+"-"+envMap["PLATFORMPAIR"])
+
+	return envMap, nil
 }

@@ -15,11 +15,6 @@ import (
 
 type Preps mg.Namespace
 
-var generators = map[string]string{
-	"moq":      "github.com/matryer/moq@latest",
-	"stringer": "golang.org/x/tools/cmd/stringer@latest",
-}
-
 // Tidy runs go mod tidy to update the go.mod and go.sum files.
 func (Preps) Tidy() error {
 	slog.Info("Running go mod tidy...")
@@ -44,15 +39,9 @@ func (Preps) Format() error {
 
 // Generate ensures all machine-generated files (gotext, stringer, moq, etc.) are up to date.
 func (Preps) Generate() error {
-	for tool, url := range generators {
-		if err := foundOrInstalled(tool, url); err != nil {
-			return fmt.Errorf("unable to install %s: %w", tool, err)
-		}
-	}
-
 	slog.Info("Running go generate...")
 
-	if err := sh.RunV("go", "generate", "-v", "./..."); err != nil {
+	if err := sh.RunV("go", "generate", "./..."); err != nil {
 		return fmt.Errorf("failed to run go generate: %w", err)
 	}
 
