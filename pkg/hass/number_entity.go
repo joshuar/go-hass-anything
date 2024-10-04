@@ -14,7 +14,7 @@ import (
 	mqttapi "github.com/joshuar/go-hass-anything/v11/pkg/mqtt"
 )
 
-//go:generate stringer -type=NumberMode -output number_entity_generated.go -linecomment
+//go:generate go run golang.org/x/tools/cmd/stringer -type=NumberMode -output number_entity_generated.go -linecomment
 const (
 	// NumberAuto will tell Home Assistant to automatically select how the number is displayed.
 	NumberAuto NumberMode = 0 // auto

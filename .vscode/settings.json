@@ -18,6 +18,7 @@
         "mqtt",
         "github",
         "mage",
-        "preferences"
+        "preferences",
+        "README"
     ],
 }

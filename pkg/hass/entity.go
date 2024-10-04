@@ -3,7 +3,7 @@
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
-//go:generate stringer -type=EntityType -output entity_generated.go -linecomment
+//go:generate go run golang.org/x/tools/cmd/stringer -type=EntityType -output entity_generated.go -linecomment
 package hass
 
 import (
