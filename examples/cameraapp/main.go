@@ -8,7 +8,7 @@
 // are published) as well as start and stop button entities for
 // starting/stopping the camera respectively.
 //
-// It uses the excellent github.com/vladimirvivien/go4vl package for camera
+// It uses the excellent https://github.com/blackjack/webcam package for camera
 // access.
 //
 // Unfortunately, this example app only runs on Linux.
@@ -20,11 +20,11 @@ import (
 	"fmt"
 	"log/slog"
 	"runtime"
+	"slices"
 	"time"
 
+	"github.com/blackjack/webcam"
 	"github.com/eclipse/paho.golang/paho"
-	"github.com/vladimirvivien/go4vl/device"
-	"github.com/vladimirvivien/go4vl/v4l2"
 
 	mqtthass "github.com/joshuar/go-hass-anything/v11/pkg/hass"
 	mqttapi "github.com/joshuar/go-hass-anything/v11/pkg/mqtt"
@@ -37,8 +37,8 @@ const (
 
 // Some defaults for the device file, formats and image size.
 var (
-	deviceFile    = "/dev/video0"
-	preferredFmts = []v4l2.FourCCType{v4l2.PixelFmtMPEG, v4l2.PixelFmtMJPEG, v4l2.PixelFmtJPEG, v4l2.PixelFmtYUYV}
+	deviceFile    = "/dev/video1"
+	preferredFmts = []string{"Motion-JPEG"}
 	defaultHeight = 640
 	defaultWidth  = 480
 )
@@ -48,7 +48,7 @@ var ErrUnsupportedOS = errors.New("example camera app only runs on Linux")
 // CameraApp is our struct that represents an app to Go Hass Anything.
 type CameraApp struct {
 	camera      *camera
-	images      *mqtthass.ImageEntity
+	images      *mqtthass.CameraEntity
 	startButton *mqtthass.ButtonEntity
 	stopButton  *mqtthass.ButtonEntity
 	msgCh       chan *mqttapi.Msg
@@ -56,9 +56,8 @@ type CameraApp struct {
 
 // camera is an internal struct to hold some data about the camera in use.
 type camera struct {
-	device     *device.Device
-	cancelFunc context.CancelFunc
-	fps        time.Duration
+	device *webcam.Webcam
+	fps    time.Duration
 }
 
 // New sets up our example app. It creates entities for the camera images and
@@ -72,7 +71,15 @@ func New(ctx context.Context) (*CameraApp, error) {
 		msgCh: make(chan *mqttapi.Msg),
 	}
 
-	app.images = mqtthass.NewImageEntity().
+	// Open the camera device.
+	camera, err := openCamera(deviceFile)
+	if err != nil {
+		return nil, fmt.Errorf("could not open camera device: %w", err)
+	}
+
+	app.camera = camera
+
+	app.images = mqtthass.NewCameraEntity().
 		WithDetails(
 			mqtthass.App(appName),
 			mqtthass.Name("Webcam"),
@@ -90,23 +97,9 @@ func New(ctx context.Context) (*CameraApp, error) {
 		).
 		WithCommand(
 			mqtthass.CommandCallback(func(_ *paho.Publish) {
-				// We are using a function enclosure here for the callback as we
-				// need access to the context passed to our app.
-				camera, err := openCamera(deviceFile)
-				if err != nil {
-					slog.Error("Could not open camera device.", slog.Any("error", err))
-
-					return
-				}
-
-				app.camera = camera
-
-				camCtx, cancelFunc := context.WithCancel(ctx)
-				app.camera.cancelFunc = cancelFunc
-
 				slog.Info("Start recording webcam.")
 
-				go app.camera.publishImages(camCtx, app.images.GetImageTopic(), app.msgCh)
+				go app.camera.publishImages(app.images.Topic, app.msgCh)
 			}),
 		)
 
@@ -120,19 +113,15 @@ func New(ctx context.Context) (*CameraApp, error) {
 		).
 		WithCommand(
 			mqtthass.CommandCallback(func(_ *paho.Publish) {
-				if app.camera.cancelFunc != nil {
-					app.camera.cancelFunc()
-					slog.Info("Stop recording webcam.")
-
-					if err := app.camera.closeCamera(); err != nil {
-						slog.Error("Close camera failed.", slog.Any("error", err))
-					}
+				if err := app.camera.device.StopStreaming(); err != nil {
+					slog.Error("Stop streaming failed.", slog.Any("error", err))
 				}
 			}),
 		)
 
 	go func() {
 		defer close(app.msgCh)
+		defer app.camera.closeCamera() //nolint:errcheck // at this point, error is irrelevant
 
 		<-ctx.Done()
 	}()
@@ -151,21 +140,24 @@ func (a *CameraApp) Configuration() []*mqttapi.Msg {
 
 	cameraCfg, err := a.images.MarshalConfig()
 	if err != nil {
-		slog.Error("Could not marshal camera entity config.", "error", err)
+		slog.Error("Could not marshal camera entity config.",
+			slog.Any("error", err))
 	} else {
 		configs = append(configs, cameraCfg)
 	}
 
 	startButtonCfg, err := a.startButton.MarshalConfig()
 	if err != nil {
-		slog.Error("Could not marshal start button entity config.", "error", err)
+		slog.Error("Could not marshal start button entity config.",
+			slog.Any("error", err))
 	} else {
 		configs = append(configs, startButtonCfg)
 	}
 
 	stopButtonCfg, err := a.stopButton.MarshalConfig()
 	if err != nil {
-		slog.Error("Could not marshal start button entity config.", "error", err)
+		slog.Error("Could not marshal start button entity config.",
+			slog.Any("error", err))
 	} else {
 		configs = append(configs, stopButtonCfg)
 	}
@@ -183,14 +175,16 @@ func (a *CameraApp) Subscriptions() []*mqttapi.Subscription {
 
 	startButtonSub, err := a.startButton.MarshalSubscription()
 	if err != nil {
-		slog.Warn("Unable to marshal start button subscription.", "error", err.Error())
+		slog.Warn("Unable to marshal start button subscription.",
+			slog.Any("error", err))
 	} else {
 		subs = append(subs, startButtonSub)
 	}
 
 	stopButtonSub, err := a.stopButton.MarshalSubscription()
 	if err != nil {
-		slog.Warn("Unable to marshal stop button subscription.", "error", err.Error())
+		slog.Warn("Unable to marshal stop button subscription.",
+			slog.Any("error", err))
 	} else {
 		subs = append(subs, stopButtonSub)
 	}
@@ -209,72 +203,59 @@ func (a *CameraApp) MsgCh() chan *mqttapi.Msg {
 // openCamera opens the camera device and ensures that it has a preferred image
 // format, framerate and dimensions.
 func openCamera(cameraDevice string) (*camera, error) {
-	camDev, err := device.Open(cameraDevice)
+	cam, err := webcam.Open(cameraDevice)
 	if err != nil {
 		return nil, fmt.Errorf("could not open camera %s: %w", cameraDevice, err)
 	}
 
-	fps, err := camDev.GetFrameRate()
-	if err != nil {
-		return nil, fmt.Errorf("could not determine camera frame rate: %w", err)
-	}
+	// select pixel format
+	var preferredFormat webcam.PixelFormat
 
-	fmtDescs, err := camDev.GetFormatDescriptions()
-	if err != nil {
-		return nil, fmt.Errorf("could not determine camera formats: %w", err)
-	}
-
-	var fmtDesc *v4l2.FormatDescription
-	for _, preferredFmt := range preferredFmts {
-		fmtDesc = getFormats(fmtDescs, preferredFmt)
-		if fmtDesc != nil {
+	for format, desc := range cam.GetSupportedFormats() {
+		if slices.Contains(preferredFmts, desc) {
+			preferredFormat = format
 			break
 		}
 	}
 
-	if fmtDesc == nil {
-		return nil, fmt.Errorf("camera does not support any preferred formats: %w", err)
+	if preferredFormat == 0 {
+		return nil, errors.New("could not determine an appropriate format")
 	}
 
-	if err = camDev.SetPixFormat(v4l2.PixFormat{
-		Width:       uint32(defaultWidth),
-		Height:      uint32(defaultHeight),
-		PixelFormat: fmtDesc.PixelFormat,
-		Field:       v4l2.FieldNone,
-	}); err != nil {
-		return nil, fmt.Errorf("could not configure camera: %w", err)
-	}
-
-	pixFmt, err := camDev.GetPixFormat()
-	if err == nil {
-		slog.Info("Camera configured.", slog.Any("format", pixFmt), slog.Any("fps", fps))
+	_, _, _, err = cam.SetImageFormat(preferredFormat, uint32(defaultWidth), uint32(defaultHeight))
+	if err != nil {
+		return nil, fmt.Errorf("could not set camera parameters: %w", err)
 	}
 
 	return &camera{
-			device: camDev,
-			fps:    time.Second / time.Duration(fps),
+			device: cam,
+			fps:    time.Second / 30,
 		},
 		nil
 }
 
 // publishImages loops over the received frames from the camera and wraps them
 // as a MQTT message to be sent back on the bus.
-func (c *camera) publishImages(ctx context.Context, topic string, msgCh chan *mqttapi.Msg) {
-	if err := c.device.Start(ctx); err != nil {
+func (c *camera) publishImages(topic string, msgCh chan *mqttapi.Msg) {
+	if err := c.device.StartStreaming(); err != nil {
 		slog.Error("Could not start recording", slog.Any("error", err))
 
 		return
 	}
 
-	for frame := range c.device.GetOutput() {
-		slog.Info("Processing camera frame...")
-		// buf := new(bytes.Buffer)
-		// encoder := base64.NewEncoder(base64.StdEncoding, buf)
-		// encoder.Write(frame)
-		// str := base64.StdEncoding.EncodeToString(frame)
-		msgCh <- mqttapi.NewMsg(topic, frame)
+	for {
+		err := c.device.WaitForFrame(uint32(5))
+		if err != nil && errors.As(err, &webcam.Timeout{}) {
+			continue
+		}
 
-		time.Sleep(c.fps)
+		frame, err := c.device.ReadFrame()
+		if len(frame) == 0 || err != nil {
+			break
+		}
+
+		slog.Info("Processing camera frame...")
+		msgCh <- mqttapi.NewMsg(topic, frame)
 	}
 }
 
@@ -295,14 +276,4 @@ func newDevice() *mqtthass.Device {
 		Manufacturer: "go-hass-anything",
 		Model:        appID,
 	}
-}
-
-func getFormats(fmts []v4l2.FormatDescription, pixEncoding v4l2.FourCCType) *v4l2.FormatDescription {
-	for _, desc := range fmts {
-		if desc.PixelFormat == pixEncoding {
-			return &desc
-		}
-	}
-
-	return nil
 }

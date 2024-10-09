@@ -38,6 +38,7 @@ require (
 require (
 	github.com/adrg/xdg v0.5.0
 	github.com/alecthomas/kong v1.2.1
+	github.com/blackjack/webcam v0.6.1
 	github.com/charmbracelet/bubbles v0.18.0
 	github.com/charmbracelet/bubbletea v1.1.1
 	github.com/eclipse/paho.golang v0.21.0
@@ -49,7 +50,6 @@ require (
 	github.com/magefile/mage v1.15.0
 	github.com/mattn/go-isatty v0.0.20
 	github.com/samber/slog-multi v1.2.2
-	github.com/vladimirvivien/go4vl v0.0.5
 	github.com/yassinebenaid/godump v0.10.0
 	golang.org/x/exp v0.0.0-20240613232115-7f521ea00fb8
 	golang.org/x/net v0.28.0 // indirect
