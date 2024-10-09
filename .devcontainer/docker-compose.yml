@@ -13,7 +13,7 @@ services:
     user: vscode
 
   mosquitto:
-    image: docker.io/eclipse-mosquitto:2.0.18
+    image: docker.io/eclipse-mosquitto:$MOSQUITTO_VERSION
     volumes:
       - ../deployments/mosquitto/config:/mosquitto/config:cached
       - ../deployments/mosquitto/data:/mosquitto/data
@@ -25,7 +25,7 @@ services:
     restart: on-failure
 
   home-assistant:
-    image: ghcr.io/home-assistant/home-assistant:2024.9.3
+    image: ghcr.io/home-assistant/home-assistant:$HOMEASSISTANT_VERSION
     volumes:
       - ../deployments/home-assistant/config:/config
     ports:
