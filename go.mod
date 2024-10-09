@@ -42,7 +42,7 @@ require (
 	github.com/charmbracelet/bubbletea v1.1.1
 	github.com/eclipse/paho.golang v0.21.0
 	github.com/go-playground/validator/v10 v10.22.1
-	github.com/go-resty/resty/v2 v2.15.0
+	github.com/go-resty/resty/v2 v2.15.3
 	github.com/iancoleman/strcase v0.3.0
 	github.com/lmittmann/tint v1.0.5
 	github.com/lthibault/jitterbug/v2 v2.2.2
