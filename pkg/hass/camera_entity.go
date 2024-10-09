@@ -46,11 +46,11 @@ func (e *CameraEntity) MarshalConfig() (*mqttapi.Msg, error) {
 		err error
 	)
 
+	e.Topic = generateTopic("camera", e.EntityDetails)
+
 	if err = validateEntity(e); err != nil {
 		return nil, fmt.Errorf("entity config is invalid: %w", err)
 	}
-
-	e.Topic = generateTopic("camera", e.EntityDetails)
 
 	configTopic := generateTopic("config", e.EntityDetails)
 
