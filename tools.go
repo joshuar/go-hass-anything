@@ -10,6 +10,7 @@ package main
 
 import (
 	_ "github.com/davecgh/go-spew/spew"
+	_ "github.com/magefile/mage"
 	_ "github.com/yassinebenaid/godump"
 	_ "golang.org/x/tools/cmd/stringer"
 )
