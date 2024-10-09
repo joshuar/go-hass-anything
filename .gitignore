@@ -39,3 +39,4 @@ apps
 
 ## always ignore the dist folder
 dist
+.devcontainer/.env
