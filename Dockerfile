@@ -22,10 +22,8 @@ RUN rm -fr deployments dist/* || exit 0
 # copy the user-specified APPDIR to a location that will be picked up during build
 RUN rm -fr apps || exit 0
 COPY $APPDIR apps/
-# install mage
-RUN go install github.com/magefile/mage@9e91a03eaa438d0d077aca5654c7757141536a60 # v1.15.0
 # build the binary
-RUN mage -v -d build/magefiles -w . build:full
+RUN go run github.com/magefile/mage -d build/magefiles -w . build:full
 
 FROM alpine@sha256:b89d9c93e9ed3597455c90a0b88a8bbb5cb7188438f70953fede212a0c4394e0
 # Add image labels.
