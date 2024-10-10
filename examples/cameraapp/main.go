@@ -21,7 +21,6 @@ import (
 	"log/slog"
 	"runtime"
 	"slices"
-	"time"
 
 	"github.com/blackjack/webcam"
 	"github.com/eclipse/paho.golang/paho"
@@ -47,17 +46,11 @@ var ErrUnsupportedOS = errors.New("example camera app only runs on Linux")
 
 // CameraApp is our struct that represents an app to Go Hass Anything.
 type CameraApp struct {
-	camera      *camera
+	camera      *webcam.Webcam
 	images      *mqtthass.CameraEntity
 	startButton *mqtthass.ButtonEntity
 	stopButton  *mqtthass.ButtonEntity
 	msgCh       chan *mqttapi.Msg
-}
-
-// camera is an internal struct to hold some data about the camera in use.
-type camera struct {
-	device *webcam.Webcam
-	fps    time.Duration
 }
 
 // New sets up our example app. It creates entities for the camera images and
@@ -70,14 +63,6 @@ func New(ctx context.Context) (*CameraApp, error) {
 	app := &CameraApp{
 		msgCh: make(chan *mqttapi.Msg),
 	}
-
-	// Open the camera device.
-	camera, err := openCamera(deviceFile)
-	if err != nil {
-		return nil, fmt.Errorf("could not open camera device: %w", err)
-	}
-
-	app.camera = camera
 
 	app.images = mqtthass.NewCameraEntity().
 		WithDetails(
@@ -97,9 +82,19 @@ func New(ctx context.Context) (*CameraApp, error) {
 		).
 		WithCommand(
 			mqtthass.CommandCallback(func(_ *paho.Publish) {
+				// Open the camera device.
+				camera, err := openCamera(deviceFile)
+				if err != nil {
+					slog.Error("Could not open camera device.",
+						slog.Any("error", err))
+					return
+				}
+
+				app.camera = camera
+
 				slog.Info("Start recording webcam.")
 
-				go app.camera.publishImages(app.images.Topic, app.msgCh)
+				go publishImages(camera, app.images.Topic, app.msgCh)
 			}),
 		)
 
@@ -113,15 +108,20 @@ func New(ctx context.Context) (*CameraApp, error) {
 		).
 		WithCommand(
 			mqtthass.CommandCallback(func(_ *paho.Publish) {
-				if err := app.camera.device.StopStreaming(); err != nil {
+				if err := app.camera.StopStreaming(); err != nil {
 					slog.Error("Stop streaming failed.", slog.Any("error", err))
 				}
+
+				if err := app.camera.Close(); err != nil {
+					slog.Error("Close camera failed.", slog.Any("error", err))
+				}
+
+				slog.Info("Stop recording webcam.")
 			}),
 		)
 
 	go func() {
 		defer close(app.msgCh)
-		defer app.camera.closeCamera() //nolint:errcheck // at this point, error is irrelevant
 
 		<-ctx.Done()
 	}()
@@ -202,7 +202,7 @@ func (a *CameraApp) MsgCh() chan *mqttapi.Msg {
 
 // openCamera opens the camera device and ensures that it has a preferred image
 // format, framerate and dimensions.
-func openCamera(cameraDevice string) (*camera, error) {
+func openCamera(cameraDevice string) (*webcam.Webcam, error) {
 	cam, err := webcam.Open(cameraDevice)
 	if err != nil {
 		return nil, fmt.Errorf("could not open camera %s: %w", cameraDevice, err)
@@ -227,45 +227,31 @@ func openCamera(cameraDevice string) (*camera, error) {
 		return nil, fmt.Errorf("could not set camera parameters: %w", err)
 	}
 
-	return &camera{
-			device: cam,
-			fps:    time.Second / 30,
-		},
-		nil
+	return cam, nil
 }
 
 // publishImages loops over the received frames from the camera and wraps them
 // as a MQTT message to be sent back on the bus.
-func (c *camera) publishImages(topic string, msgCh chan *mqttapi.Msg) {
-	if err := c.device.StartStreaming(); err != nil {
+func publishImages(cam *webcam.Webcam, topic string, msgCh chan *mqttapi.Msg) {
+	if err := cam.StartStreaming(); err != nil {
 		slog.Error("Could not start recording", slog.Any("error", err))
 
 		return
 	}
 
 	for {
-		err := c.device.WaitForFrame(uint32(5))
+		err := cam.WaitForFrame(uint32(5))
 		if err != nil && errors.As(err, &webcam.Timeout{}) {
 			continue
 		}
 
-		frame, err := c.device.ReadFrame()
+		frame, err := cam.ReadFrame()
 		if len(frame) == 0 || err != nil {
 			break
 		}
 
-		slog.Info("Processing camera frame...")
 		msgCh <- mqttapi.NewMsg(topic, frame)
 	}
-}
-
-// closeCamera wraps the v4l2 camera close method.
-func (c *camera) closeCamera() error {
-	if err := c.device.Close(); err != nil {
-		return fmt.Errorf("could not close camera device: %w", err)
-	}
-
-	return nil
 }
 
 func newDevice() *mqtthass.Device {
