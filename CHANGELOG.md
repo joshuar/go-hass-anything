@@ -1,5 +1,26 @@
 # Changelog
 
+## [12.0.0](https://github.com/joshuar/go-hass-anything/compare/v11.1.0...v12.0.0) (2024-10-10)
+
+
+### ⚠ BREAKING CHANGES
+
+* The invocation for constructing an entity with builders has changed. Please see the example apps which have been updated to utilise the new methods for what needs to change.
+
+### Bug Fixes
+
+* **hass:** :bug: set camera topic before validating ([8b37801](https://github.com/joshuar/go-hass-anything/commit/8b378012de0a2cbef5a348e6ae0cbd02b93ef0d2))
+
+
+### Performance Improvements
+
+* **examples:** :zap: additional camera example app improvements ([7119a34](https://github.com/joshuar/go-hass-anything/commit/7119a349f24a562be40cd15083295faada1afaba))
+
+
+### Code Refactoring
+
+* :building_construction: better builder methods and validation of entities ([1370d95](https://github.com/joshuar/go-hass-anything/commit/1370d9575d1e100ce4f209547b1d7b436d199ffb))
+
 ## [11.1.0](https://github.com/joshuar/go-hass-anything/compare/v11.0.0...v11.1.0) (2024-08-10)
 
 
