@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"time"
 
-	mqttapi "github.com/joshuar/go-hass-anything/v11/pkg/mqtt"
+	mqttapi "github.com/joshuar/go-hass-anything/v12/pkg/mqtt"
 )
 
 // SensorEntity represents an entity which has some kind of value. For more

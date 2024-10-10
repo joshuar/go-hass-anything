@@ -9,7 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	mqttapi "github.com/joshuar/go-hass-anything/v11/pkg/mqtt"
+	mqttapi "github.com/joshuar/go-hass-anything/v12/pkg/mqtt"
 )
 
 //go:generate go run golang.org/x/tools/cmd/stringer -type=TextEntityMode -output text_entity_generated.go -linecomment

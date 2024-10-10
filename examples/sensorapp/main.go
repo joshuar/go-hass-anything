@@ -23,11 +23,11 @@ import (
 	"log/slog"
 	"time"
 
-	mqtthass "github.com/joshuar/go-hass-anything/v11/pkg/hass"
-	mqttapi "github.com/joshuar/go-hass-anything/v11/pkg/mqtt"
-	"github.com/joshuar/go-hass-anything/v11/pkg/web"
+	mqtthass "github.com/joshuar/go-hass-anything/v12/pkg/hass"
+	mqttapi "github.com/joshuar/go-hass-anything/v12/pkg/mqtt"
+	"github.com/joshuar/go-hass-anything/v12/pkg/web"
 
-	"github.com/joshuar/go-hass-anything/v11/pkg/preferences"
+	"github.com/joshuar/go-hass-anything/v12/pkg/preferences"
 )
 
 const (

@@ -12,9 +12,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/joshuar/go-hass-anything/v11/internal/logging"
-	"github.com/joshuar/go-hass-anything/v11/pkg/mqtt"
-	"github.com/joshuar/go-hass-anything/v11/pkg/preferences"
+	"github.com/joshuar/go-hass-anything/v12/internal/logging"
+	"github.com/joshuar/go-hass-anything/v12/pkg/mqtt"
+	"github.com/joshuar/go-hass-anything/v12/pkg/preferences"
 )
 
 //go:generate go run ../../tools/appgenerator/main.go

@@ -11,7 +11,7 @@ import (
 
 	"golang.org/x/exp/constraints"
 
-	mqttapi "github.com/joshuar/go-hass-anything/v11/pkg/mqtt"
+	mqttapi "github.com/joshuar/go-hass-anything/v12/pkg/mqtt"
 )
 
 //go:generate go run golang.org/x/tools/cmd/stringer -type=NumberMode -output number_entity_generated.go -linecomment

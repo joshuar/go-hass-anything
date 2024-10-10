@@ -16,7 +16,7 @@ import (
 
 	"github.com/go-resty/resty/v2"
 
-	"github.com/joshuar/go-hass-anything/v11/internal/logging"
+	"github.com/joshuar/go-hass-anything/v12/internal/logging"
 )
 
 type contextKey string

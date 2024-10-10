@@ -7,8 +7,8 @@ import (
 	"context"
 	"log/slog"
 {{ range $appDir := .Dirs -}}
-"github.com/joshuar/go-hass-anything/v11/{{$appDir}}"
-{{ end -}}	
+"github.com/joshuar/go-hass-anything/v12/{{$appDir}}"
+{{ end -}}
 )
 
 func init() {
@@ -19,5 +19,5 @@ func init() {
 	} else {
 		AppList = append(AppList, app)
 	}
-{{ end -}}	
+{{ end -}}
 }
