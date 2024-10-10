@@ -8,7 +8,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -28,17 +27,6 @@ const (
 
 type Context struct {
 	context.Context //nolint:containedctx // workaround for https://github.com/alecthomas/kong/issues/144
-}
-
-type profileFlags logging.ProfileFlags
-
-func (d profileFlags) AfterApply() error {
-	err := logging.StartProfiling(logging.ProfileFlags(d))
-	if err != nil {
-		return fmt.Errorf("could not start profiling: %w", err)
-	}
-
-	return nil
 }
 
 type ResetCmd struct{}
@@ -105,12 +93,12 @@ func init() {
 
 //nolint:tagalign
 var CLI struct {
-	Run       RunCmd       `cmd:"" help:"Run Go Hass Anything."`
-	Configure ConfigureCmd `cmd:"" help:"Configure Go Hass Anything."`
-	Reset     ResetCmd     `cmd:"" help:"Reset Go Hass Anything."`
-	Profile   profileFlags `help:"Enable profiling."`
-	LogLevel  string       `name:"log-level" enum:"info,debug,trace" default:"info" help:"Set logging level."`
-	NoLogFile bool         `help:"Don't write to a log file."`
+	Run          RunCmd               `cmd:"" help:"Run Go Hass Anything."`
+	Configure    ConfigureCmd         `cmd:"" help:"Configure Go Hass Anything."`
+	Reset        ResetCmd             `cmd:"" help:"Reset Go Hass Anything."`
+	ProfileFlags logging.ProfileFlags `name:"profile" help:"Enable profiling."`
+	LogLevel     string               `name:"log-level" enum:"info,debug,trace" default:"info" help:"Set logging level."`
+	NoLogFile    bool                 `help:"Don't write to a log file."`
 }
 
 func main() {
@@ -122,29 +110,38 @@ func main() {
 	logger := logging.New(CLI.LogLevel, CLI.NoLogFile)
 	ctx = logging.ToContext(ctx, logger)
 
+	startProfiling()
+
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
 	go func() {
 		defer cancelFunc()
 		<-c
-		env.FatalIfErrorf(shutdown())
+		stopProfiling()
 		os.Exit(-1)
 	}()
 
-	err := env.Run(Context{ctx})
-	err = errors.Join(err, shutdown())
-
-	env.FatalIfErrorf(err)
-}
-
-func shutdown() error {
-	if CLI.Profile != nil {
-		err := logging.StopProfiling(logging.ProfileFlags(CLI.Profile))
-		if err != nil {
-			return fmt.Errorf("could not stop profiling: %w", err)
-		}
+	if err := env.Run(Context{ctx}); err != nil {
+		logger.Error("Problem running.", slog.Any("error", err))
 	}
 
-	return nil
+	stopProfiling()
+}
+
+func startProfiling() {
+	if CLI.ProfileFlags != nil {
+		if err := logging.StartProfiling(CLI.ProfileFlags); err != nil {
+			slog.Warn("Problem starting profiling.",
+				slog.Any("error", err))
+		}
+	}
+}
+
+func stopProfiling() {
+	if CLI.ProfileFlags != nil {
+		if err := logging.StopProfiling(CLI.ProfileFlags); err != nil {
+			slog.Error("Problem stopping profiling.", slog.Any("error", err))
+		}
+	}
 }
