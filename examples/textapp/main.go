@@ -66,7 +66,8 @@ func (a *TextApp) Name() string {
 func (a *TextApp) Configuration() []*mqttapi.Msg {
 	textEntityCfg, err := a.entity.MarshalConfig()
 	if err != nil {
-		slog.Error("Could not marshal text entity config.", "error", err)
+		slog.Error("Could not marshal text entity config.",
+			slog.Any("error", err))
 
 		return nil
 	}
@@ -77,7 +78,8 @@ func (a *TextApp) Configuration() []*mqttapi.Msg {
 func (a *TextApp) States() []*mqttapi.Msg {
 	textEntityState, err := a.entity.MarshalState()
 	if err != nil {
-		slog.Warn("Unable to marshal text state to MQTT message.", "error", err.Error())
+		slog.Warn("Unable to marshal text state to MQTT message.",
+			slog.Any("error", err))
 	}
 
 	return []*mqttapi.Msg{textEntityState}
@@ -86,7 +88,8 @@ func (a *TextApp) States() []*mqttapi.Msg {
 func (a *TextApp) Subscriptions() []*mqttapi.Subscription {
 	textEntitySub, err := a.entity.MarshalSubscription()
 	if err != nil {
-		slog.Warn("Unable to marshal text state subscription.", "error", err.Error())
+		slog.Warn("Unable to marshal text state subscription.",
+			slog.Any("error", err))
 	}
 
 	return []*mqttapi.Subscription{textEntitySub}
@@ -112,6 +115,7 @@ func (a *TextApp) stateCallback(_ ...any) (json.RawMessage, error) {
 func (a *TextApp) commandCallback(p *paho.Publish) {
 	a.text = string(p.Payload)
 	if err := exec.Command("notify-send", a.text).Run(); err != nil {
-		slog.Warn("Could not execute notify-send.", "error", err.Error())
+		slog.Warn("Could not execute notify-send.",
+			slog.Any("error", err))
 	}
 }
