@@ -40,7 +40,7 @@ require (
 	github.com/alecthomas/kong v1.2.1
 	github.com/blackjack/webcam v0.6.1
 	github.com/charmbracelet/bubbles v0.20.0
-	github.com/charmbracelet/bubbletea v1.2.3
+	github.com/charmbracelet/bubbletea v1.2.4
 	github.com/eclipse/paho.golang v0.21.0
 	github.com/go-playground/validator/v10 v10.22.1
 	github.com/go-resty/resty/v2 v2.16.2
