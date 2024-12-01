@@ -86,8 +86,13 @@ func ExecuteRequest(ctx context.Context, request, response any) error {
 		resp, err = webRequest.Get(req.URL())
 	}
 
-	if err != nil {
-		return fmt.Errorf("could not send request: %w", err)
+	switch {
+	case err != nil:
+		return fmt.Errorf("error sending request: %w", err)
+	case resp == nil:
+		return fmt.Errorf("unknown error sending request")
+	case resp.IsError():
+		return fmt.Errorf("received error response: %v", resp.Error())
 	}
 
 	logging.FromContext(ctx).
