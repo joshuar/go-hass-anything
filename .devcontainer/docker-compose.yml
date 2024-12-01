@@ -1,7 +1,10 @@
+x-podman:
+  in_pod: false
 services:
   devcontainer:
     build:
       dockerfile: Dockerfile
+    hostname: devcontainer
     volumes:
       - ..:/workspace:cached
       - /etc/localtime:/etc/localtime:ro,cached
@@ -11,6 +14,7 @@ services:
     security_opt:
       - seccomp:unconfined
     user: vscode
+    userns_mode: keep-id
 
   mosquitto:
     image: docker.io/eclipse-mosquitto:$MOSQUITTO_VERSION
@@ -22,6 +26,7 @@ services:
     ports:
       - 1883:1883
       - 8883:8883
+    userns_mode: keep-id
     restart: on-failure
 
   home-assistant:
@@ -30,4 +35,5 @@ services:
       - ../deployments/home-assistant/config:/config
     ports:
       - 8123:8123
+    userns_mode: keep-id
     restart: on-failure
