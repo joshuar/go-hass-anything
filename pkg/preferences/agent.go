@@ -16,7 +16,6 @@ import (
 	"sync"
 
 	"github.com/adrg/xdg"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/knadh/koanf/parsers/toml"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
@@ -99,8 +98,6 @@ func Save() error {
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrSavePreferences, err)
 	}
-
-	spew.Dump(data)
 
 	err = os.WriteFile(filepath.Join(preferencesDir, preferencesFile), data, defaultFilePerms)
 	if err != nil {
