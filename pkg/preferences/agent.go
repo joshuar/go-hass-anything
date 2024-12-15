@@ -7,76 +7,137 @@
 package preferences
 
 import (
+	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
+	"sync"
 
-	"github.com/pelletier/go-toml"
+	"github.com/adrg/xdg"
+	"github.com/davecgh/go-spew/spew"
+	"github.com/knadh/koanf/parsers/toml"
+	"github.com/knadh/koanf/providers/env"
+	"github.com/knadh/koanf/providers/file"
+	"github.com/knadh/koanf/v2"
 )
 
 const (
+	prefsEnvPrefix  = "GOHASSANYTHING_"
 	PrefServer      = "mqtt.server"
 	PrefUser        = "mqtt.user"
 	PrefPassword    = "mqtt.password"
 	PrefTopicPrefix = "mqtt.topicprefix"
+	// defaultServer is the default MQTT broker URL.
+	defaultServer = "tcp://localhost:1883"
+	// defaultTopicPrefix is the default prefix that is appended to topics.
+	defaultTopicPrefix = "homeassistant"
+	// defaultFilePerms sets the permissions on the config file.
+	defaultFilePerms = 0o600
 )
 
 var (
 	// preferencesDir is the default path under which the preferences are
 	// written. It can be overridden in the Save/Load functions as needed.
-	preferencesDir = filepath.Join(os.Getenv("HOME"), ".config", "go-hass-anything")
+	preferencesDir = filepath.Join(xdg.ConfigHome, "go-hass-anything")
 	// preferencesFile is the default filename used for storing the preferences
 	// on disk. While it can be overridden, this is usually unnecessary.
-	preferencesFile = "mqtt-config.toml"
-	// defaultServer is the default MQTT broker URL.
-	defaultServer = "tcp://localhost:1883"
-	// defaultTopicPrefix is the default prefix that is appended to topics.
-	defaultTopicPrefix = "homeassistant"
+	preferencesFile = "agent.toml"
 )
 
-type AgentPreferences struct {
-	MQTTServer      *Preference `toml:"mqtt.server"`
-	MQTTUser        *Preference `toml:"mqtt.user,omitempty"`
-	MQTTPassword    *Preference `toml:"mqtt.password,omitempty"`
-	MQTTTopicPrefix *Preference `toml:"mqtt.topicprefix"`
+// Consistent error messages.
+var (
+	ErrLoadPreferences     = errors.New("error loading preferences")
+	ErrSavePreferences     = errors.New("error saving preferences")
+	ErrValidatePreferences = errors.New("error validating preferences")
+	ErrSetPreference       = errors.New("error setting preference")
+)
+
+var (
+	prefsSrc = koanf.New(".")
+	mu       = sync.Mutex{}
+	Agent    = &AgentPreferences{}
+)
+
+// Load will retrieve the current preferences from the preference file on disk.
+// If there is a problem during retrieval, an error will be returned.
+var Load = func() error {
+	return sync.OnceValue(func() error {
+		slog.Debug("Loading preferences.", slog.String("file", filepath.Join(preferencesDir, preferencesFile)))
+
+		// Load config file
+		if err := prefsSrc.Load(file.Provider(filepath.Join(preferencesDir, preferencesFile)), toml.Parser()); err != nil {
+			return fmt.Errorf("%w: %w", ErrLoadPreferences, err)
+		}
+		// Merge config with any environment variables.
+		if err := prefsSrc.Load(env.Provider(prefsEnvPrefix, ".", func(s string) string {
+			return strings.Replace(strings.ToLower(
+				strings.TrimPrefix(s, prefsEnvPrefix)), "_", ".", -1)
+		}), nil); err != nil {
+			return fmt.Errorf("%w: %w", ErrLoadPreferences, err)
+		}
+
+		return nil
+	})()
 }
 
-func (p *AgentPreferences) TopicPrefix() string {
-	if pref, ok := p.MQTTTopicPrefix.Value.(string); ok {
-		return pref
+// Save will save the new values of the specified preferences to the existing
+// preferences file. NOTE: if the preferences file does not exist, Save will
+// return an error. Use New if saving preferences for the first time.
+func Save() error {
+	mu.Lock()
+	defer mu.Unlock()
+
+	slog.Debug("Saving preferences.", slog.String("file", filepath.Join(preferencesDir, preferencesFile)))
+
+	if err := checkPath(preferencesDir); err != nil {
+		return err
 	}
 
-	return ""
+	data, err := prefsSrc.Marshal(toml.Parser())
+	if err != nil {
+		return fmt.Errorf("%w: %w", ErrSavePreferences, err)
+	}
+
+	spew.Dump(data)
+
+	err = os.WriteFile(filepath.Join(preferencesDir, preferencesFile), data, defaultFilePerms)
+	if err != nil {
+		return fmt.Errorf("%w: %w", ErrSavePreferences, err)
+	}
+
+	return nil
+}
+
+type AgentPreferences struct{}
+
+func (p *AgentPreferences) TopicPrefix() string {
+	if prefsSrc.String(PrefTopicPrefix) == "" {
+		if err := prefsSrc.Set(PrefTopicPrefix, defaultTopicPrefix); err != nil {
+			slog.Warn("Could not set default value for topic prefix.", slog.Any("error", err))
+		}
+	}
+
+	return prefsSrc.String(PrefTopicPrefix)
 }
 
 func (p *AgentPreferences) Server() string {
-	if pref, ok := p.MQTTServer.Value.(string); ok {
-		return pref
+	if prefsSrc.String(PrefServer) == "" {
+		if err := prefsSrc.Set(PrefServer, defaultServer); err != nil {
+			slog.Warn("Could not set default value for server.", slog.Any("error", err))
+		}
 	}
 
-	return ""
+	return prefsSrc.String(PrefServer)
 }
 
 func (p *AgentPreferences) User() string {
-	if pref, ok := p.MQTTUser.Value.(string); ok {
-		return pref
-	}
-
-	return ""
+	return prefsSrc.String(PrefUser)
 }
 
 func (p *AgentPreferences) Password() string {
-	if pref, ok := p.MQTTPassword.Value.(string); ok {
-		return pref
-	}
-
-	return ""
-}
-
-// findAgentPreferences returns the file path to the file for the agent
-// preferences.
-func findAgentPreferences() string {
-	return filepath.Join(preferencesDir, preferencesFile)
+	return prefsSrc.String(PrefPassword)
 }
 
 func (p *AgentPreferences) Keys() []string {
@@ -84,107 +145,39 @@ func (p *AgentPreferences) Keys() []string {
 }
 
 func (p *AgentPreferences) GetValue(key string) (value any, found bool) {
-	pref := p.getPref(key)
-	if pref == nil {
+	switch key {
+	case PrefTopicPrefix:
+		return p.TopicPrefix(), true
+	case PrefServer:
+		return p.Server(), true
+	case PrefUser:
+		return p.User(), true
+	case PrefPassword:
+		return p.Password(), true
+	default:
 		return nil, false
 	}
-
-	return p.getPref(key).Value, true
 }
 
 func (p *AgentPreferences) GetDescription(key string) string {
-	return p.getPref(key).Description
+	switch key {
+	case PrefTopicPrefix:
+		return "The topic prefix on which to send/receive MQTT messages."
+	case PrefServer:
+		return "The MQTT server formatted as a URI (e.g., tcp://localhost:1883)."
+	case PrefUser:
+		return "The username (when required) for connecting to MQTT."
+	case PrefPassword:
+		return "The password (when required) for connecting to MQTT."
+	default:
+		return "No description provided."
+	}
 }
 
 func (p *AgentPreferences) IsSecret(key string) bool {
-	return p.getPref(key).Secret
+	return key == PrefPassword
 }
 
 func (p *AgentPreferences) SetValue(key string, value any) error {
-	switch key {
-	case PrefServer:
-		p.MQTTServer.Value = value
-	case PrefUser:
-		p.MQTTUser.Value = value
-	case PrefPassword:
-		p.MQTTPassword.Value = value
-	case PrefTopicPrefix:
-		p.MQTTTopicPrefix.Value = value
-	default:
-		return ErrUnknownPref
-	}
-
-	return nil
-}
-
-//nolint:mnd
-func Save(prefs any) error {
-	data, err := toml.Marshal(prefs)
-	if err != nil {
-		return fmt.Errorf("could not marshal config: %w", err)
-	}
-
-	if err := os.WriteFile(findAgentPreferences(), data, 0o600); err != nil {
-		return fmt.Errorf("could not write config file: %w", err)
-	}
-
-	return nil
-}
-
-//nolint:exhaustruct
-func Load() (*AgentPreferences, error) {
-	if err := checkPath(preferencesDir); err != nil {
-		return nil, fmt.Errorf("could not create new preferences directory: %w", err)
-	}
-
-	data, err := os.ReadFile(findAgentPreferences())
-	if err != nil {
-		return defaultAgentPrefs(), fmt.Errorf("could not read agent preferences file: %w, using defaults", err)
-	}
-
-	prefs := &AgentPreferences{}
-
-	if err := toml.Unmarshal(data, prefs); err != nil {
-		return defaultAgentPrefs(), fmt.Errorf("could not parse agent preferences file: %w, using defaults", err)
-	}
-
-	return prefs, nil
-}
-
-func (p *AgentPreferences) getPref(key string) *Preference {
-	switch key {
-	case PrefServer:
-		return p.MQTTServer
-	case PrefUser:
-		return p.MQTTUser
-	case PrefPassword:
-		return p.MQTTPassword
-	case PrefTopicPrefix:
-		return p.MQTTTopicPrefix
-	default:
-		return nil
-	}
-}
-
-//nolint:exhaustruct
-func defaultAgentPrefs() *AgentPreferences {
-	return &AgentPreferences{
-		MQTTServer: &Preference{
-			Value:       defaultServer,
-			Description: "The MQTT server (in tcp://some.host:port format).",
-		},
-		MQTTTopicPrefix: &Preference{
-			Value:       defaultTopicPrefix,
-			Description: "The MQTT topic prefix.",
-		},
-		MQTTUser: &Preference{
-			Value:       "",
-			Description: "The username required to authenticate with the MQTT server.",
-		},
-		MQTTPassword: &Preference{
-			Value:       "",
-			Description: "The password required to authenticate with the MQTT server.",
-			Secret:      true,
-		},
-	}
+	return prefsSrc.Set(key, value)
 }

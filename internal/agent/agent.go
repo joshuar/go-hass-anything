@@ -122,18 +122,17 @@ func (a *Agent) Name() string {
 // apps that have user-configurable preferences.
 func (a *Agent) Configure() {
 	// Get the agent preferences.
-	prefs, err := preferences.Load()
-	if err != nil {
+	if err := preferences.Load(); err != nil {
 		a.logger.Warn("Could not load agent preferences.",
 			slog.Any("error", err))
 	}
 	// Show a terminal UI to configure the agent preferences.
-	if err := ShowPreferences(a.AppName(), prefs); err != nil {
+	if err := ShowPreferences(a.AppName(), preferences.Agent); err != nil {
 		a.logger.Warn("Could not display agent preferences.",
 			slog.Any("error", err))
 	}
 	// Save agent preferences.
-	if err := preferences.Save(prefs); err != nil {
+	if err := preferences.Save(); err != nil {
 		a.logger.Warn("Could not save agent preferences.",
 			slog.Any("error", err))
 	}
@@ -177,8 +176,7 @@ func Run(ctx context.Context) error {
 		configs       []*mqtt.Msg
 	)
 
-	prefs, err := preferences.Load()
-	if err != nil {
+	if err := preferences.Load(); err != nil {
 		return fmt.Errorf("run: %w", err)
 	}
 
@@ -187,7 +185,7 @@ func Run(ctx context.Context) error {
 		subscriptions = append(subscriptions, app.Subscriptions()...)
 	}
 
-	client, err := mqtt.NewClient(ctx, prefs, subscriptions, configs)
+	client, err := mqtt.NewClient(ctx, preferences.Agent, subscriptions, configs)
 	if err != nil {
 		return fmt.Errorf("run: %w", err)
 	}
@@ -198,12 +196,11 @@ func Run(ctx context.Context) error {
 }
 
 func ClearApps(ctx context.Context) error {
-	prefs, err := preferences.Load()
-	if err != nil {
+	if err := preferences.Load(); err != nil {
 		return fmt.Errorf("clear: %w", err)
 	}
 
-	client, err := mqtt.NewClient(ctx, prefs, nil, nil)
+	client, err := mqtt.NewClient(ctx, preferences.Agent, nil, nil)
 	if err != nil {
 		return fmt.Errorf("clear: %w", err)
 	}
