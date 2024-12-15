@@ -50,7 +50,7 @@ require (
 	github.com/magefile/mage v1.15.0
 	github.com/mattn/go-isatty v0.0.20
 	github.com/samber/slog-multi v1.2.4
-	github.com/yassinebenaid/godump v0.10.0
+	github.com/yassinebenaid/godump v0.11.1
 	golang.org/x/exp v0.0.0-20240613232115-7f521ea00fb8
 	golang.org/x/net v0.32.0 // indirect
 	golang.org/x/sys v0.28.0 // indirect
