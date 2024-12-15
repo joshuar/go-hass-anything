@@ -1,5 +1,17 @@
 # Changelog
 
+## [12.1.0](https://github.com/joshuar/go-hass-anything/compare/v12.0.0...v12.1.0) (2024-12-15)
+
+
+### Features
+
+* **preferences:** :recycle: use koanf for agent preferences ([7087207](https://github.com/joshuar/go-hass-anything/commit/70872072cb53f30a17058b0d94e92183adf191e1))
+
+
+### Bug Fixes
+
+* **preferences:** :fire: remove spew ([828c403](https://github.com/joshuar/go-hass-anything/commit/828c403fb518607ac5128b31fb5e980ee61eb23e))
+
 ## [12.0.0](https://github.com/joshuar/go-hass-anything/compare/v11.1.0...v12.0.0) (2024-10-10)
 
 
