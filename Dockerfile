@@ -5,7 +5,7 @@
 
 FROM alpine@sha256:b89d9c93e9ed3597455c90a0b88a8bbb5cb7188438f70953fede212a0c4394e0 AS builder
 # Copy go from official image.
-COPY --from=golang:1.23.2-alpine /usr/local/go/ /usr/local/go/
+COPY --from=golang:1.23.4-alpine /usr/local/go/ /usr/local/go/
 ENV PATH="/root/go/bin:/usr/local/go/bin:${PATH}"
 # Import TARGETPLATFORM.
 ARG TARGETPLATFORM
