@@ -21,4 +21,7 @@
         "preferences",
         "README"
     ],
+    "licenser.author": "Joshua Rich <joshua.rich@gmail.com>",
+    "licenser.license": "MIT",
+    "licenser.useSPDXLicenseFormat": true
 }

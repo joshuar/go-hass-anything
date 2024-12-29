@@ -7,11 +7,11 @@ package web
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
-	"net/http"
 	"time"
 
 	"github.com/go-resty/resty/v2"
@@ -19,16 +19,13 @@ import (
 	"github.com/joshuar/go-hass-anything/v12/internal/logging"
 )
 
-type contextKey string
-
-const clientContextKey contextKey = "client"
-
-var ErrResponseMalformed = errors.New("malformed response")
-var (
+const (
 	defaultTimeout = 30 * time.Second
-	defaultRetry   = func(r *resty.Response, _ error) bool {
-		return r.StatusCode() == http.StatusTooManyRequests
-	}
+)
+
+var (
+	ErrResponseMalformed = errors.New("malformed response")
+	ErrRequestFailed     = errors.New("request failed")
 )
 
 // GetRequest is a HTTP GET request.
@@ -42,14 +39,20 @@ type PostRequest interface {
 	RequestBody() json.RawMessage
 }
 
+// JSONResponse is a JSON encoded response. It will be automatically
+// unmarshaled.
 type JSONResponse interface {
 	json.Unmarshaler
 }
 
+// GenericResponse represents a non-JSON encoded response. The UnMarshal method
+// will be called on the response to unmarshal into the appropriate format.
 type GenericResponse interface {
 	Unmarshal(data []byte) error
 }
 
+// ExecuteRequest performs a given request and stores the response in the given
+// response object. If possible, the response will be automatically unmarshaled.
 func ExecuteRequest(ctx context.Context, request, response any) error {
 	var (
 		resp   *resty.Response
@@ -88,11 +91,11 @@ func ExecuteRequest(ctx context.Context, request, response any) error {
 
 	switch {
 	case err != nil:
-		return fmt.Errorf("error sending request: %w", err)
-	case resp == nil:
-		return fmt.Errorf("unknown error sending request")
+		return errors.Join(ErrRequestFailed, err)
 	case resp.IsError():
-		return fmt.Errorf("received error response: %v", resp.Error())
+		return fmt.Errorf("%w: %v", ErrRequestFailed, resp.Error())
+	case resp == nil:
+		return ErrRequestFailed
 	}
 
 	logging.FromContext(ctx).
@@ -103,10 +106,6 @@ func ExecuteRequest(ctx context.Context, request, response any) error {
 			slog.String("protocol", resp.Proto()),
 			slog.Duration("time", resp.Time()),
 			slog.String("body", string(resp.Body())))
-
-	if resp.IsError() {
-		return fmt.Errorf("received error response: %w", err)
-	}
 
 	switch res := response.(type) {
 	case JSONResponse:
@@ -122,21 +121,60 @@ func ExecuteRequest(ctx context.Context, request, response any) error {
 	return nil
 }
 
-func NewAPIClient() *resty.Client {
-	return resty.New().
-		SetTimeout(defaultTimeout).
-		AddRetryCondition(defaultRetry)
+// Option represents an option that can be used to configure Resty client
+// behavior.
+type Option func(*resty.Client) *resty.Client
+
+// SetDefaultRetry sets up the client to retry 3 times with an exponential
+// backoff in-between, on any request error.
+func SetDefaultRetry() Option {
+	return func(client *resty.Client) *resty.Client {
+		client = client.SetTimeout(defaultTimeout).
+			SetRetryCount(3).
+			SetRetryWaitTime(5 * time.Second).
+			SetRetryMaxWaitTime(20 * time.Second).
+			AddRetryCondition(func(r *resty.Response, err error) bool {
+				return r.IsError() || err != nil
+			})
+
+		return client
+	}
 }
 
-func ContextSetClient(ctx context.Context, client *resty.Client) context.Context {
-	return context.WithValue(ctx, clientContextKey, client)
+// SetDefaultTimeout sets a default timeout for requests.
+func SetDefaultTimeout() Option {
+	return func(client *resty.Client) *resty.Client {
+		client = client.SetTimeout(defaultTimeout)
+		return client
+	}
 }
 
-func ContextGetClient(ctx context.Context) (*resty.Client, bool) {
-	client, ok := ctx.Value(clientContextKey).(*resty.Client)
-	if !ok {
-		return nil, false
+// WithInsecureConnections will tell the client to ignore TLS certificate
+// issues.
+func WithInsecureConnections() Option {
+	return func(client *resty.Client) *resty.Client {
+		client = client.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true}) // #nosec G402
+		return client
+	}
+}
+
+// WithTLSConfig configures the client with the given tls.Config settings.
+func WithTLSConfig(config *tls.Config) Option {
+	return func(client *resty.Client) *resty.Client {
+		client = client.SetTLSClientConfig(config)
+		return client
+	}
+}
+
+// NewAPIClient will create a new Resty client for use in an application. Options can
+// be provided to configure the client behavior (some options can also be set
+// per-request as per Resty documentation).
+func NewAPIClient(options ...Option) *resty.Client {
+	client := resty.New()
+
+	for _, option := range options {
+		client = option(client)
 	}
 
-	return client, true
+	return client
 }
