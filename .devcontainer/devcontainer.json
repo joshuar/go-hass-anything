@@ -1,4 +1,5 @@
 {
+  "name": "go-hass-anything",
   "dockerComposeFile": "docker-compose.yml",
   "service": "devcontainer",
   "shutdownAction": "stopCompose",
