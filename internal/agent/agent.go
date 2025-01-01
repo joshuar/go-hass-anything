@@ -19,6 +19,8 @@ import (
 
 //go:generate go run ../../tools/appgenerator/main.go
 var (
+	// AppList is the list of apps to run under the agent. It is generated at
+	// build time.
 	AppList []App
 )
 
@@ -57,11 +59,12 @@ type App interface {
 // configured by the user.
 type AppWithPreferences interface {
 	App
-	// Preferences returns the AppPreferences map of preferences for the app.
-	// This is passed to the UI code to facilitate generating a form to enter
-	// the preferences when the agent runs its configure command. If the
-	// preferences cannot be returned, a non-nil error will be returned.
-	DefaultPreferences() preferences.AppPreferences
+	// ShowPreferences returns an interface that can be used by the UI code to
+	// manipulate the app preferences.
+	ShowPreferences() (preferences.UI, error)
+	// SavePreferences takes the edited preferences and saves them. Apps should
+	// cast the interface and validate as needed before saving.
+	SavePreferences(prefs preferences.UI) error
 }
 
 // PollingApp represents an app that should be polled for updates on some
@@ -87,7 +90,7 @@ type EventsApp interface {
 	MsgCh() chan *mqtt.Msg
 }
 
-//nolint:exhaustruct
+// NewAgent sets up the agent.
 func NewAgent(ctx context.Context, id, name string) *Agent {
 	agent := &Agent{
 		id:     id,
@@ -98,18 +101,22 @@ func NewAgent(ctx context.Context, id, name string) *Agent {
 	return agent
 }
 
+// AppName returns the agent name.
 func (a *Agent) AppName() string {
 	return a.name
 }
 
+// AppID returns the agent ID.
 func (a *Agent) AppID() string {
 	return a.id
 }
 
+// AppVersion returns the agent version.
 func (a *Agent) AppVersion() string {
 	return a.version
 }
 
+// Stop asks the agent to shut itself down gracefully.
 func (a *Agent) Stop() {
 	close(a.done)
 }
@@ -147,7 +154,7 @@ func (a *Agent) Configure() {
 			continue
 		}
 
-		appPrefs, err := preferences.LoadApp(app)
+		appPrefs, err := app.ShowPreferences()
 		if err != nil {
 			a.logger.Warn("Could not configure app.",
 				slog.String("app", app.Name()),
@@ -162,7 +169,7 @@ func (a *Agent) Configure() {
 				slog.Any("error", err))
 		}
 
-		if err := preferences.SaveApp(app.Name(), appPrefs); err != nil {
+		if err := app.SavePreferences(appPrefs); err != nil {
 			a.logger.Warn("Could not configure app.",
 				slog.String("app", app.Name()),
 				slog.Any("error", err))
@@ -170,6 +177,8 @@ func (a *Agent) Configure() {
 	}
 }
 
+// Run is the "main-loop" of the agent where it listens for app events and
+// sends them as messages via MQTT to Home Assistant.
 func Run(ctx context.Context) error {
 	var (
 		subscriptions []*mqtt.Subscription
@@ -195,6 +204,7 @@ func Run(ctx context.Context) error {
 	return nil
 }
 
+// ClearApps removes any stored messages for any apps from MQTT.
 func ClearApps(ctx context.Context) error {
 	if err := preferences.Load(); err != nil {
 		return fmt.Errorf("clear: %w", err)

@@ -176,5 +176,9 @@ func (p *AgentPreferences) IsSecret(key string) bool {
 }
 
 func (p *AgentPreferences) SetValue(key string, value any) error {
-	return prefsSrc.Set(key, value)
+	if err := prefsSrc.Set(key, value); err != nil {
+		return errors.Join(ErrSetPreference, err)
+	}
+
+	return nil
 }

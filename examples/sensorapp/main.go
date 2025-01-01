@@ -25,9 +25,8 @@ import (
 
 	mqtthass "github.com/joshuar/go-hass-anything/v12/pkg/hass"
 	mqttapi "github.com/joshuar/go-hass-anything/v12/pkg/mqtt"
-	"github.com/joshuar/go-hass-anything/v12/pkg/web"
-
 	"github.com/joshuar/go-hass-anything/v12/pkg/preferences"
+	"github.com/joshuar/go-hass-anything/v12/pkg/web"
 )
 
 const (
@@ -44,7 +43,7 @@ var ErrFetchWeatherFailed = errors.New("could not get weather data")
 
 type SensorApp struct {
 	entity      *mqtthass.SensorEntity
-	prefs       preferences.AppPreferences
+	prefs       *Prefs
 	weatherData map[string]any
 }
 
@@ -83,7 +82,7 @@ func (a *SensorApp) Name() string {
 func (a *SensorApp) Configuration() []*mqttapi.Msg {
 	sensorEntityCfg, err := a.entity.MarshalConfig()
 	if err != nil {
-		slog.Error("Could not marshal sensor entity config.", "error", err)
+		slog.Error("Could not marshal sensor entity config.", slog.Any("error", err))
 
 		return nil
 	}
@@ -94,7 +93,7 @@ func (a *SensorApp) Configuration() []*mqttapi.Msg {
 func (a *SensorApp) States() []*mqttapi.Msg {
 	sensorEntityState, err := a.entity.MarshalState()
 	if err != nil {
-		slog.Warn("Unable to marshal sensor state to MQTT message.", "error", err.Error())
+		slog.Warn("Unable to marshal sensor state to MQTT message.", slog.Any("error", err.Error()))
 	}
 
 	return []*mqttapi.Msg{sensorEntityState}
@@ -121,15 +120,39 @@ func (a *SensorApp) PollConfig() (interval, jitter time.Duration) {
 	return pollInterval, pollJitter
 }
 
-func (a *SensorApp) DefaultPreferences() preferences.AppPreferences {
-	prefs := make(preferences.AppPreferences)
-	prefs[weatherURLpref] = &preferences.Preference{
-		Value:       weatherURL,
-		Description: "The URL for the weather service to use for fetching the weather.",
-		Secret:      false,
+// PreferencesID returns the string key that will be used to refer to our
+// app preferences in the agent preferences file.
+func (a *SensorApp) PreferencesID() string {
+	return "sensor_app"
+}
+
+// DefaultPreferences represent our default app preferences.
+func (a *SensorApp) DefaultPreferences() Prefs {
+	return Prefs{
+		URL: weatherURL,
+	}
+}
+
+// LoadPreferences is called by the agent to fetch our preferences for
+// displaying during agent configuration.
+//
+//revive:disable:indent-error-flow
+func (a *SensorApp) LoadPreferences() (*Prefs, error) {
+	if prefs, err := preferences.LoadApp(a); err != nil {
+		return nil, fmt.Errorf("could not load preferences: %w", err)
+	} else {
+		return prefs, nil
+	}
+}
+
+// SavePreferences is called with our updated preferences after the user has
+// made any changes.
+func (a *SensorApp) SavePreferences(prefs *Prefs) error {
+	if err := preferences.SaveApp(a, *prefs); err != nil {
+		return fmt.Errorf("could not save preferences: %w", err)
 	}
 
-	return prefs
+	return nil
 }
 
 // In order to use the web.ExecuteRequest helper to fetch the weather, we need
@@ -138,8 +161,8 @@ func (a *SensorApp) DefaultPreferences() preferences.AppPreferences {
 // app struct.
 func (a *SensorApp) URL() string {
 	// We get the weather service URL from our app preferences.
-	if serviceURL, ok := a.prefs[weatherURLpref].Value.(string); ok {
-		return serviceURL
+	if a.prefs.URL != "" {
+		return a.prefs.URL
 	}
 	// If we can't get the config value, log a warning and fall back to the
 	// default weather URL.

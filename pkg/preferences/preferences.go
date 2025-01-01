@@ -19,6 +19,15 @@ var (
 	AppVersion                                     = gitVersion
 )
 
+// UI allows preferences to be exposed via a UI for the user to edit.
+type UI interface {
+	GetValue(key string) (any, bool)
+	SetValue(key string, value any) error
+	GetDescription(key string) string
+	IsSecret(key string) bool
+	Keys() []string
+}
+
 // Preference represents a single preference in a preferences file.
 type Preference struct {
 	// Value is the actual preference value.

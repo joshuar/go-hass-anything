@@ -33,15 +33,6 @@ var (
 
 var ErrInvalidPrefs = errors.New("invalid preferences")
 
-// Preferences represents preferences the user will need to set.
-type Preferences interface {
-	GetValue(key string) (any, bool)
-	SetValue(key string, value any) error
-	GetDescription(key string) string
-	IsSecret(key string) bool
-	Keys() []string
-}
-
 type model struct {
 	title      string
 	inputs     []textinput.Model
@@ -172,7 +163,7 @@ func (m model) View() string {
 }
 
 //nolint:exhaustruct
-func newPreferencesForm(name string, prefs Preferences) *model {
+func newPreferencesForm(name string, prefs preferences.UI) *model {
 	model := &model{title: name, keys: prefs.Keys()}
 
 	model.inputs = make([]textinput.Model, len(model.keys))
@@ -204,7 +195,7 @@ func newPreferencesForm(name string, prefs Preferences) *model {
 	return model
 }
 
-func ShowPreferences(name string, prefs Preferences) error {
+func ShowPreferences(name string, prefs preferences.UI) error {
 	appModel := newPreferencesForm(name, prefs)
 
 	if _, err := tea.NewProgram(appModel).Run(); err != nil {
