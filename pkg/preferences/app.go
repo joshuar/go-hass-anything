@@ -36,7 +36,6 @@ func LoadApp[T any](app App[T]) (*T, error) {
 	if prefsSrc.Get(prefsKey) == nil {
 		slog.Debug("Using default preferences for app.",
 			slog.String("app", app.PreferencesID()))
-
 		// Save the default preferences to the preferences source.
 		if err := SaveApp(app, prefs); err != nil {
 			return &prefs, fmt.Errorf("%w: %w", ErrLoadAppPrefs, err)
@@ -89,6 +88,7 @@ func SaveApp[T any](app App[T], prefs T) error {
 		return fmt.Errorf("%w: %w", ErrSaveAppPrefs, err)
 	}
 
+	return nil
 	// Save the preferences.
-	return Save()
+	// return Save()
 }

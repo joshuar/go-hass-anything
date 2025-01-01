@@ -11,7 +11,7 @@ import (
 {{ end -}}
 )
 
-func init() {
+func initApps() {
 	ctx := context.Background()
 {{ range $app := .Names -}}
 	if app, err := {{$app}}.New(ctx); err != nil {

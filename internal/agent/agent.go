@@ -133,14 +133,11 @@ func (a *Agent) Configure() {
 		a.logger.Warn("Could not load agent preferences.",
 			slog.Any("error", err))
 	}
+	// Initialize apps.
+	initApps()
 	// Show a terminal UI to configure the agent preferences.
 	if err := ShowPreferences(a.AppName(), preferences.Agent); err != nil {
 		a.logger.Warn("Could not display agent preferences.",
-			slog.Any("error", err))
-	}
-	// Save agent preferences.
-	if err := preferences.Save(); err != nil {
-		a.logger.Warn("Could not save agent preferences.",
 			slog.Any("error", err))
 	}
 	// For any apps that satisfy the Preferences interface, meaning they have
@@ -169,11 +166,18 @@ func (a *Agent) Configure() {
 				slog.Any("error", err))
 		}
 
-		if err := app.SavePreferences(appPrefs); err != nil {
-			a.logger.Warn("Could not configure app.",
+		err = app.SavePreferences(appPrefs)
+		if err != nil {
+			a.logger.Warn("Could not save app.",
 				slog.String("app", app.Name()),
 				slog.Any("error", err))
 		}
+
+	}
+	// Save agent preferences.
+	if err := preferences.Save(); err != nil {
+		a.logger.Warn("Could not save agent preferences.",
+			slog.Any("error", err))
 	}
 }
 
@@ -184,21 +188,23 @@ func Run(ctx context.Context) error {
 		subscriptions []*mqtt.Subscription
 		configs       []*mqtt.Msg
 	)
-
+	// Get the agent preferences.
 	if err := preferences.Load(); err != nil {
 		return fmt.Errorf("run: %w", err)
 	}
-
+	// Initialize apps.
+	initApps()
+	// Generate configs and subscriptions for apps.
 	for _, app := range AppList {
 		configs = append(configs, app.Configuration()...)
 		subscriptions = append(subscriptions, app.Subscriptions()...)
 	}
-
+	// Start the MQTT client with the given subscriptions and configs.
 	client, err := mqtt.NewClient(ctx, preferences.Agent, subscriptions, configs)
 	if err != nil {
 		return fmt.Errorf("run: %w", err)
 	}
-
+	// Run the apps.
 	runApps(ctx, client, AppList)
 
 	return nil
