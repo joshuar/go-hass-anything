@@ -44,7 +44,6 @@
           "formatting.gofumpt": true,
           "formatting.local": "github.com/joshuar/go-hass-anything",
           "ui.diagnostic.analyses": {
-            "fieldalignment": true, // Disable the unreachable analyzer.
             "unusedvariable": true
           }
         },

@@ -1,5 +1,7 @@
 x-podman:
   in_pod: false
+networks:
+  go-hass-anything:
 services:
   devcontainer:
     build:
@@ -15,25 +17,31 @@ services:
       - seccomp:unconfined
     user: vscode
     userns_mode: keep-id
-
+    networks:
+      - go-hass-anything
   mosquitto:
-    image: docker.io/eclipse-mosquitto:$MOSQUITTO_VERSION
+    image: docker.io/eclipse-mosquitto:2.0.20
+    hostname: mosquitto
     volumes:
-      - ../deployments/mosquitto/config:/mosquitto/config:cached
-      - ../deployments/mosquitto/data:/mosquitto/data
-      - ../deployments/mosquitto/log:/mosquitto/log
+      - ../deployments/mosquitto/config:/mosquitto/config:Z,U
+      - ../deployments/mosquitto/data:/mosquitto/data:Z,U
+      - ../deployments/mosquitto/log:/mosquitto/log:Z,U
       - /etc/localtime:/etc/localtime:ro,cached
     ports:
       - 1883:1883
       - 8883:8883
     userns_mode: keep-id
     restart: on-failure
-
+    networks:
+      - go-hass-anything
   home-assistant:
-    image: ghcr.io/home-assistant/home-assistant:$HOMEASSISTANT_VERSION
+    image: ghcr.io/home-assistant/home-assistant:2024.12.5
+    hostname: home-assistant
     volumes:
-      - ../deployments/home-assistant/config:/config
+      - ../deployments/home-assistant/config:/config:Z,U
     ports:
       - 8123:8123
     userns_mode: keep-id
     restart: on-failure
+    networks:
+      - go-hass-anything

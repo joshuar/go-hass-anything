@@ -1,8 +1,3 @@
-# Copyright (c) 2023 Joshua Rich <joshua.rich@gmail.com>
-# 
-# This software is released under the MIT License.
-# https://opensource.org/licenses/MIT
-
 FROM mcr.microsoft.com/devcontainers/base:ubuntu@sha256:08a925b41755bcff957285d31e9bf5f0b7fc74962f455a929c15dc341b984b6f
 RUN <<EOF
 apt-get update && export DEBIAN_FRONTEND=noninteractive \
