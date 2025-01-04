@@ -1,5 +1,20 @@
 # Changelog
 
+## [12.1.0](https://github.com/joshuar/go-hass-anything/compare/v12.0.0...v12.1.0) (2025-01-04)
+
+
+### Features
+
+* **preferences,agent:** :sparkles: better app preferences ([6f671c1](https://github.com/joshuar/go-hass-anything/commit/6f671c135828facadabc54e9373eb19d4859ef2b))
+* **preferences:** :recycle: use koanf for agent preferences ([7087207](https://github.com/joshuar/go-hass-anything/commit/70872072cb53f30a17058b0d94e92183adf191e1))
+* **web:** :sparkles: improved web helper library ([26a9d1c](https://github.com/joshuar/go-hass-anything/commit/26a9d1c615d50bbf8cb82ea2cd1369c895141712))
+
+
+### Bug Fixes
+
+* **preferences:** :bug: with new preferences framework, don't use init function ([a327fd0](https://github.com/joshuar/go-hass-anything/commit/a327fd023d7d59c838adaaf5e13764f499bb9552))
+* **preferences:** :fire: remove spew ([828c403](https://github.com/joshuar/go-hass-anything/commit/828c403fb518607ac5128b31fb5e980ee61eb23e))
+
 ## [12.0.0](https://github.com/joshuar/go-hass-anything/compare/v11.1.0...v12.0.0) (2024-10-10)
 
 
