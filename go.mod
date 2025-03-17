@@ -1,6 +1,7 @@
 module github.com/joshuar/go-hass-anything/v12
 
 go 1.23.4
+toolchain go1.24.1
 
 require (
 	github.com/charmbracelet/lipgloss v1.0.0
@@ -41,7 +42,7 @@ require (
 
 require (
 	github.com/adrg/xdg v0.5.3
-	github.com/alecthomas/kong v1.8.1
+	github.com/alecthomas/kong v1.9.0
 	github.com/blackjack/webcam v0.6.1
 	github.com/charmbracelet/bubbles v0.20.0
 	github.com/charmbracelet/bubbletea v1.2.4
