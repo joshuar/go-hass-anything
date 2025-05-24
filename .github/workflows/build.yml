@@ -202,7 +202,7 @@ jobs:
         run: |
           docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE }}:${{ steps.docker_metadata.outputs.version }}
       - name: Check and install cosign
-        uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da # v3
+        uses: sigstore/cosign-installer@3454372f43399081ed03b604cb2d021dabca52bb # v3
         with:
           cosign-release: ${{ env.COSIGN_VERSION }}
       - name: Sign image with a key
