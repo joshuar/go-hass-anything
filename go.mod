@@ -1,5 +1,6 @@
 module github.com/joshuar/go-hass-anything/v12
 
+
 go 1.24.3
 
 require (
