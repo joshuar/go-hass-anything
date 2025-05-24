@@ -1,20 +1,5 @@
 {
-  "name": "go-hass-anything",
-  "dockerComposeFile": "docker-compose.yml",
-  "service": "devcontainer",
-  "shutdownAction": "stopCompose",
   "containerUser": "vscode",
-  "updateRemoteUserUID": true,
-  "workspaceFolder": "/workspace",
-  "remoteEnv": {
-    "TZ": "${localEnv:TZ:Australia/Brisbane}",
-    "HOME": "/home/vscode"
-  },
-  "features": {
-    "ghcr.io/devcontainers/features/go:1": {},
-    "ghcr.io/devcontainers/features/github-cli:1": {}
-  },
-  "postCreateCommand": "bash .devcontainer/postCreate.sh",
   "customizations": {
     "vscode": {
       "extensions": [
@@ -22,47 +7,71 @@
         "brunodavi.conventional-snippets",
         "golang.go",
         "ymotongpoo.licenser",
+        "esbenp.prettier-vscode",
         "aaron-bond.better-comments",
         "valentjn.vscode-ltex",
-        "tamasfe.even-better-toml",
-        "ms-azuretools.vscode-docker",
         "github.vscode-github-actions",
+        "tamasfe.even-better-toml",
         "yzhang.markdown-all-in-one",
         "DavidAnson.vscode-markdownlint",
         "bierner.markdown-emoji",
-        "shd101wyy.markdown-preview-enhanced",
-        "TomRijndorp.find-it-faster"
+        "redhat.vscode-yaml",
+        "foxundermoon.shell-format"
       ],
       "settings": {
-        "terminal.integrated.defaultProfile.linux": "fish",
-        "go.lintTool": "golangci-lint",
-        "go.lintFlags": ["--fast"],
-        "gopls": {
-          "ui.semanticTokens": true,
-          "ui.noSemanticString": true, // delegates string syntax highlighting to vscode
-          "ui.noSemanticNumber": true, // delegates number syntax highlighting to vscode
-          "formatting.gofumpt": true,
-          "formatting.local": "github.com/joshuar/go-hass-anything",
-          "ui.diagnostic.analyses": {
-            "unusedvariable": true
-          }
-        },
-        "go.useLanguageServer": true,
-        "[go]": {
-          "editor.formatOnSave": true,
-          "editor.codeActionsOnSave": {
-            "source.organizeImports": "always",
-            "source.fixAll": "always"
-          }
-        },
         "[go.mod]": {
-          "editor.formatOnSave": true,
           "editor.codeActionsOnSave": {
             "source.organizeImports": "always"
-          }
+          },
+          "editor.formatOnSave": true
         },
-        "ltex.language": "en-AU"
+        "[go]": {
+          "editor.codeActionsOnSave": {
+            "source.fixAll": "always"
+          },
+          "editor.formatOnSave": true
+        },
+        "go.alternateTools": {
+          "customFormatter": "golangci-lint"
+        },
+        "go.formatFlags": ["fmt", "--stdin"],
+        "go.formatTool": "custom",
+        "go.lintFlags": [
+          "run",
+          "--timeout=5m",
+          "--issues-exit-code=0",
+          "--output.text.colors=true",
+          "--output.text.path=stdout",
+          "--output.text.print-issued-lines=false",
+          "--show-stats=false"
+        ],
+        "go.lintOnSave": "workspace",
+        "go.lintTool": "golangci-lint",
+        "go.useLanguageServer": true,
+        "gopls": {
+          "ui.semanticTokens": true
+        },
+        "ltex.language": "en-AU",
+        "terminal.integrated.defaultProfile.linux": "fish"
       }
     }
-  }
+  },
+  "dockerComposeFile": "docker-compose.yml",
+  "features": {
+    "ghcr.io/devcontainers-extra/features/prettier:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/go:1": {},
+    "ghcr.io/meaningful-ooo/devcontainer-features/fish:2": {},
+    "ghcr.io/schlich/devcontainer-features/starship:0": {}
+  },
+  "name": "go-hass-anything",
+  "postCreateCommand": "bash .devcontainer/postCreate.sh",
+  "remoteEnv": {
+    "HOME": "/home/vscode",
+    "TZ": "${localEnv:TZ:Australia/Brisbane}"
+  },
+  "service": "devcontainer",
+  "shutdownAction": "stopCompose",
+  "updateRemoteUserUID": true,
+  "workspaceFolder": "/workspace"
 }

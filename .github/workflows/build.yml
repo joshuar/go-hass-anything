@@ -31,7 +31,7 @@ jobs:
       release_tag: ${{ steps.release_please.outputs.tag_name }}
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@0080882f6c36860b6ba35c610c98ce87d4e2f26f # v2.10.2
+        uses: step-security/harden-runner@4d991eb9b905ef189e4c376166672c3f2f230481 # v2.11.0
         with:
           disable-sudo: true
           egress-policy: block
@@ -39,7 +39,7 @@ jobs:
             api.github.com:443
       - name: Run release please
         id: release_please
-        uses: googleapis/release-please-action@7987652d64b4581673a76e33ad5e98e3dd56832f
+        uses: googleapis/release-please-action@a02a34c4d625f9be7cb89156071d8567266a2445
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
   build_container:
@@ -57,7 +57,7 @@ jobs:
           - linux/arm64
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@0080882f6c36860b6ba35c610c98ce87d4e2f26f # v2.10.2
+        uses: step-security/harden-runner@4d991eb9b905ef189e4c376166672c3f2f230481 # v2.11.0
         with:
           disable-sudo: true
           egress-policy: block
@@ -89,7 +89,7 @@ jobs:
         run: echo "APPVERSION=${{ needs.check_release.outputs.release_tag }}" >> $GITHUB_ENV
       - name: Get Docker metadata
         id: docker_metadata
-        uses: docker/metadata-action@369eb591f429131d6889c46b94e711f089e6ca96 # v5
+        uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804 # v5
         with:
           images: |
             ${{ env.REGISTRY }}/${{ env.IMAGE }}
@@ -100,7 +100,7 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=${{ env.APPVERSION }}
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # v3
+        uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392 # v3
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@6524bf65af31da8d45b59e8c27de4bd072b392f5 # v3
       - name: Log in to the Container registry
@@ -112,7 +112,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build container image
         id: build_image
-        uses: docker/build-push-action@48aba3b46d1b1fec4febb7c5d0c644b249a11355 # v5
+        uses: docker/build-push-action@471d1dc4e07e5cdedd4c2171150001c434f0b7a4 # v5
         with:
           context: .
           labels: ${{ steps.docker_metadata.outputs.labels }}
@@ -124,7 +124,7 @@ jobs:
           digest="${{ steps.build_image.outputs.digest }}"
           touch "/tmp/digests/${digest#sha256:}"
       - name: Upload digest
-        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4
         with:
           name: digests-${{ env.PLATFORM_PAIR }}
           path: /tmp/digests/*
@@ -141,7 +141,7 @@ jobs:
       packages: write
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@0080882f6c36860b6ba35c610c98ce87d4e2f26f # v2.10.2
+        uses: step-security/harden-runner@4d991eb9b905ef189e4c376166672c3f2f230481 # v2.11.0
         with:
           disable-sudo: true
           egress-policy: block
@@ -167,7 +167,7 @@ jobs:
         if: ${{ needs.check_release.outputs.release_created }}
         run: echo "APPVERSION=${{ needs.check_release.outputs.release_tag }}" >> $GITHUB_ENV
       - name: Download digests
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           path: /tmp/digests
           pattern: digests-*
@@ -176,7 +176,7 @@ jobs:
         uses: docker/setup-buildx-action@6524bf65af31da8d45b59e8c27de4bd072b392f5 # v3
       - name: Get Docker metadata
         id: docker_metadata
-        uses: docker/metadata-action@369eb591f429131d6889c46b94e711f089e6ca96 # v5
+        uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804 # v5
         with:
           images: |
             ${{ env.REGISTRY }}/${{ env.IMAGE }}
@@ -202,7 +202,7 @@ jobs:
         run: |
           docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE }}:${{ steps.docker_metadata.outputs.version }}
       - name: Check and install cosign
-        uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da # v3
+        uses: sigstore/cosign-installer@3454372f43399081ed03b604cb2d021dabca52bb # v3
         with:
           cosign-release: ${{ env.COSIGN_VERSION }}
       - name: Sign image with a key
