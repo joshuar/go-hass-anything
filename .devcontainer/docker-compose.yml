@@ -1,48 +1,39 @@
-x-podman:
-  in_pod: false
-networks:
-  go-hass-anything:
 services:
   devcontainer:
-    build:
-      dockerfile: Dockerfile
+    env_file:
+      - .env
+    image: mcr.microsoft.com/devcontainers/base:ubuntu
     hostname: devcontainer
     volumes:
       - ..:/workspace:cached
       - /etc/localtime:/etc/localtime:ro,cached
-      - ${HOME}/.ssh:/home/vscode/.ssh
     command: sleep infinity
     cap_add:
       - SYS_PTRACE
     security_opt:
       - seccomp:unconfined
     user: vscode
-    userns_mode: keep-id
-    networks:
-      - go-hass-anything
   mosquitto:
-    image: docker.io/eclipse-mosquitto:2.0.20
+    env_file:
+      - .env
+    image: docker.io/eclipse-mosquitto:$MOSQUITTO_VERSION
     hostname: mosquitto
     volumes:
-      - ../deployments/mosquitto/config:/mosquitto/config:Z,U
-      - ../deployments/mosquitto/data:/mosquitto/data:Z,U
-      - ../deployments/mosquitto/log:/mosquitto/log:Z,U
+      - ../deployments/mosquitto/config:/mosquitto/config:z
+      - ../deployments/mosquitto/data:/mosquitto/data:z
+      - ../deployments/mosquitto/log:/mosquitto/log:z
       - /etc/localtime:/etc/localtime:ro,cached
     ports:
       - 1883:1883
       - 8883:8883
-    userns_mode: keep-id
     restart: on-failure
-    networks:
-      - go-hass-anything
   home-assistant:
-    image: ghcr.io/home-assistant/home-assistant:2024.12.5
+    env_file:
+      - .env
+    image: ghcr.io/home-assistant/home-assistant:$HA_VERSION
     hostname: home-assistant
     volumes:
-      - ../deployments/home-assistant/config:/config:Z,U
+      - ../deployments/home-assistant/config:/config:z
     ports:
       - 8123:8123
-    userns_mode: keep-id
     restart: on-failure
-    networks:
-      - go-hass-anything

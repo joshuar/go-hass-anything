@@ -2,8 +2,11 @@
 
 set -e
 
-# Install and configure starship
-curl -sS https://starship.rs/install.sh | sh -s -- -y || exit -1
+# Add starship to fish shell.
 mkdir -p ~/.config/fish
 echo "starship init fish | source" >>~/.config/fish/config.fish
+
+# Add starship to bash shell.
+echo 'eval "$(starship init bash)"' >>~/.bashrc
+
 exit 0
