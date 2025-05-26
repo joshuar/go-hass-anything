@@ -1,6 +1,5 @@
 module github.com/joshuar/go-hass-anything/v12
 
-
 go 1.24.3
 
 require (
@@ -47,7 +46,7 @@ require (
 	github.com/adrg/xdg v0.5.3
 	github.com/alecthomas/kong v1.11.0
 	github.com/blackjack/webcam v0.6.1
-	github.com/charmbracelet/bubbles v0.20.0
+	github.com/charmbracelet/bubbles v0.21.0
 	github.com/charmbracelet/bubbletea v1.3.5
 	github.com/eclipse/paho.golang v0.22.0
 	github.com/go-playground/validator/v10 v10.25.0
