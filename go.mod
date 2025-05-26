@@ -1,6 +1,5 @@
 module github.com/joshuar/go-hass-anything/v12
 
-
 go 1.24.3
 
 require (
@@ -50,7 +49,7 @@ require (
 	github.com/charmbracelet/bubbles v0.20.0
 	github.com/charmbracelet/bubbletea v1.3.5
 	github.com/eclipse/paho.golang v0.22.0
-	github.com/go-playground/validator/v10 v10.25.0
+	github.com/go-playground/validator/v10 v10.26.0
 	github.com/go-resty/resty/v2 v2.16.2
 	github.com/knadh/koanf v1.5.0
 	github.com/knadh/koanf/v2 v2.1.2
