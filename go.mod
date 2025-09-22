@@ -1,6 +1,5 @@
 module github.com/joshuar/go-hass-anything/v12
 
-
 go 1.24.3
 
 require (
@@ -22,7 +21,7 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.8 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
-	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
+	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
@@ -53,7 +52,7 @@ require (
 	github.com/go-playground/validator/v10 v10.25.0
 	github.com/go-resty/resty/v2 v2.16.2
 	github.com/knadh/koanf v1.5.0
-	github.com/knadh/koanf/v2 v2.1.2
+	github.com/knadh/koanf/v2 v2.3.0
 	github.com/lmittmann/tint v1.0.7
 	github.com/lthibault/jitterbug/v2 v2.2.2
 	github.com/magefile/mage v1.15.0
