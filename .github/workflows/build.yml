@@ -8,7 +8,6 @@ name: build
 env:
   REGISTRY: ghcr.io
   IMAGE: ${{ github.repository }}
-  COSIGN_VERSION: "v2.2.4"
   MAGEARGS: -d build/magefiles -w .
 
 on:
@@ -22,7 +21,7 @@ permissions:
 
 jobs:
   check_release:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
       pull-requests: write
@@ -47,7 +46,7 @@ jobs:
     permissions:
       contents: write
       packages: write
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         platform:
@@ -203,8 +202,6 @@ jobs:
           docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE }}:${{ steps.docker_metadata.outputs.version }}
       - name: Check and install cosign
         uses: sigstore/cosign-installer@3454372f43399081ed03b604cb2d021dabca52bb # v3
-        with:
-          cosign-release: ${{ env.COSIGN_VERSION }}
       - name: Sign image with a key
         env:
           TAGS: ${{ steps.docker_metadata.outputs.tags }}
