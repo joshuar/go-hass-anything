@@ -1,39 +1,57 @@
 services:
   devcontainer:
+    hostname: devcontainer
     env_file:
       - .env
-    image: mcr.microsoft.com/devcontainers/base:ubuntu
-    hostname: devcontainer
+    devices:
+      - /dev/dri
+    environment:
+      - WAYLAND_DISPLAY=${WAYLAND_DISPLAY}
+      - XDG_RUNTIME_DIR=/tmp
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - GO_VERSION=$GO_VERSION
     volumes:
       - ..:/workspace:cached
+      - "${XDG_RUNTIME_DIR}/${WAYLAND_DISPLAY}:/tmp/${WAYLAND_DISPLAY}"
       - /etc/localtime:/etc/localtime:ro,cached
-    command: sleep infinity
+      - /run/dbus:/run/dbus:ro
+      - /run/user/1000/bus:/run/user/1000/bus
+    user: vscode
     cap_add:
       - SYS_PTRACE
     security_opt:
       - seccomp:unconfined
-    user: vscode
+      - label:disable
+    command: -c 'sleep infinity'
+
+  home-assistant:
+    hostname: home-assistant
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    env_file:
+      - .env
+    image: ghcr.io/home-assistant/home-assistant:$HA_VERSION
+    volumes:
+      - ../deployments/home-assistant/config:/config
+      - /run/dbus:/run/dbus:ro
+    ports:
+      - 8123:8123
+
   mosquitto:
+    hostname: mosquitto
     env_file:
       - .env
     image: docker.io/eclipse-mosquitto:$MOSQUITTO_VERSION
-    hostname: mosquitto
     volumes:
-      - ../deployments/mosquitto/config:/mosquitto/config:z
-      - ../deployments/mosquitto/data:/mosquitto/data:z
-      - ../deployments/mosquitto/log:/mosquitto/log:z
+      - ../deployments/mosquitto/config:/mosquitto/config
+      - ../deployments/mosquitto/data:/mosquitto/data
+      - ../deployments/mosquitto/log:/mosquitto/log
       - /etc/localtime:/etc/localtime:ro,cached
     ports:
       - 1883:1883
       - 8883:8883
-    restart: on-failure
-  home-assistant:
-    env_file:
-      - .env
-    image: ghcr.io/home-assistant/home-assistant:$HA_VERSION
-    hostname: home-assistant
-    volumes:
-      - ../deployments/home-assistant/config:/config:z
-    ports:
-      - 8123:8123
-    restart: on-failure

@@ -1,5 +1,16 @@
 {
   "containerUser": "vscode",
+  "containerEnv": {
+    "HOME": "/home/vscode",
+    "XDG_RUNTIME_DIR": "/tmp",
+    "WAYLAND_DISPLAY": "${env:WAYLAND_DISPLAY}",
+    "APPIMAGE_EXTRACT_AND_RUN": "1",
+    "DBUS_SESSION_BUS_ADDRESS": "${env:DBUS_SESSION_BUS_ADDRESS}"
+  },
+  "remoteEnv": {
+    "PODMAN_COMPOSE_WARNING_LOGS": "false",
+    "TZ": "${localEnv:TZ:Australia/Brisbane}"
+  },
   "customizations": {
     "vscode": {
       "extensions": [
@@ -9,67 +20,18 @@
         "ymotongpoo.licenser",
         "esbenp.prettier-vscode",
         "aaron-bond.better-comments",
-        "valentjn.vscode-ltex",
         "github.vscode-github-actions",
-        "tamasfe.even-better-toml",
         "yzhang.markdown-all-in-one",
-        "DavidAnson.vscode-markdownlint",
         "bierner.markdown-emoji",
-        "redhat.vscode-yaml",
-        "foxundermoon.shell-format"
-      ],
-      "settings": {
-        "[go.mod]": {
-          "editor.codeActionsOnSave": {
-            "source.organizeImports": "always"
-          },
-          "editor.formatOnSave": true
-        },
-        "[go]": {
-          "editor.codeActionsOnSave": {
-            "source.fixAll": "always"
-          },
-          "editor.formatOnSave": true
-        },
-        "go.alternateTools": {
-          "customFormatter": "golangci-lint"
-        },
-        "go.formatFlags": ["fmt", "--stdin"],
-        "go.formatTool": "custom",
-        "go.lintFlags": [
-          "run",
-          "--timeout=5m",
-          "--issues-exit-code=0",
-          "--output.text.colors=true",
-          "--output.text.path=stdout",
-          "--output.text.print-issued-lines=false",
-          "--show-stats=false"
-        ],
-        "go.lintOnSave": "workspace",
-        "go.lintTool": "golangci-lint",
-        "go.useLanguageServer": true,
-        "gopls": {
-          "ui.semanticTokens": true
-        },
-        "ltex.language": "en-AU",
-        "terminal.integrated.defaultProfile.linux": "fish"
-      }
+        "a-h.templ",
+        "bradlc.vscode-tailwindcss",
+        "elijah-potter.harper"
+      ]
     }
   },
   "dockerComposeFile": "docker-compose.yml",
-  "features": {
-    "ghcr.io/devcontainers-extra/features/prettier:1": {},
-    "ghcr.io/devcontainers/features/github-cli:1": {},
-    "ghcr.io/devcontainers/features/go:1": {},
-    "ghcr.io/meaningful-ooo/devcontainer-features/fish:2": {},
-    "ghcr.io/schlich/devcontainer-features/starship:0": {}
-  },
-  "name": "go-hass-anything",
-  "postCreateCommand": "bash .devcontainer/postCreate.sh",
-  "remoteEnv": {
-    "HOME": "/home/vscode",
-    "TZ": "${localEnv:TZ:Australia/Brisbane}"
-  },
+  "name": "Go Hass Anything Development",
+  "postCreateCommand": "bash .devcontainer/postcreate.sh",
   "service": "devcontainer",
   "shutdownAction": "stopCompose",
   "updateRemoteUserUID": true,
