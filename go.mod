@@ -37,7 +37,6 @@ require (
 	github.com/samber/lo v1.51.0 // indirect
 	github.com/samber/slog-common v0.19.0 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
-	go.uber.org/goleak v1.3.0 // indirect
 	golang.org/x/crypto v0.43.0 // indirect
 	golang.org/x/mod v0.29.0 // indirect
 	golang.org/x/sync v0.17.0 // indirect
@@ -45,7 +44,7 @@ require (
 
 require (
 	github.com/adrg/xdg v0.5.3
-	github.com/alecthomas/kong v1.12.1
+	github.com/alecthomas/kong v1.13.0
 	github.com/blackjack/webcam v0.6.1
 	github.com/charmbracelet/bubbles v0.21.0
 	github.com/charmbracelet/bubbletea v1.3.10
