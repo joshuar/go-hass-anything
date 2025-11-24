@@ -37,7 +37,6 @@ require (
 	github.com/samber/lo v1.51.0 // indirect
 	github.com/samber/slog-common v0.19.0 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
-	go.uber.org/goleak v1.3.0 // indirect
 	golang.org/x/crypto v0.43.0 // indirect
 	golang.org/x/mod v0.29.0 // indirect
 	golang.org/x/sync v0.17.0 // indirect
@@ -51,7 +50,7 @@ require (
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/eclipse/paho.golang v0.23.0
 	github.com/go-playground/validator/v10 v10.28.0
-	github.com/go-resty/resty/v2 v2.16.5
+	github.com/go-resty/resty/v2 v2.17.0
 	github.com/knadh/koanf v1.5.0
 	github.com/knadh/koanf/v2 v2.3.0
 	github.com/lmittmann/tint v1.1.2
