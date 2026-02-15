@@ -3,10 +3,12 @@
 
 ARG GO_VERSION
 
-FROM docker.io/alpine:3.22.2@sha256:4b7ce07002c69e8f3d704a9c5d6fd3053be500b7f1c69fc0d80990c2ad8dd412 AS builder
+# Alpine base.
+# https://hub.docker.com/_/alpine
+FROM docker.io/alpine:3.23.0@sha256:51183f2cfa6320055da30872f211093f9ff1d3cf06f39a0bdb212314c5dc7375 AS builder
 
 # Copy go from official image
-COPY --from=docker.io/golang:1.25.4-alpine /usr/local/go/ /usr/local/go/
+COPY --from=docker.io/golang:1.26.0-alpine-3.23.0@sha256:d4c4845f5d60c6a974c6000ce58ae079328d03ab7f721a0734277e69905473e5 /usr/local/go/ /usr/local/go/
 
 # Install additional packages
 RUN apk update && apk add sudo openssh curl git bash fish micro graphviz nodejs npm mosquitto-clients
@@ -28,14 +30,11 @@ RUN addgroup --gid $USER_GID $USER_NAME \
 
 USER $USER_NAME
 
-# Install bun
-RUN curl -fsSL https://bun.com/install | bash
-
 RUN <<EOF
     mkdir -p ~/.config/fish
-    echo 'set --export BUN_INSTALL "$HOME/.bun"' >> ~/.config/fish/config.fish
-    echo 'set --export PATH $BUN_INSTALL/bin $PATH' >> ~/.config/fish/config.fish
     echo 'set --export PATH "$HOME/go/bin" /go/bin /usr/local/go/bin $PATH' >> ~/.config/fish/config.fish
+    echo "starship init fish | source" >>~/.config/fish/config.
+    echo 'eval "$(starship init bash)"' >>~/.bashrc
 EOF
 
 # The base container sets XDG_CACHE_HOME XDG_CONFIG_HOME specifically for the root user, we can't unset them in a way that vscode will pick up, so we set them to values for the new user.

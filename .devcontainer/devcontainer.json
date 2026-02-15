@@ -1,11 +1,7 @@
 {
   "containerUser": "vscode",
   "containerEnv": {
-    "HOME": "/home/vscode",
-    "XDG_RUNTIME_DIR": "/tmp",
-    "WAYLAND_DISPLAY": "${env:WAYLAND_DISPLAY}",
-    "APPIMAGE_EXTRACT_AND_RUN": "1",
-    "DBUS_SESSION_BUS_ADDRESS": "${env:DBUS_SESSION_BUS_ADDRESS}"
+    "HOME": "/home/vscode"
   },
   "remoteEnv": {
     "PODMAN_COMPOSE_WARNING_LOGS": "false",
@@ -20,12 +16,8 @@
         "ymotongpoo.licenser",
         "esbenp.prettier-vscode",
         "aaron-bond.better-comments",
-        "github.vscode-github-actions",
         "yzhang.markdown-all-in-one",
-        "bierner.markdown-emoji",
-        "a-h.templ",
-        "bradlc.vscode-tailwindcss",
-        "elijah-potter.harper"
+        "bierner.markdown-emoji"
       ]
     }
   },
