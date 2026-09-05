@@ -24,6 +24,24 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Setup Go
+        id: setup_go
+        uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5
+        with:
+          go-version-file: "go.mod"
+
+      - name: Install Mage
+        uses: magefile/mage-action@6f50bbb8ea47d56e62dee92392788acbc8192d0b # v3
+        with:
+          install-only: true
+
+      - name: Copy over example app
+        run: |
+          rm -fr apps && cp -a examples apps
+
+      - name: Run generators
+        run: mage ${MAGEARGS} preps:generate
+
       - uses: golang/govulncheck-action@032d45514ae346b1db93c04b0c90b841c370344f # v1.1.0
         with:
           repo-checkout: false
