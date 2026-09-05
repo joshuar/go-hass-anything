@@ -85,6 +85,28 @@ func (c *Client) Unpublish(ctx context.Context, msgs ...*Msg) error {
 	return err
 }
 
+func (c *Client) Subscribe(ctx context.Context, subscription *Subscription) error {
+	s := &paho.Subscribe{
+		Subscriptions: []paho.SubscribeOptions{paho.SubscribeOptions{Topic: subscription.Topic, QoS: 1}},
+	}
+	_, err := c.conn.Subscribe(ctx, s)
+	if err != nil {
+		return fmt.Errorf("subscribe failed: %w", err)
+	}
+	return nil
+}
+
+func (c *Client) Unsubscribe(ctx context.Context, subscription *Subscription) error {
+	s := &paho.Unsubscribe{
+		Topics: []string{subscription.Topic},
+	}
+	_, err := c.conn.Unsubscribe(ctx, s)
+	if err != nil {
+		return fmt.Errorf("unsubscribe failed: %w", err)
+	}
+	return nil
+}
+
 //nolint:exhaustruct
 func NewClient(ctx context.Context, prefs Preferences, subscriptions []*Subscription, configs []*Msg) (*Client, error) {
 	if prefs == nil {
