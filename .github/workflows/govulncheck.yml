@@ -1,0 +1,43 @@
+name: 🔐 Determine known CVEs through `govulncheck`
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    # Mondays at 0000
+    - cron: "0 0 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  check-for-vulnerabilities:
+    name: Run govulncheck
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: write
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: golang/govulncheck-action@032d45514ae346b1db93c04b0c90b841c370344f # v1.1.0
+        with:
+          repo-checkout: false
+          go-package: ./...
+          # NOTE that we want to produce the SARIF-formatted report, which can then be consumed by other tools ...
+          output-format: sarif
+          output-file: govulncheck.sarif
+
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
+        with:
+          sarif_file: govulncheck.sarif
+          category: govulncheck
+
+      - name: Print code scanning results URL
+        run: |
+          echo "Results: https://github.com/${{ github.repository }}/security/code-scanning?query=is%3Aopen+branch%3Amain+tool%3Agovulncheck"
