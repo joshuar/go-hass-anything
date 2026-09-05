@@ -12,13 +12,17 @@
 !/.vscode/*.json
 !/.vscode/ltex.dictionary.*.txt
 !/.github/**/*
-!/.devcontainer/**/*
+!/.devcontainer/devcontainer.json
+!/.devcontainer/docker-compose.yml
+!/.devcontainer/Dockerfile
+!/.devcontainer/postcreate.sh
+
 
 # don't ignore YAML configs in sub directories EXCEPT the deployments folder
 # tree
 !**/*.yaml
 deployments/**/*.yaml
-
+.devcontainer/data/**/*.yaml
 !*.md
 !*.go
 !go.sum

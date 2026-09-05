@@ -11,14 +11,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        - GO_VERSION=$GO_VERSION
     volumes:
       - ..:/workspace:cached
       - "${XDG_RUNTIME_DIR}/${WAYLAND_DISPLAY}:/tmp/${WAYLAND_DISPLAY}"
       - /etc/localtime:/etc/localtime:ro,cached
       - /run/dbus:/run/dbus:ro
       - /run/user/1000/bus:/run/user/1000/bus
+      - go-hass-anything-datahome:/datahome
     user: vscode
     cap_add:
       - SYS_PTRACE
@@ -37,7 +36,7 @@ services:
       - .env
     image: ghcr.io/home-assistant/home-assistant:$HA_VERSION
     volumes:
-      - ../deployments/home-assistant/config:/config
+      - ./data/home-assistant/config:/config
       - /run/dbus:/run/dbus:ro
     ports:
       - 8123:8123
@@ -48,10 +47,14 @@ services:
       - .env
     image: docker.io/eclipse-mosquitto:$MOSQUITTO_VERSION
     volumes:
-      - ../deployments/mosquitto/config:/mosquitto/config
-      - ../deployments/mosquitto/data:/mosquitto/data
-      - ../deployments/mosquitto/log:/mosquitto/log
+      - ./data/mosquitto/config:/mosquitto/config
+      - ./data/mosquitto/log:/mosquitto/log
+      - mosquitto-data:/mosquitto/data
       - /etc/localtime:/etc/localtime:ro,cached
     ports:
       - 1883:1883
       - 8883:8883
+
+volumes:
+  mosquitto-data:
+  go-hass-anything-datahome:

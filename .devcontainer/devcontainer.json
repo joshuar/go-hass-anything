@@ -11,13 +11,17 @@
     "vscode": {
       "extensions": [
         "vivaxy.vscode-conventional-commits",
-        "brunodavi.conventional-snippets",
         "golang.go",
         "ymotongpoo.licenser",
         "esbenp.prettier-vscode",
         "aaron-bond.better-comments",
         "yzhang.markdown-all-in-one",
-        "bierner.markdown-emoji"
+        "bierner.markdown-emoji",
+        "adam-bender.commit-message-editor",
+        "tamasfe.even-better-toml",
+        "oderwat.indent-rainbow",
+        "DavidAnson.vscode-markdownlint",
+        "redhat.vscode-yaml"
       ]
     }
   },
