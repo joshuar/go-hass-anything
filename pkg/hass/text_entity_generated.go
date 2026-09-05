@@ -17,8 +17,9 @@ const _TextEntityMode_name = "textpassword"
 var _TextEntityMode_index = [...]uint8{0, 4, 12}
 
 func (i TextEntityMode) String() string {
-	if i < 0 || i >= TextEntityMode(len(_TextEntityMode_index)-1) {
+	idx := int(i) - 0
+	if i < 0 || idx >= len(_TextEntityMode_index)-1 {
 		return "TextEntityMode(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _TextEntityMode_name[_TextEntityMode_index[i]:_TextEntityMode_index[i+1]]
+	return _TextEntityMode_name[_TextEntityMode_index[idx]:_TextEntityMode_index[idx+1]]
 }

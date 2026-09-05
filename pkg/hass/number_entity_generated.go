@@ -18,8 +18,9 @@ const _NumberMode_name = "autoboxslider"
 var _NumberMode_index = [...]uint8{0, 4, 7, 13}
 
 func (i NumberMode) String() string {
-	if i < 0 || i >= NumberMode(len(_NumberMode_index)-1) {
+	idx := int(i) - 0
+	if i < 0 || idx >= len(_NumberMode_index)-1 {
 		return "NumberMode(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _NumberMode_name[_NumberMode_index[i]:_NumberMode_index[i+1]]
+	return _NumberMode_name[_NumberMode_index[idx]:_NumberMode_index[idx+1]]
 }

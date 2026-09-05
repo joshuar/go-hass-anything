@@ -12,7 +12,7 @@ import (
 	mqttapi "github.com/joshuar/go-hass-anything/v12/pkg/mqtt"
 )
 
-//go:generate go run golang.org/x/tools/cmd/stringer -type=TextEntityMode -output text_entity_generated.go -linecomment
+//go:generate go tool stringer -type=TextEntityMode -output text_entity_generated.go -linecomment
 const (
 	PlainText TextEntityMode = iota // text
 	Password                        // password

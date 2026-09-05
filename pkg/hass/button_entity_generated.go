@@ -19,8 +19,9 @@ const _ButtonType_name = "identifyrestartupdate"
 var _ButtonType_index = [...]uint8{0, 0, 8, 15, 21}
 
 func (i ButtonType) String() string {
-	if i < 0 || i >= ButtonType(len(_ButtonType_index)-1) {
+	idx := int(i) - 0
+	if i < 0 || idx >= len(_ButtonType_index)-1 {
 		return "ButtonType(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _ButtonType_name[_ButtonType_index[i]:_ButtonType_index[i+1]]
+	return _ButtonType_name[_ButtonType_index[idx]:_ButtonType_index[idx+1]]
 }

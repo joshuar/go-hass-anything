@@ -24,8 +24,9 @@ const _EntityType_name = "unknownsensorbinary_sensorbuttonnumberswitchtextcamera
 var _EntityType_index = [...]uint8{0, 7, 13, 26, 32, 38, 44, 48, 54, 59}
 
 func (i EntityType) String() string {
-	if i < 0 || i >= EntityType(len(_EntityType_index)-1) {
+	idx := int(i) - 0
+	if i < 0 || idx >= len(_EntityType_index)-1 {
 		return "EntityType(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
-	return _EntityType_name[_EntityType_index[i]:_EntityType_index[i+1]]
+	return _EntityType_name[_EntityType_index[idx]:_EntityType_index[idx+1]]
 }
