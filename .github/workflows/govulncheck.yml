@@ -26,12 +26,12 @@ jobs:
 
       - name: Setup Go
         id: setup_go
-        uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v5
         with:
           go-version-file: "go.mod"
 
       - name: Install Mage
-        uses: magefile/mage-action@6f50bbb8ea47d56e62dee92392788acbc8192d0b # v3
+        uses: magefile/mage-action@a662bd8c29d8106879588cfff83b2faf6e6f59db # v4.0.0
         with:
           install-only: true
 
