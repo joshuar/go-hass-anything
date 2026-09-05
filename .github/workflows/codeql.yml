@@ -2,11 +2,11 @@ name: "CodeQL"
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
   schedule:
-    - cron: '11 0 * * 5'
+    - cron: "11 0 * * 5"
   workflow_dispatch:
 
 permissions:
@@ -26,54 +26,62 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        - language: go
-          build-mode: manual
+          - language: go
+            build-mode: manual
     steps:
-    - name: Harden Runner
-      uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
-      with:
-        disable-sudo: true
-        egress-policy: block
-        allowed-endpoints: >
-          api.github.com:443
-          ghcr.io:443
-          github.com:443
-          objects.githubusercontent.com:443
-          pkg-containers.githubusercontent.com:443
-          proxy.golang.org:443
-          raw.githubusercontent.com:443
-          storage.googleapis.com:443
-          sum.golang.org:443
-          uploads.github.com:443
-          release-assets.githubusercontent.com:443
-    - name: Checkout repository
-      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-      with:
-        fetch-depth: 0
-    - name: Setup Go
-      id: setup_go
-      uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5
-      with:
-        go-version-file: 'go.mod'
-    - name: Install Mage
-      uses: magefile/mage-action@6f50bbb8ea47d56e62dee92392788acbc8192d0b # v3
-      with:
-        install-only: true
-    - name: Copy over example app
-      run: |
-        rm -fr apps && cp -a examples apps
-    - name: Run generators
-      run: mage ${MAGEARGS} preps:generate
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@8f1a6fed33af5212fab8a999d004627ae8901d1b # v3
-      with:
-        languages: ${{ matrix.language }}
-        build-mode: ${{ matrix.build-mode }}
-        packs: githubsecuritylab/codeql-${{ matrix.language }}-queries
-    - name: Build agent
-      run: |
-        go build -v
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@8f1a6fed33af5212fab8a999d004627ae8901d1b # v3
-      with:
-        category: "/language:${{matrix.language}}"
+      - name: Harden Runner
+        uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          disable-sudo: true
+          egress-policy: block
+          allowed-endpoints: >
+            api.github.com:443
+            ghcr.io:443
+            github.com:443
+            objects.githubusercontent.com:443
+            pkg-containers.githubusercontent.com:443
+            proxy.golang.org:443
+            raw.githubusercontent.com:443
+            storage.googleapis.com:443
+            sum.golang.org:443
+            uploads.github.com:443
+            release-assets.githubusercontent.com:443
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: "false"
+
+      - name: Setup Go
+        id: setup_go
+        uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5
+        with:
+          go-version-file: "go.mod"
+
+      - name: Install Mage
+        uses: magefile/mage-action@6f50bbb8ea47d56e62dee92392788acbc8192d0b # v3
+        with:
+          install-only: true
+
+      - name: Copy over example app
+        run: |
+          rm -fr apps && cp -a examples apps
+
+      - name: Run generators
+        run: mage ${MAGEARGS} preps:generate
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@8f1a6fed33af5212fab8a999d004627ae8901d1b # v3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          packs: githubsecuritylab/codeql-${{ matrix.language }}-queries
+
+      - name: Build agent
+        run: |
+          go build -v
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@8f1a6fed33af5212fab8a999d004627ae8901d1b # v3
+        with:
+          category: "/language:${{matrix.language}}"

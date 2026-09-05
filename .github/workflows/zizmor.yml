@@ -30,5 +30,23 @@ jobs:
         with:
           persist-credentials: "false"
 
+      - name: Setup Go
+        id: setup_go
+        uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5
+        with:
+          go-version-file: "go.mod"
+
+      - name: Install Mage
+        uses: magefile/mage-action@6f50bbb8ea47d56e62dee92392788acbc8192d0b # v3
+        with:
+          install-only: true
+
+      - name: Copy over example app
+        run: |
+          rm -fr apps && cp -a examples apps
+
+      - name: Run generators
+        run: mage ${MAGEARGS} preps:generate
+
       - name: Run zizmor
         uses: zizmorcore/zizmor-action@3dc1ecc9bcb9e94e9b2c709687979e1298497054 # v0.6.2
