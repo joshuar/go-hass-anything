@@ -117,6 +117,7 @@ jobs:
             storage.googleapis.com:443
             sum.golang.org:443
             production.cloudfront.docker.com:443
+            release-assets.githubusercontent.com:443
 
       - name: Checkout repo
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
