@@ -5,11 +5,6 @@
 
 name: 🏗️ Build containers
 
-env:
-  REGISTRY: ghcr.io
-  IMAGE: ${{ github.repository }}
-  MAGEARGS: -d build/magefiles -w .
-
 on:
   push:
     branches:
@@ -95,6 +90,10 @@ jobs:
           - linux/arm/v6
           - linux/arm/v7
           - linux/arm64
+
+    env:
+      REGISTRY: ghcr.io
+      IMAGE_NAME: ${{ github.repository }}
 
     steps:
       - name: Harden Runner
