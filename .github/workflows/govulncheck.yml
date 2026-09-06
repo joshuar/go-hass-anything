@@ -10,6 +10,9 @@ on:
 permissions:
   contents: read
 
+env:
+  MAGEARGS: -d build/magefiles -w .
+
 jobs:
   check-for-vulnerabilities:
     name: Run govulncheck

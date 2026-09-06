@@ -8,6 +8,9 @@ on:
 
 permissions: {}
 
+env:
+  MAGEARGS: -d build/magefiles -w .
+
 jobs:
   zizmor:
     name: Run zizmor
