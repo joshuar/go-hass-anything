@@ -1,5 +1,25 @@
 # Changelog
 
+## [12.2.1](https://github.com/joshuar/go-hass-anything/compare/v12.1.0...v12.2.1) (2026-09-06)
+
+
+### Features
+
+* **container:** ✨ update build ([c4010fa](https://github.com/joshuar/go-hass-anything/commit/c4010fa45a5759de32945d3291d462da9631a0ab))
+* **mqtt:** ✨ expose Subscribe/Unsubscribe methods on client ([733d0cc](https://github.com/joshuar/go-hass-anything/commit/733d0ccc52edaf9fbf7d7499128eedcc4d96ef55))
+
+
+### Bug Fixes
+
+* **container:** 🔧 set build platform appropriately ([2e7ffef](https://github.com/joshuar/go-hass-anything/commit/2e7ffef341ab5a93e727319d23cf22c96f0b3830))
+* **mqtt:** :bug: generate a unique and stable MQTT client ID ([7a196bf](https://github.com/joshuar/go-hass-anything/commit/7a196bfce99b3a6034ea468782a3fdc1eee5d8dc))
+* **mqtt:** generate a unique and stable MQTT client ID ([affcb94](https://github.com/joshuar/go-hass-anything/commit/affcb94306b88179e01a7378ecb48a52c4561ab1))
+
+
+### Miscellaneous Chores
+
+* release 12.2.1 ([64d2a83](https://github.com/joshuar/go-hass-anything/commit/64d2a83cc2b5a579b17b831d0b5c65b7349735c2))
+
 ## [12.1.0](https://github.com/joshuar/go-hass-anything/compare/v12.0.0...v12.1.0) (2025-01-04)
 
 
