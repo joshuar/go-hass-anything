@@ -7,12 +7,15 @@ package mqtt
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"log/slog"
 	"net/url"
-	"strconv"
-	"time"
+	"os"
+	"strings"
 
 	"github.com/eclipse/paho.golang/autopaho"
 	"github.com/eclipse/paho.golang/paho"
@@ -21,6 +24,13 @@ import (
 const (
 	defaultKeepAliveSec     = 20
 	defaultSessionExpirySec = 60
+
+	// clientIDPrefix is prepended to the generated MQTT client ID.
+	clientIDPrefix = "go_hass_anything_"
+	// clientIDMaxHostLen is the longest hostname that is embedded in a client ID
+	// verbatim. Longer hostnames are hashed instead, which keeps the client ID a
+	// sensible length without giving up uniqueness.
+	clientIDMaxHostLen = 32
 )
 
 var (
@@ -164,7 +174,7 @@ func NewClient(ctx context.Context, prefs Preferences, subscriptions []*Subscrip
 //nolint:exhaustruct
 func genConnOpts(ctx context.Context, prefs Preferences, subOpts []paho.SubscribeOptions, router *paho.StandardRouter) autopaho.ClientConfig { //nolint:lll
 	// Set a client ID for this connection.
-	clientID := "go_hass_anything_" + strconv.Itoa(time.Now().Second())
+	clientID := newClientID()
 
 	// Get the server from the preferences and convert to a URL.
 	serverURL, err := url.Parse(prefs.Server())
@@ -234,6 +244,65 @@ func genConnOpts(ctx context.Context, prefs Preferences, subOpts []paho.Subscrib
 	}
 
 	return connOpts
+}
+
+// newClientID generates the MQTT client ID to connect with. The ID needs to be
+// both unique to this client and stable across reconnections:
+//
+//   - MQTT requires client IDs to be unique. When a client connects with an ID
+//     that is already connected, the broker closes the existing connection, so
+//     two clients sharing an ID will repeatedly evict one another.
+//   - The broker keys the session state it retains on the client ID, and this
+//     client asks for a session that outlives disconnection (see
+//     SessionExpiryInterval above). An ID that changes between reconnections
+//     therefore orphans the session belonging to the previous ID.
+//
+// Deriving the ID from the hostname satisfies both properties for the usual
+// case of one instance per device. Where the hostname cannot be used, a random
+// ID is generated instead, which is unique but not stable.
+func newClientID() string {
+	hostname, err := os.Hostname()
+	if err != nil {
+		slog.Debug("Could not determine hostname for MQTT client ID, generating a random one.",
+			slog.Any("error", err))
+	}
+
+	return clientIDForHost(hostname)
+}
+
+// clientIDForHost derives the client ID for the given hostname. An unusable
+// hostname yields a random ID, and an overly long one is hashed rather than
+// truncated, so that distinct hostnames always yield distinct client IDs.
+func clientIDForHost(hostname string) string {
+	id := sanitiseClientID(hostname)
+
+	switch {
+	case id == "":
+		id = rand.Text()
+	case len(id) > clientIDMaxHostLen:
+		sum := sha256.Sum256([]byte(id))
+		id = hex.EncodeToString(sum[:8])
+	}
+
+	return clientIDPrefix + id
+}
+
+// sanitiseClientID drops any characters from the given string that cannot be
+// relied upon in an MQTT client ID. MQTT only requires brokers to accept
+// alphanumeric client IDs, so anything else is removed.
+func sanitiseClientID(id string) string {
+	return strings.Map(func(r rune) rune {
+		switch {
+		case r >= '0' && r <= '9':
+			return r
+		case r >= 'a' && r <= 'z':
+			return r
+		case r >= 'A' && r <= 'Z':
+			return r
+		default:
+			return -1
+		}
+	}, id)
 }
 
 //nolint:exhaustruct
