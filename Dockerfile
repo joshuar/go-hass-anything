@@ -6,8 +6,8 @@
 ARG ALPINE_VERSION=3.24.1@sha256:79ff19e9084a00eece421b2523fb93e22d730e2c0e525905de047e848e56d95f
 ARG GO_VERSION=1.27.1-alpine3.24@sha256:f86f1a6701e3dcc445fec097a42f78b758f15950ccf032c2d3e54e2754d32fdb
 
-FROM docker.io/golang:${GO_VERSION} AS golang
-FROM docker.io/alpine:${ALPINE_VERSION} AS builder
+FROM --platform=$BUILDPLATFORM docker.io/golang:${GO_VERSION} AS golang
+FROM --platform=$BUILDPLATFORM docker.io/alpine:${ALPINE_VERSION} AS builder
 
 COPY --from=golang /usr/local/go/ /usr/local/go/
 
@@ -47,7 +47,7 @@ RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} go tool mage -d build/magefiles -w . b
 # compress binary with upx
 RUN upx --best --lzma /usr/src/go-hass-anything/dist/go-hass-anything-$TARGETARCH*
 
-FROM alpine@sha256:79ff19e9084a00eece421b2523fb93e22d730e2c0e525905de047e848e56d95f
+FROM --platform=$BUILDPLATFORM alpine@sha256:79ff19e9084a00eece421b2523fb93e22d730e2c0e525905de047e848e56d95f
 
 # Add image labels.
 LABEL org.opencontainers.image.source="https://github.com/joshuar/go-hass-anything"
