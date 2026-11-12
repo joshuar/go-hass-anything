@@ -16,6 +16,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync/atomic"
 
 	"github.com/eclipse/paho.golang/autopaho"
 	"github.com/eclipse/paho.golang/paho"
@@ -63,8 +64,25 @@ type Subscription struct {
 
 // Client is the connection to the MQTT broker.
 type Client struct {
-	conn     *autopaho.ConnectionManager
-	haStatus chan string
+	conn        *autopaho.ConnectionManager
+	haStatus    chan string
+	reconnected chan struct{}
+	onReconnect func()
+	connected   atomic.Bool
+}
+
+// ClientOption is an optional setting for a Client.
+type ClientOption func(*Client)
+
+// WithOnReconnect sets a function that is called each time the client
+// reconnects to the broker, after the configuration messages have been
+// republished. It is not called for the initial connection. Clients can use it
+// to republish anything else Home Assistant may have missed while disconnected,
+// such as entity states.
+func WithOnReconnect(fn func()) ClientOption {
+	return func(c *Client) {
+		c.onReconnect = fn
+	}
 }
 
 // Publish will send the list of messages it is passed to the broker that the
@@ -118,7 +136,7 @@ func (c *Client) Unsubscribe(ctx context.Context, subscription *Subscription) er
 }
 
 //nolint:exhaustruct
-func NewClient(ctx context.Context, prefs Preferences, subscriptions []*Subscription, configs []*Msg) (*Client, error) {
+func NewClient(ctx context.Context, prefs Preferences, subscriptions []*Subscription, configs []*Msg, options ...ClientOption) (*Client, error) { //nolint:lll
 	if prefs == nil {
 		return nil, ErrNoPrefs
 	}
@@ -126,8 +144,13 @@ func NewClient(ctx context.Context, prefs Preferences, subscriptions []*Subscrip
 	subOpts := make([]paho.SubscribeOptions, 0, len(subscriptions))
 
 	client := &Client{
-		haStatus: make(chan string),
+		haStatus:    make(chan string),
+		reconnected: make(chan struct{}, 1),
 	}
+	for _, option := range options {
+		option(client)
+	}
+
 	router := paho.NewStandardRouter()
 
 	for _, s := range subscriptions {
@@ -148,7 +171,7 @@ func NewClient(ctx context.Context, prefs Preferences, subscriptions []*Subscrip
 		client.haStatus <- string(p.Payload)
 	})
 
-	connOpts := genConnOpts(ctx, prefs, subOpts, router)
+	connOpts := genConnOpts(ctx, prefs, subOpts, router, client.connectionUp)
 
 	conn, err := autopaho.NewConnection(ctx, connOpts) // starts process; will reconnect until context canceled.
 	if err != nil {
@@ -166,13 +189,33 @@ func NewClient(ctx context.Context, prefs Preferences, subscriptions []*Subscrip
 			slog.Any("error", err))
 	}
 
-	client.monitorHAStatus(ctx, configs...)
+	client.monitorHAStatus(ctx, client.Publish, configs...)
 
 	return client, nil
 }
 
+// connectionUp is called every time a connection to the broker is established.
+// Home Assistant forgets any entities whose configuration it has not seen since
+// it last started, and the configuration messages are not retained. If Home
+// Assistant restarted while the client was disconnected (for example, while the
+// device was suspended), the entities would remain unavailable until Home
+// Assistant next restarts. So on every connection after the first, signal that
+// the configuration should be republished.
+func (c *Client) connectionUp() {
+	if !c.connected.Swap(true) {
+		// The initial connection, NewClient publishes the configuration.
+		return
+	}
+
+	select {
+	case c.reconnected <- struct{}{}:
+	default:
+		// A republish is already pending.
+	}
+}
+
 //nolint:exhaustruct
-func genConnOpts(ctx context.Context, prefs Preferences, subOpts []paho.SubscribeOptions, router *paho.StandardRouter) autopaho.ClientConfig { //nolint:lll
+func genConnOpts(ctx context.Context, prefs Preferences, subOpts []paho.SubscribeOptions, router *paho.StandardRouter, onConnectionUp func()) autopaho.ClientConfig { //nolint:lll
 	// Set a client ID for this connection.
 	clientID := newClientID()
 
@@ -201,6 +244,7 @@ func genConnOpts(ctx context.Context, prefs Preferences, subOpts []paho.Subscrib
 					slog.Any("error", err))
 			}
 			slog.Debug("Subscriptions added to MQTT.")
+			onConnectionUp()
 		},
 		OnConnectError: func(err error) {
 			slog.Error("Error establishing MQTT connection.",
@@ -329,7 +373,7 @@ func publish(ctx context.Context, conn *autopaho.ConnectionManager, msgs ...*Msg
 	return errs
 }
 
-func (c *Client) monitorHAStatus(ctx context.Context, configs ...*Msg) {
+func (c *Client) monitorHAStatus(ctx context.Context, publish func(context.Context, ...*Msg) error, configs ...*Msg) {
 	go func() {
 		for {
 			select {
@@ -338,12 +382,23 @@ func (c *Client) monitorHAStatus(ctx context.Context, configs ...*Msg) {
 				case "online":
 					slog.Debug("Home Assistant detected online.")
 
-					if err := c.Publish(ctx, configs...); err != nil {
+					if err := publish(ctx, configs...); err != nil {
 						slog.Warn("Could not publish configs to MQTT",
 							slog.Any("error", err))
 					}
 				case "offline":
 					slog.Debug("Home Assistant detected offline.")
+				}
+			case <-c.reconnected:
+				slog.Debug("Reconnected to MQTT, republishing configs.")
+
+				if err := publish(ctx, configs...); err != nil {
+					slog.Warn("Could not publish configs to MQTT",
+						slog.Any("error", err))
+				}
+
+				if c.onReconnect != nil {
+					c.onReconnect()
 				}
 			case <-ctx.Done():
 				close(c.haStatus)
