@@ -6,8 +6,10 @@
 package mqtt
 
 import (
+	"context"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestSanitiseClientID(t *testing.T) {
@@ -90,4 +92,64 @@ func TestClientIDForHost(t *testing.T) {
 			t.Errorf("hashed client ID length = %d, want %d", got, want)
 		}
 	})
+}
+
+func TestConnectionUp(t *testing.T) {
+	client := &Client{reconnected: make(chan struct{}, 1)}
+
+	client.connectionUp()
+
+	if len(client.reconnected) != 0 {
+		t.Fatal("initial connection signalled a reconnect")
+	}
+
+	client.connectionUp()
+	client.connectionUp()
+
+	if got := len(client.reconnected); got != 1 {
+		t.Fatalf("expected one pending reconnect signal, got %d", got)
+	}
+}
+
+func TestMonitorHAStatusReconnect(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	configs := []*Msg{NewMsg("homeassistant/sensor/test/config", []byte(`{}`))}
+	events := make(chan string, 4)
+
+	client := &Client{
+		haStatus:    make(chan string),
+		reconnected: make(chan struct{}, 1),
+		onReconnect: func() { events <- "onReconnect" },
+	}
+	publish := func(_ context.Context, msgs ...*Msg) error {
+		if len(msgs) != len(configs) || msgs[0] != configs[0] {
+			t.Errorf("published unexpected messages: %v", msgs)
+		}
+		events <- "publish"
+
+		return nil
+	}
+
+	client.monitorHAStatus(ctx, publish, configs...)
+	client.connectionUp()
+	client.connectionUp()
+
+	for _, want := range []string{"publish", "onReconnect"} {
+		select {
+		case got := <-events:
+			if got != want {
+				t.Fatalf("expected %s, got %s", want, got)
+			}
+		case <-time.After(time.Second):
+			t.Fatalf("timed out waiting for %s", want)
+		}
+	}
+
+	select {
+	case got := <-events:
+		t.Fatalf("unexpected event %s", got)
+	case <-time.After(50 * time.Millisecond):
+	}
 }
