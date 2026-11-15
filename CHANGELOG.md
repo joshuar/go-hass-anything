@@ -1,5 +1,13 @@
 # Changelog
 
+## [12.2.2](https://github.com/joshuar/go-hass-anything/compare/v12.2.1...v12.2.2) (2026-11-15)
+
+
+### Bug Fixes
+
+* **mqtt:** :bug: republish entity configs after reconnecting to the broker ([ae276cf](https://github.com/joshuar/go-hass-anything/commit/ae276cfd37c2fc86683a259ae091c107ef21e535))
+* **mqtt:** :bug: republish entity configs after reconnecting to the broker ([a89271d](https://github.com/joshuar/go-hass-anything/commit/a89271d82e38c6f534f8a73a5d481cd4aebcd7c7))
+
 ## [12.2.1](https://github.com/joshuar/go-hass-anything/compare/v12.1.0...v12.2.1) (2026-09-06)
 
 
